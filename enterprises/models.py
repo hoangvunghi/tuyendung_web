@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import User
+from accounts.models import UserAccount
 
 class EnterpriseEntity(models.Model):
     company_name = models.CharField(max_length=255)
@@ -14,7 +14,7 @@ class EnterpriseEntity(models.Model):
     phone_number = models.CharField(max_length=20)
     scale = models.CharField(max_length=255)
     tax = models.CharField(max_length=255)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enterprises')
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='enterprises')
     city = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -90,7 +90,7 @@ class CriteriaEntity(models.Model):
     position = models.ForeignKey(PositionEntity, on_delete=models.CASCADE, related_name='criteria')
     scales = models.CharField(max_length=255)
     type_working = models.CharField(max_length=255)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='criteria')
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='criteria')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     
