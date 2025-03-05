@@ -1,7 +1,7 @@
 from django.db import models
 from accounts.models import UserAccount
 from enterprises.models import PostEntity
-
+from model_utils import FieldTracker
 class UserInfo(models.Model):
     user = models.OneToOneField(UserAccount, on_delete=models.CASCADE, related_name='profile')
     fullname = models.CharField(max_length=255)
@@ -25,6 +25,7 @@ class Cv(models.Model):
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=20)
     description = models.TextField()  
+    cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
@@ -34,6 +35,24 @@ class Cv(models.Model):
     note = models.TextField(blank=True)  
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True) 
+    tracker = FieldTracker(fields=['status'])
     
     def __str__(self):
         return f"CV: {self.name} for {self.post}"
+
+# profiles/models.py
+class CvView(models.Model):
+    cv = models.ForeignKey('Cv', on_delete=models.CASCADE)
+    viewer = models.ForeignKey('enterprises.EnterpriseEntity', on_delete=models.CASCADE)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+class CvMark(models.Model):
+    MARK_TYPES = (
+        ('interested', 'Quan tâm'),
+        ('shortlisted', 'Vào danh sách ngắn'),
+        ('rejected', 'Từ chối'),
+    )
+    cv = models.ForeignKey('Cv', on_delete=models.CASCADE)
+    marker = models.ForeignKey('enterprises.EnterpriseEntity', on_delete=models.CASCADE)
+    mark_type = models.CharField(max_length=20, choices=MARK_TYPES)
+    marked_at = models.DateTimeField(auto_now_add=True)

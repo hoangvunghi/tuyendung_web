@@ -32,12 +32,24 @@ INSTALLED_APPS = [
     "profiles",
     "transactions",
     "services",
+    "notifications",
+    'interviews',  
+    'chat',  
 
     'rest_framework',
     'rest_framework_simplejwt',
     "drf_yasg",
-
+    "channels",
 ]
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 AUTH_USER_MODEL = 'accounts.UserAccount'
 
