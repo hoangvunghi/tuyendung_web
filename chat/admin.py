@@ -1,3 +1,12 @@
 from django.contrib import admin
+from .models import Message
+from django.contrib import admin
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+from unfold.admin import ModelAdmin
+from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
+from base.admin import BaseAdminClass
 
-# Register your models here.
+@admin.register(Message)
+class MessageAdmin(BaseAdminClass):
+    pass
