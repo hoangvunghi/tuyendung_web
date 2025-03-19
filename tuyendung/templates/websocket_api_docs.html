@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket API Documentation - Tuyển Dụng</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f6f8fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .method {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .note {
+            background-color: #fef9e7;
+            border-left: 4px solid #f39c12;
+            padding: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket API Documentation - Tuyển Dụng</h1>
+    
+    <h2>Giới thiệu</h2>
+    <p>
+        WebSocket API của Tuyển Dụng cho phép nhận thông báo real-time. 
+        API này đặc biệt hữu ích cho việc nhận thông báo ngay khi có sự kiện mới như:
+        CV được xem, trạng thái CV thay đổi, lời mời phỏng vấn mới, và tin nhắn mới.
+    </p>
+    
+    <h2>Xác thực</h2>
+    <p>
+        WebSocket yêu cầu JWT Token để xác thực. Token phải được truyền qua query parameter khi tạo kết nối:
+    </p>
+    <pre><code>ws://domain/ws/notifications/?token=your-jwt-token</code></pre>
+    
+    <h2>Kết nối</h2>
+    <p>
+        Để kết nối tới WebSocket, sử dụng JavaScript (hoặc ngôn ngữ/framework tương đương) như sau:
+    </p>
+    
+    <pre><code>// Kết nối WebSocket
+const token = 'your-jwt-token';
+const socket = new WebSocket(`ws://domain/ws/notifications/?token=${token}`);
+
+socket.onopen = () => {
+    console.log('WebSocket Connected');
+};
+
+socket.onclose = () => {
+    console.log('WebSocket Disconnected');
+};
+
+socket.onerror = (error) => {
+    console.error('WebSocket Error:', error);
+};
+
+socket.onmessage = (event) => {
+    const notification = JSON.parse(event.data);
+    console.log('New notification:', notification);
+    // Xử lý thông báo ở đây (hiển thị toast, cập nhật UI, v.v.)
+};</code></pre>
+    
+    <h2>Cấu trúc thông báo</h2>
+    <p>
+        Khi có thông báo mới, WebSocket sẽ gửi một JSON object với cấu trúc như sau:
+    </p>
+    
+    <pre><code>{
+    "id": 123,
+    "type": "cv_viewed",  // Loại thông báo
+    "title": "CV của bạn đã được xem",
+    "message": "CV của bạn đã được Công ty ABC xem",
+    "is_read": false,
+    "created_at": "2023-03-04T12:34:56.789Z",
+    "related_object": {
+        "type": "cv",
+        "id": 456
+    }
+}</code></pre>
+    
+    <h2>Loại thông báo</h2>
+    <table>
+        <tr>
+            <th>type</th>
+            <th>Mô tả</th>
+            <th>Thuộc tính bổ sung</th>
+        </tr>
+        <tr>
+            <td>cv_received</td>
+            <td>Doanh nghiệp nhận được CV mới</td>
+            <td>post_id, cv_id</td>
+        </tr>
+        <tr>
+            <td>cv_viewed</td>
+            <td>CV của ứng viên được xem</td>
+            <td>cv_id, viewer_id</td>
+        </tr>
+        <tr>
+            <td>cv_status_changed</td>
+            <td>Trạng thái CV thay đổi</td>
+            <td>cv_id, old_status, new_status</td>
+        </tr>
+        <tr>
+            <td>cv_marked</td>
+            <td>CV được đánh dấu</td>
+            <td>cv_id, mark_type</td>
+        </tr>
+        <tr>
+            <td>interview_invited</td>
+            <td>Nhận được lời mời phỏng vấn</td>
+            <td>interview_id, enterprise_id</td>
+        </tr>
+        <tr>
+            <td>message_received</td>
+            <td>Nhận được tin nhắn mới</td>
+            <td>message_id, sender_id</td>
+        </tr>
+    </table>
+    
+    <h2>Xử lý lỗi và kết nối lại</h2>
+    <p>
+        Trong trường hợp mất kết nối, bạn nên triển khai cơ chế kết nối lại:
+    </p>
+    
+    <pre><code>// Kết nối lại WebSocket
+function connectWebSocket() {
+    const token = 'your-jwt-token';
+    const socket = new WebSocket(`ws://domain/ws/notifications/?token=${token}`);
+    
+    socket.onopen = () => {
+        console.log('WebSocket Connected');
+        retryCount = 0;
+    };
+    
+    socket.onclose = () => {
+        console.log('WebSocket Disconnected');
+        // Kết nối lại sau 5 giây
+        setTimeout(() => {
+            connectWebSocket();
+        }, 5000);
+    };
+    
+    socket.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+    };
+    
+    socket.onmessage = (event) => {
+        const notification = JSON.parse(event.data);
+        console.log('New notification:', notification);
+        // Xử lý thông báo
+    };
+    
+    return socket;
+}
+
+// Kết nối ban đầu
+let socket = connectWebSocket();</code></pre>
+    
+    <div class="note">
+        <strong>Lưu ý:</strong> Theo tiêu chuẩn, WebSocket sẽ đóng kết nối nếu không có hoạt động trong một thời gian dài. 
+        Để duy trì kết nối, bạn có thể gửi tin nhắn "ping" định kỳ hoặc dựa vào cơ chế kết nối lại.
+    </div>
+    
+    <h2>Ví dụ tích hợp với React</h2>
+    <pre><code>import React, { useEffect, useState } from 'react';
+import { useAuth } from './auth-context';
+
+function NotificationSystem() {
+    const { token } = useAuth();
+    const [notifications, setNotifications] = useState([]);
+    
+    useEffect(() => {
+        // Khởi tạo WebSocket khi component mount
+        const socket = new WebSocket(`ws://domain/ws/notifications/?token=${token}`);
+        
+        socket.onmessage = (event) => {
+            const newNotification = JSON.parse(event.data);
+            setNotifications(prev => [newNotification, ...prev]);
+            
+            // Hiển thị toast notification
+            toast.info(newNotification.title, {
+                description: newNotification.message,
+                duration: 5000,
+            });
+        };
+        
+        // Cleanup khi component unmount
+        return () => {
+            socket.close();
+        };
+    }, [token]);
+    
+    return (
+        <div>
+            <h3>Thông báo ({notifications.length})</h3>
+            <ul>
+                {notifications.map(notification => (
+                    <li key={notification.id}>
+                        <h4>{notification.title}</h4>
+                        <p>{notification.message}</p>
+                        <small>{new Date(notification.created_at).toLocaleString()}</small>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+export default NotificationSystem;</code></pre>
+    
+    <h2>Tài liệu tham khảo thêm</h2>
+    <ul>
+        <li><a href="https://tuyendung.com/api-docs/swagger/">REST API Documentation</a></li>
+        <li><a href="https://tuyendung.com/api-docs/redoc/">Full API Specification</a></li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">MDN WebSocket Documentation</a></li>
+    </ul>
+</body>
+</html> 

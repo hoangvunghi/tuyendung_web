@@ -19,3 +19,9 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['created_at']
+        # set name là tên của message
+        verbose_name = 'Tin nhắn'
+        verbose_name_plural = 'Tin nhắn'
+
+    def __str__(self):
+        return f'{self.sender} to {self.recipient} at {self.created_at}'

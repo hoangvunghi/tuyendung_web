@@ -43,3 +43,5 @@ class PackageCampaign(models.Model):
     
     class Meta:
         unique_together = ('package', 'campaign')
+        verbose_name = 'Gói đăng ký'
+        verbose_name_plural = 'Gói đăng ký'

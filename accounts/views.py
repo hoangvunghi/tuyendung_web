@@ -10,10 +10,52 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from json import dumps, loads
+from base.permissions import IsAdminUser
 from rest_framework_simplejwt.exceptions import TokenError
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 UserAccount = get_user_model()
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Đăng ký tài khoản mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['username', 'Email', 'password'],
+        properties={
+            'username': openapi.Schema(type=openapi.TYPE_STRING, description="Tên đăng nhập"),
+            'Email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Địa chỉ email"),
+            'password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu"),
+            'is_recruiter': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Là nhà tuyển dụng"),
+            'is_applicant': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Là người tìm việc"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="User registered successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Registration failed",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -31,6 +73,47 @@ def register(request):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Đăng nhập vào hệ thống",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['username', 'password'],
+        properties={
+            'username': openapi.Schema(type=openapi.TYPE_STRING, description="Tên đăng nhập"),
+            'password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Login successful",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'refresh': openapi.Schema(type=openapi.TYPE_STRING, description="JWT Refresh token"),
+                            'access': openapi.Schema(type=openapi.TYPE_STRING, description="JWT Access token"),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid credentials",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
@@ -52,6 +135,45 @@ def login(request):
         'status': status.HTTP_400_BAD_REQUEST
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Làm mới token truy cập",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['refresh'],
+        properties={
+            'refresh': openapi.Schema(type=openapi.TYPE_STRING, description="JWT Refresh token"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Token refreshed successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'access': openapi.Schema(type=openapi.TYPE_STRING, description="JWT Access token mới"),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Refresh token is required",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token_refresh(request):
@@ -70,7 +192,48 @@ def token_refresh(request):
         'status': status.HTTP_400_BAD_REQUEST
     }, status=status.HTTP_400_BAD_REQUEST)
 
-
+@swagger_auto_schema(
+    method='post',
+    operation_description="Yêu cầu đặt lại mật khẩu",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['email'],
+        properties={
+            'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Địa chỉ email"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Password reset email sent successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="UserAccount not found for the provided User",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        ),
+        500: openapi.Response(
+            description="Failed to generate reset token",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'error': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def forgot_password_view(request):
@@ -109,6 +272,39 @@ def forgot_password_view(request):
                      "status": status.HTTP_200_OK},
                     status=status.HTTP_200_OK)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Đặt lại mật khẩu",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['password'],
+        properties={
+            'password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu mới"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Password reset successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid reset token",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'error': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def reset_password_view(request, token):

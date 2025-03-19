@@ -7,43 +7,102 @@ from rest_framework import status
 from .models import Message
 from .serializers import MessageSerializer
 from base.pagination import CustomPagination
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from base.permissions import AdminAccessPermission
+from rest_framework.permissions import OR
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy tin nhắn của cuộc trò chuyện",
+    manual_parameters=[
+        openapi.Parameter(
+            'user_id', 
+            openapi.IN_QUERY, 
+            description="ID của người dùng trong cuộc trò chuyện", 
+            type=openapi.TYPE_INTEGER,
+            required=True
+        ),
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng tin nhắn mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Lấy tin nhắn thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'sender': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'recipient': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'content': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'is_read': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                        'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                                    }
+                                )
+                            ),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Thiếu tham số user_id",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def get_messages(request):
     """Lấy tin nhắn của cuộc trò chuyện"""
     conversation_with = request.query_params.get('user_id')
-    messages = Message.objects.filter(
-        Q(sender=request.user, recipient_id=conversation_with) |
-        Q(recipient=request.user, sender_id=conversation_with)
-    ).order_by('created_at')
-    
-    paginator = CustomPagination()
-    paginated_messages = paginator.paginate_queryset(messages, request)
-    serializer = MessageSerializer(paginated_messages, many=True)
-    return paginator.get_paginated_response(serializer.data)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def send_message(request):
-    """Gửi tin nhắn"""
-    serializer = MessageSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(sender=request.user)
+    if not conversation_with:
         return Response({
-            'message': 'Message sent successfully',
-            'data': serializer.data
-        }, status=201)
-    return Response(serializer.errors, status=400)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_messages(request):
-    conversation_with = request.query_params.get('user_id')
+            'message': 'user_id parameter is required',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
     messages = Message.objects.filter(
         Q(sender=request.user, recipient_id=conversation_with) |
         Q(recipient=request.user, sender_id=conversation_with)
@@ -54,8 +113,45 @@ def get_messages(request):
     serializer = MessageSerializer(paginated_messages, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Gửi tin nhắn mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['recipient', 'content'],
+        properties={
+            'recipient': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID người nhận tin nhắn"),
+            'content': openapi.Schema(type=openapi.TYPE_STRING, description="Nội dung tin nhắn"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Gửi tin nhắn thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Lỗi dữ liệu đầu vào",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def send_message(request):
     serializer = MessageSerializer(data=request.data)
     if serializer.is_valid():
@@ -71,9 +167,61 @@ def send_message(request):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
-# get_unread_messages
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách tin nhắn chưa đọc",
+    manual_parameters=[
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng tin nhắn mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Lấy tin nhắn chưa đọc thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def get_unread_messages(request):
     """Lấy tin nhắn chưa đọc"""
     messages = Message.objects.filter(recipient=request.user, is_read=False)
@@ -82,9 +230,35 @@ def get_unread_messages(request):
     serializer = MessageSerializer(paginated_messages, many=True)
     return paginator.get_paginated_response(serializer.data)
 
-# mark_message_read
+@swagger_auto_schema(
+    method='post',
+    operation_description="Đánh dấu tin nhắn đã đọc",
+    responses={
+        200: openapi.Response(
+            description="Đánh dấu tin nhắn đã đọc thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Không tìm thấy tin nhắn",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def mark_message_read(request, pk):
     """Đánh dấu tin nhắn đã đọc"""
     try:
@@ -101,9 +275,35 @@ def mark_message_read(request, pk):
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
     
-# get_conversations
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách cuộc trò chuyện",
+    responses={
+        200: openapi.Response(
+            description="Lấy danh sách cuộc trò chuyện thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'sender': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'recipient': openapi.Schema(type=openapi.TYPE_INTEGER)
+                            }
+                        )
+                    )
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def get_conversations(request):
     """Lấy danh sách cuộc trò chuyện"""
     conversations = Message.objects.filter(

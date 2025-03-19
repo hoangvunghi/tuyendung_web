@@ -14,18 +14,113 @@ from profiles.models import Cv
 from profiles.serializers import CvSerializer, CvStatusSerializer
 from base.permissions import (
     IsEnterpriseOwner, IsPostOwner, IsCampaignOwner,
-    IsFieldManager, IsPositionManager, IsCriteriaOwner
+    IsFieldManager, IsPositionManager, IsCriteriaOwner,
+    AdminAccessPermission
 )
+from base.utils import create_permission_class_with_admin_override
 from notifications.services import NotificationService
 from base.pagination import CustomPagination
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+# Tạo các lớp quyền kết hợp với quyền admin
+AdminOrEnterpriseOwner = create_permission_class_with_admin_override(IsEnterpriseOwner)
+AdminOrPostOwner = create_permission_class_with_admin_override(IsPostOwner)
+AdminOrCampaignOwner = create_permission_class_with_admin_override(IsCampaignOwner)
+AdminOrFieldManager = create_permission_class_with_admin_override(IsFieldManager)
+AdminOrPositionManager = create_permission_class_with_admin_override(IsPositionManager)
+AdminOrCriteriaOwner = create_permission_class_with_admin_override(IsCriteriaOwner)
 
 # Create your views here.
 
 # Enterprise CRUD
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách doanh nghiệp đang hoạt động",
+    manual_parameters=[
+        openapi.Parameter(
+            'page', openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER
+        ),
+        openapi.Parameter(
+            'page_size', openapi.IN_QUERY, 
+            description="Số lượng doanh nghiệp mỗi trang", 
+            type=openapi.TYPE_INTEGER
+        ),
+        openapi.Parameter(
+            'sort_by', openapi.IN_QUERY, 
+            description="Trường sắp xếp (ví dụ: company_name, created_at)", 
+            type=openapi.TYPE_STRING
+        ),
+        openapi.Parameter(
+            'sort_order', openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp (asc/desc)", 
+            type=openapi.TYPE_STRING,
+            enum=['asc', 'desc']
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'company_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'address': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'email_company': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'link_web_site': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'logo': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'scale': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'city': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                                    }
+                                )
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_enterprises(request):
     enterprises = EnterpriseEntity.objects.filter(is_active=True)
+    
+    # Sắp xếp
+    sort_by = request.query_params.get('sort_by', 'company_name')
+    sort_order = request.query_params.get('sort_order', 'asc')
+    
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    enterprises = enterprises.order_by(sort_by)
     
     # Khởi tạo paginator
     paginator = CustomPagination()
@@ -34,6 +129,54 @@ def get_enterprises(request):
     serializer = EnterpriseSerializer(paginated_enterprises, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy chi tiết doanh nghiệp theo ID",
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'company_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'address': openapi.Schema(type=openapi.TYPE_STRING),
+                            'business_certificate': openapi.Schema(type=openapi.TYPE_STRING),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                            'email_company': openapi.Schema(type=openapi.TYPE_STRING),
+                            'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING),
+                            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'link_web_site': openapi.Schema(type=openapi.TYPE_STRING),
+                            'logo': openapi.Schema(type=openapi.TYPE_STRING),
+                            'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+                            'scale': openapi.Schema(type=openapi.TYPE_STRING),
+                            'tax': openapi.Schema(type=openapi.TYPE_STRING),
+                            'user': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'city': openapi.Schema(type=openapi.TYPE_STRING),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                            'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Enterprise not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_enterprise_detail(request, pk):
@@ -45,8 +188,55 @@ def get_enterprise_detail(request, pk):
         'data': serializer.data
     })
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Tạo doanh nghiệp mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['company_name', 'address', 'business_certificate', 'field_of_activity'],
+        properties={
+            'company_name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên công ty"),
+            'address': openapi.Schema(type=openapi.TYPE_STRING, description="Địa chỉ"),
+            'business_certificate': openapi.Schema(type=openapi.TYPE_STRING, description="Giấy phép kinh doanh"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả"),
+            'email_company': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Email công ty"),
+            'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING, description="Lĩnh vực hoạt động"),
+            'link_web_site': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, description="Website"),
+            'logo': openapi.Schema(type=openapi.TYPE_FILE, description="Logo"),
+            'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
+            'scale': openapi.Schema(type=openapi.TYPE_STRING, description="Quy mô"),
+            'tax': openapi.Schema(type=openapi.TYPE_STRING, description="Mã số thuế"),
+            'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Enterprise created successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid input",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def create_enterprise(request):
     serializer = EnterpriseSerializer(data=request.data)
     if serializer.is_valid():
@@ -62,10 +252,66 @@ def create_enterprise(request):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='put',
+    operation_description="Cập nhật thông tin doanh nghiệp",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'company_name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên doanh nghiệp"),
+            'address': openapi.Schema(type=openapi.TYPE_STRING, description="Địa chỉ"),
+            'business_certificate': openapi.Schema(type=openapi.TYPE_STRING, description="Giấy phép kinh doanh"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả"),
+            'email_company': openapi.Schema(type=openapi.TYPE_STRING, description="Email công ty"),
+            'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING, description="Lĩnh vực hoạt động"),
+            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Trạng thái hoạt động"),
+            'link_web_site': openapi.Schema(type=openapi.TYPE_STRING, description="Đường link website"),
+            'logo': openapi.Schema(type=openapi.TYPE_STRING, description="Logo"),
+            'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
+            'scale': openapi.Schema(type=openapi.TYPE_STRING, description="Quy mô"),
+            'tax': openapi.Schema(type=openapi.TYPE_STRING, description="Mã số thuế"),
+            'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố")
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Enterprise updated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid input",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Enterprise not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
-def update_enterprise(request, pk):
-    enterprise = get_object_or_404(EnterpriseEntity, pk=pk, user=request.user)
+@permission_classes([IsAuthenticated, AdminAccessPermission])
+def update_enterprise(request):
+    enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
     serializer = EnterpriseSerializer(enterprise, data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -80,51 +326,191 @@ def update_enterprise(request, pk):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='delete',
+    operation_description="Xóa (vô hiệu hóa) doanh nghiệp",
+    responses={
+        200: openapi.Response(
+            description="Enterprise deleted successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Enterprise not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_enterprise(request, pk):
-    enterprise = get_object_or_404(EnterpriseEntity, pk=pk, user=request.user)
-    enterprise.is_active = False
-    enterprise.save()
+@permission_classes([IsAuthenticated, AdminAccessPermission])
+def delete_enterprise(request):
+    enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
+    enterprise.delete()
     return Response({
         'message': 'Enterprise deleted successfully',
         'status': status.HTTP_200_OK
     })
 
 # Campaign CRUD
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách các chiến dịch tuyển dụng",
+    manual_parameters=[
+        openapi.Parameter(
+            'enterprise_id', 
+            openapi.IN_QUERY, 
+            description="ID của doanh nghiệp để lọc chiến dịch", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng chiến dịch mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_by', 
+            openapi.IN_QUERY, 
+            description="Trường sắp xếp", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_order', 
+            openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp (asc/desc)", 
+            type=openapi.TYPE_STRING,
+            enum=['asc', 'desc'],
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                        'enterprise': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                                        'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                                    }
+                                )
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, AdminOrCampaignOwner])
 def get_campaigns(request):
-    enterprise_id = request.query_params.get('enterprise_id')
-    if enterprise_id:
-        campaigns = CampaignEntity.objects.filter(enterprise_id=enterprise_id, is_active=True)
-    else:
-        campaigns = CampaignEntity.objects.filter(is_active=True)
-    
-    # Sắp xếp
-    sort_by = request.query_params.get('sort_by', '-created_at')
-    sort_order = request.query_params.get('sort_order', 'desc')
-    
-    if sort_order == 'desc' and not sort_by.startswith('-'):
-        sort_by = f'-{sort_by}'
-    campaigns = campaigns.order_by(sort_by)
-    
-    # Phân trang
+    campaigns = CampaignEntity.objects.filter(enterprise__user=request.user)
     paginator = CustomPagination()
     paginated_campaigns = paginator.paginate_queryset(campaigns, request)
-    
     serializer = CampaignSerializer(paginated_campaigns, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Tạo chiến dịch tuyển dụng mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['name', 'enterprise'],
+        properties={
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên chiến dịch"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả chiến dịch"),
+            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Trạng thái hoạt động của chiến dịch"),
+            'enterprise': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của doanh nghiệp"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Campaign created successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Enterprise not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def create_campaign(request):
     serializer = CampaignSerializer(data=request.data)
     if serializer.is_valid():
-        enterprise = get_object_or_404(EnterpriseEntity, 
-                                     id=request.data.get('enterprise'),
-                                     user=request.user)
-        serializer.save()
+        serializer.save(enterprise=request.user.enterprise)
         return Response({
             'message': 'Campaign created successfully',
             'status': status.HTTP_201_CREATED,
@@ -137,14 +523,74 @@ def create_campaign(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 # Post CRUD
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách bài đăng việc làm",
+    manual_parameters=[
+        openapi.Parameter(
+            'campaign_id', 
+            openapi.IN_QUERY, 
+            description="ID của chiến dịch để lọc bài đăng", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng bài đăng mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, AdminOrPostOwner])
 def get_posts(request):
+    campaigns = CampaignEntity.objects.filter(enterprise__user=request.user)
     campaign_id = request.query_params.get('campaign_id')
     if campaign_id:
-        posts = PostEntity.objects.filter(campaign_id=campaign_id)
+        posts = PostEntity.objects.filter(campaign__in=campaigns, campaign_id=campaign_id)
     else:
-        posts = PostEntity.objects.all()
+        posts = PostEntity.objects.filter(campaign__in=campaigns)
     
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
@@ -152,15 +598,67 @@ def get_posts(request):
     serializer = PostSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Tạo bài đăng việc làm mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['title', 'campaign', 'position', 'city', 'experience', 'type_working'],
+        properties={
+            'title': openapi.Schema(type=openapi.TYPE_STRING, description="Tiêu đề bài đăng"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả công việc"),
+            'required': openapi.Schema(type=openapi.TYPE_STRING, description="Yêu cầu công việc"),
+            'benefit': openapi.Schema(type=openapi.TYPE_STRING, description="Quyền lợi"),
+            'experience': openapi.Schema(type=openapi.TYPE_STRING, description="Kinh nghiệm yêu cầu"),
+            'type_working': openapi.Schema(type=openapi.TYPE_STRING, description="Loại hình công việc"),
+            'salary_range': openapi.Schema(type=openapi.TYPE_STRING, description="Khoảng lương"),
+            'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số lượng cần tuyển"),
+            'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố"),
+            'position': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của vị trí"),
+            'campaign': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của chiến dịch"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Post created successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Campaign not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsCampaignOwner])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
 def create_post(request):
     serializer = PostSerializer(data=request.data)
     if serializer.is_valid():
-        campaign = get_object_or_404(CampaignEntity, 
-                                   id=request.data.get('campaign'),
-                                   enterprise__user=request.user)
-        serializer.save()
+        serializer.save(campaign=request.user.enterprise.campaign_set.get(id=request.data['campaign']))
         return Response({
             'message': 'Post created successfully',
             'status': status.HTTP_201_CREATED,
@@ -173,6 +671,80 @@ def create_post(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 # Field Management (Admin only)
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách lĩnh vực hoạt động",
+    manual_parameters=[
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng lĩnh vực mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_by', 
+            openapi.IN_QUERY, 
+            description="Trường sắp xếp", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_order', 
+            openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp (asc/desc)", 
+            type=openapi.TYPE_STRING,
+            enum=['asc', 'desc'],
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                                    }
+                                )
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_fields(request):
@@ -193,8 +765,45 @@ def get_fields(request):
     serializer = FieldSerializer(paginated_fields, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Tạo lĩnh vực hoạt động mới",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['name'],
+        properties={
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên lĩnh vực"),
+            'status': openapi.Schema(type=openapi.TYPE_STRING, description="Trạng thái", enum=['active', 'inactive']),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Field created successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsFieldManager])
+@permission_classes([IsAuthenticated, AdminOrFieldManager])
 def create_field(request):
     serializer = FieldSerializer(data=request.data)
     if serializer.is_valid():
@@ -211,6 +820,93 @@ def create_field(request):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 # Enterprise Search & Filter
+@swagger_auto_schema(
+    method='get',
+    operation_description="Tìm kiếm và lọc doanh nghiệp",
+    manual_parameters=[
+        openapi.Parameter(
+            'q', openapi.IN_QUERY, 
+            description="Từ khóa tìm kiếm", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'city', openapi.IN_QUERY, 
+            description="Thành phố", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'field', openapi.IN_QUERY, 
+            description="Lĩnh vực hoạt động", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'scale', openapi.IN_QUERY, 
+            description="Quy mô doanh nghiệp", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'page', openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', openapi.IN_QUERY, 
+            description="Số lượng doanh nghiệp mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_by', openapi.IN_QUERY, 
+            description="Trường sắp xếp", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_order', openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp (asc/desc)", 
+            type=openapi.TYPE_STRING,
+            enum=['asc', 'desc'],
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_enterprises(request):
@@ -252,6 +948,152 @@ def search_enterprises(request):
     return paginator.get_paginated_response(serializer.data)
 
 # Post Search & Filter
+@swagger_auto_schema(
+    method='get',
+    operation_description="""
+    Tìm kiếm và lọc bài đăng việc làm.
+    API này cho phép tìm kiếm bài đăng theo từ khóa, vị trí địa lý, vị trí công việc, kinh nghiệm, loại công việc và khoảng lương.
+    Kết quả được phân trang và có thể sắp xếp theo các tiêu chí khác nhau.
+    """,
+    manual_parameters=[
+        openapi.Parameter(
+            'q', openapi.IN_QUERY, 
+            description="Từ khóa tìm kiếm (tìm trong tiêu đề, mô tả, yêu cầu, tên công ty)", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'city', openapi.IN_QUERY, 
+            description="Thành phố", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'position', openapi.IN_QUERY, 
+            description="Vị trí công việc", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'experience', openapi.IN_QUERY, 
+            description="Kinh nghiệm (ví dụ: 'Không yêu cầu', '1-2 năm', '3-5 năm')", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'type_working', openapi.IN_QUERY, 
+            description="Loại công việc (ví dụ: 'Full-time', 'Part-time', 'Remote')", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'salary_min', openapi.IN_QUERY, 
+            description="Lương tối thiểu", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'salary_max', openapi.IN_QUERY, 
+            description="Lương tối đa", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page', openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', openapi.IN_QUERY, 
+            description="Số lượng bài đăng mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_by', openapi.IN_QUERY, 
+            description="Trường sắp xếp (ví dụ: 'created_at', 'salary_range')", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'sort_order', openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp", 
+            type=openapi.TYPE_STRING,
+            enum=['asc', 'desc'],
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'title': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'required': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'benefit': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'experience': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'type_working': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'salary_range': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'quantity': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'city': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'position': openapi.Schema(
+                                            type=openapi.TYPE_OBJECT,
+                                            properties={
+                                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                            }
+                                        ),
+                                        'campaign': openapi.Schema(
+                                            type=openapi.TYPE_OBJECT,
+                                            properties={
+                                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                                'enterprise': openapi.Schema(
+                                                    type=openapi.TYPE_OBJECT,
+                                                    properties={
+                                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                                        'company_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                                        'logo': openapi.Schema(type=openapi.TYPE_STRING),
+                                                    }
+                                                ),
+                                            }
+                                        ),
+                                        'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                                    }
+                                )
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_posts(request):
@@ -364,8 +1206,49 @@ def get_recommended_posts(request):
         }, status=status.HTTP_404_NOT_FOUND)
 
 # Get Enterprise Statistics
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy thông tin thống kê về doanh nghiệp",
+    responses={
+        200: openapi.Response(
+            description="Enterprise statistics retrieved successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'total_campaigns': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số chiến dịch"),
+                            'total_posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số bài đăng"),
+                            'cv_statistics': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'pending': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số CV đang chờ xử lý"),
+                                    'approved': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số CV đã duyệt"),
+                                    'rejected': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số CV đã từ chối"),
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Enterprise not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def get_enterprise_stats(request, pk):
     """Lấy thống kê về doanh nghiệp: số lượng CV theo trạng thái, số chiến dịch, số bài đăng"""
     enterprise = get_object_or_404(EnterpriseEntity, pk=pk, user=request.user)
@@ -395,8 +1278,49 @@ def get_enterprise_stats(request, pk):
 
 # enterprises/views.py
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Xem chi tiết CV đã nộp",
+    responses={
+        200: openapi.Response(
+            description="CV retrieved successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'user': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'post': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'email': openapi.Schema(type=openapi.TYPE_STRING),
+                            'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                            'cv_file': openapi.Schema(type=openapi.TYPE_STRING),
+                            'status': openapi.Schema(type=openapi.TYPE_STRING),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                            'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="CV not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def view_cv(request, cv_id):
     cv = get_object_or_404(Cv, id=cv_id)
     
@@ -409,8 +1333,61 @@ def view_cv(request, cv_id):
         'data': serializer.data
     })
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Cập nhật trạng thái CV (phê duyệt hoặc từ chối)",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['status'],
+        properties={
+            'status': openapi.Schema(
+                type=openapi.TYPE_STRING, 
+                description="Trạng thái CV",
+                enum=['pending', 'approved', 'rejected']
+            ),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="CV status updated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid status",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="CV not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def update_cv_status(request, cv_id):
     cv = get_object_or_404(Cv, id=cv_id)
     old_status = cv.status
@@ -432,6 +1409,42 @@ def update_cv_status(request, cv_id):
         })
 
 # enterprises/views.py
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy thông tin chi tiết chiến dịch tuyển dụng",
+    responses={
+        200: openapi.Response(
+            description="Campaign details retrieved successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'enterprise': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                            'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Campaign not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_campaign_detail(request, pk):
@@ -440,34 +1453,59 @@ def get_campaign_detail(request, pk):
     serializer = CampaignSerializer(campaign)
     return Response({
         'message': 'Campaign details retrieved successfully',
-        'data': serializer.data
-    })
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def get_post_detail(request, pk):
-    """Chi tiết bài đăng"""
-    post = get_object_or_404(PostEntity, pk=pk)
-    serializer = PostSerializer(post)
-    return Response({
-        'message': 'Post details retrieved successfully',
-        'data': serializer.data
-    })
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def get_campaign_detail(request, pk):
-    campaign = get_object_or_404(CampaignEntity, pk=pk)
-    serializer = CampaignSerializer(campaign)
-    return Response({
-        'message': 'Campaign details retrieved successfully',
         'status': status.HTTP_200_OK,
         'data': serializer.data
     })
 
+@swagger_auto_schema(
+    method='put',
+    operation_description="Cập nhật thông tin chiến dịch tuyển dụng",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên chiến dịch"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả chiến dịch"),
+            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Trạng thái hoạt động của chiến dịch"),
+            'enterprise': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của doanh nghiệp"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Campaign updated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Campaign not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def update_campaign(request, pk):
     campaign = get_object_or_404(CampaignEntity, pk=pk, enterprise__user=request.user)
     serializer = CampaignSerializer(campaign, data=request.data)
@@ -484,22 +1522,101 @@ def update_campaign(request, pk):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='delete',
+    operation_description="Vô hiệu hóa (xóa) chiến dịch tuyển dụng",
+    responses={
+        200: openapi.Response(
+            description="Campaign deleted successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Campaign not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, IsEnterpriseOwner])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def delete_campaign(request, pk):
     campaign = get_object_or_404(CampaignEntity, pk=pk, enterprise__user=request.user)
-    campaign.is_active = False
-    campaign.save()
+    campaign.delete()
     return Response({
         'message': 'Campaign deleted successfully',
         'status': status.HTTP_200_OK
     })
 
 # update_post
+@swagger_auto_schema(
+    method='put',
+    operation_description="Cập nhật thông tin bài đăng việc làm",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'title': openapi.Schema(type=openapi.TYPE_STRING, description="Tiêu đề bài đăng"),
+            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả công việc"),
+            'required': openapi.Schema(type=openapi.TYPE_STRING, description="Yêu cầu công việc"),
+            'benefit': openapi.Schema(type=openapi.TYPE_STRING, description="Quyền lợi"),
+            'experience': openapi.Schema(type=openapi.TYPE_STRING, description="Kinh nghiệm yêu cầu"),
+            'type_working': openapi.Schema(type=openapi.TYPE_STRING, description="Loại hình công việc"),
+            'salary_range': openapi.Schema(type=openapi.TYPE_STRING, description="Khoảng lương"),
+            'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số lượng cần tuyển"),
+            'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố"),
+            'position': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của vị trí"),
+            'campaign': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của chiến dịch"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Post updated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Post not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, IsPostOwner])
+@permission_classes([IsAuthenticated, AdminOrPostOwner])
 def update_post(request, pk):
-    post = get_object_or_404(PostEntity, pk=pk, campaign__enterprise__user=request.user)
+    post = get_object_or_404(PostEntity, id=pk, campaign__enterprise__user=request.user)
     serializer = PostSerializer(post, data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -515,13 +1632,114 @@ def update_post(request, pk):
     }, status=status.HTTP_400_BAD_REQUEST)
 
 # delete_post
+@swagger_auto_schema(
+    method='delete',
+    operation_description="Vô hiệu hóa (xóa) bài đăng việc làm",
+    responses={
+        200: openapi.Response(
+            description="Post deleted successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Post not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, IsPostOwner])
+@permission_classes([IsAuthenticated, AdminOrPostOwner])
 def delete_post(request, pk):
-    post = get_object_or_404(PostEntity, pk=pk, campaign__enterprise__user=request.user)
-    post.is_active = False
-    post.save()
+    post = get_object_or_404(PostEntity, id=pk, campaign__enterprise__user=request.user)
+    post.delete()
     return Response({
         'message': 'Post deleted successfully',
         'status': status.HTTP_200_OK
+    })
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy thông tin chi tiết bài đăng tuyển dụng",
+    responses={
+        200: openapi.Response(
+            description="Post details retrieved successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'title': openapi.Schema(type=openapi.TYPE_STRING),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                            'required': openapi.Schema(type=openapi.TYPE_STRING),
+                            'benefit': openapi.Schema(type=openapi.TYPE_STRING),
+                            'experience': openapi.Schema(type=openapi.TYPE_STRING),
+                            'type_working': openapi.Schema(type=openapi.TYPE_STRING),
+                            'salary_range': openapi.Schema(type=openapi.TYPE_STRING),
+                            'quantity': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'city': openapi.Schema(type=openapi.TYPE_STRING),
+                            'position': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                }
+                            ),
+                            'campaign': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'enterprise': openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                            'company_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'logo': openapi.Schema(type=openapi.TYPE_STRING),
+                                        }
+                                    ),
+                                }
+                            ),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                            'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Post not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_post_detail(request, pk):
+    """Chi tiết bài đăng"""
+    post = get_object_or_404(PostEntity, pk=pk)
+    serializer = PostSerializer(post)
+    return Response({
+        'message': 'Post details retrieved successfully',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
     })

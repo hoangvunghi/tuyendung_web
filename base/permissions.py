@@ -105,5 +105,18 @@ class CanManageCv(BasePermission):
         # Người đăng bài
         return obj.post.campaign.enterprise.user == request.user
     
+class AdminAccessPermission(BasePermission):
+    """
+    Cho phép admin truy cập tất cả API và thực hiện mọi thao tác
+    Quyền này sẽ override toàn bộ các quyền khác
+    """
+    def has_permission(self, request, view):
+        # Admin luôn có quyền truy cập vào mọi API
+        return request.user and request.user.is_staff
+        
+    def has_object_permission(self, request, view, obj):
+        # Admin luôn có quyền thao tác với mọi đối tượng
+        return request.user and request.user.is_staff
+    
 
         
