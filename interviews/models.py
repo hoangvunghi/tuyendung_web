@@ -29,3 +29,5 @@ class Interview(models.Model):
 
     class Meta:
         ordering = ['-interview_date']
+        verbose_name = 'Cuộc phỏng vấn'
+        verbose_name_plural = 'Cuộc phỏng vấn'

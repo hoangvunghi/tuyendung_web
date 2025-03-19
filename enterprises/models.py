@@ -19,6 +19,10 @@ class EnterpriseEntity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = 'Doanh nghiệp'
+        verbose_name_plural = 'Doanh nghiệp'
+
     def __str__(self):
         return self.company_name
 
@@ -35,6 +39,11 @@ class FieldEntity(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Lĩnh vực'
+        verbose_name_plural = 'Lĩnh vực'
+
 
 class CampaignEntity(models.Model):
     name = models.CharField(max_length=255)
@@ -45,6 +54,11 @@ class CampaignEntity(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Chiến dịch'
+        verbose_name_plural = 'Chiến dịch'
+
 
 class PositionEntity(models.Model):
     name = models.CharField(max_length=255)
@@ -59,6 +73,10 @@ class PositionEntity(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Vị trí'
+        verbose_name_plural = 'Vị trí'
 
 class PostEntity(models.Model):
     title = models.CharField(max_length=255)
@@ -96,3 +114,7 @@ class CriteriaEntity(models.Model):
     
     def __str__(self):
         return f"Criteria for {self.user.username}"
+    
+    class Meta:
+        verbose_name = 'Tiêu chí'
+        verbose_name_plural = 'Tiêu chí'

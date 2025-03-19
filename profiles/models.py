@@ -17,6 +17,10 @@ class UserInfo(models.Model):
     
     def __str__(self):
         return self.fullname or self.user.username
+    
+    class Meta:
+        verbose_name = 'Thông tin người dùng'
+        verbose_name_plural = 'Thông tin người dùng'
 
 class Cv(models.Model):
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='cvs')
@@ -40,11 +44,19 @@ class Cv(models.Model):
     def __str__(self):
         return f"CV: {self.name} for {self.post}"
 
+    class Meta:
+        verbose_name = 'CV'
+        verbose_name_plural = 'CV'
+
 # profiles/models.py
 class CvView(models.Model):
     cv = models.ForeignKey('Cv', on_delete=models.CASCADE)
     viewer = models.ForeignKey('enterprises.EnterpriseEntity', on_delete=models.CASCADE)
     viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'CV đã xem'
+        verbose_name_plural = 'CV đã xem'
 
 class CvMark(models.Model):
     MARK_TYPES = (
@@ -56,3 +68,7 @@ class CvMark(models.Model):
     marker = models.ForeignKey('enterprises.EnterpriseEntity', on_delete=models.CASCADE)
     mark_type = models.CharField(max_length=20, choices=MARK_TYPES)
     marked_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'CV đã đánh dấu'
+        verbose_name_plural = 'CV đã đánh dấu'

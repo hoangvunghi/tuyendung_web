@@ -14,6 +14,11 @@ class TypeService(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = 'Loại dịch vụ'
+        verbose_name_plural = 'Loại dịch vụ'
+
 
 class PackageEntity(models.Model):
     name = models.CharField(max_length=255)
@@ -31,13 +36,17 @@ class PackageEntity(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.days} days)"
+    
+    class Meta:
+        verbose_name = 'Gói dịch vụ'
+        verbose_name_plural = 'Gói dịch vụ'
 
 class PackageCampaign(models.Model):
     package = models.ForeignKey(PackageEntity, on_delete=models.CASCADE, related_name='campaign_subscriptions')
     campaign = models.ForeignKey(CampaignEntity, on_delete=models.CASCADE, related_name='package_subscriptions')
     expired = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    modified_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"{self.campaign} - {self.package} (Expires: {self.expired})"
     

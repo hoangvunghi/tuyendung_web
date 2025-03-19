@@ -12,3 +12,7 @@ class HistoryMoney(models.Model):
     
     def __str__(self):
         return f"History for {self.user.username} - Amount: {self.amount}"
+    
+    class Meta:
+        verbose_name = 'Lịch sử giao dịch'
+        verbose_name_plural = 'Lịch sử giao dịch'

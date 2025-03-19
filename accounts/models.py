@@ -40,6 +40,10 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
 
+    class Meta:
+        verbose_name = 'Tài khoản'
+        verbose_name_plural = 'Tài khoản'
+
     
 class Role(models.Model):
     name = models.CharField(max_length=255)
@@ -49,9 +53,15 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Vai trò'
+        verbose_name_plural = 'Vai trò'
+
 class UserRole(models.Model):
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='user_roles')
     role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='user_roles')
     
     class Meta:
         unique_together = ('user', 'role')
+        verbose_name = 'Vai trò'
+        verbose_name_plural = 'Vai trò'

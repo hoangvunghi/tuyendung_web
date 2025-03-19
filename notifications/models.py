@@ -26,3 +26,5 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'Thông báo'
+        verbose_name_plural = 'Thông báo'
