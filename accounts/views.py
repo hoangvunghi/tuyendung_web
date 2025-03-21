@@ -384,6 +384,10 @@ def token_refresh(request):
     refresh = request.data.get('refresh')
     if refresh:
         refresh_token = RefreshToken(refresh)
+        user_id=refresh_token.payload.get('user_id')
+        user=UserAccount.objects.get(id=user_id)
+        refresh_token["is_active"]=user.is_active
+        
         return Response({
             'message': 'Token refreshed successfully',
             'status': status.HTTP_200_OK,
