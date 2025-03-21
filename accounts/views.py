@@ -14,6 +14,7 @@ from base.permissions import IsAdminUser
 from rest_framework_simplejwt.exceptions import TokenError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.utils.crypto import get_random_string
 
 UserAccount = get_user_model()
 
@@ -61,9 +62,30 @@ UserAccount = get_user_model()
 def register(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
+        user = serializer.save()
+        
+        # Tạo token kích hoạt
+        activation_token = get_random_string(64)
+        user.activation_token = activation_token
+        user.save()
+        
+        # Gửi email kích hoạt
+        email_subject = "Kích hoạt tài khoản của bạn"
+        email_message = f"Xin chào {user.username},\n\n"
+        email_message += "Cảm ơn bạn đã đăng ký tài khoản trên hệ thống của chúng tôi.\n"
+        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
+        email_message += "Trân trọng,\nĐội ngũ quản trị"
+        
+        send_mail(
+            email_subject,
+            email_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        
         return Response({
-            'message': 'User registered successfully',
+            'message': 'User registered successfully. Please check your email to activate your account.',
             'status': status.HTTP_201_CREATED,
             'data': serializer.data
         }, status=status.HTTP_201_CREATED)
@@ -72,6 +94,53 @@ def register(request):
         'status': status.HTTP_400_BAD_REQUEST,
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Kích hoạt tài khoản người dùng",
+    responses={
+        200: openapi.Response(
+            description="Account activated successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Invalid activation token",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def activate_account(request, token):
+    try:
+        user = UserAccount.objects.get(activation_token=token)
+        user.is_active = True
+        user.activation_token = None  # Xóa token sau khi kích hoạt
+        user.save()
+        
+        return Response({
+            'message': 'Tài khoản đã được kích hoạt thành công. Bây giờ bạn có thể đăng nhập.',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    except UserAccount.DoesNotExist:
+        return Response({
+            'message': 'Token kích hoạt không hợp lệ hoặc đã hết hạn.',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
 
 @swagger_auto_schema(
     method='post',
@@ -120,20 +189,33 @@ def login(request):
     username = request.data.get('username')
     password = request.data.get('password')
     user = authenticate(username=username, password=password)
-    if user:
-        refresh = RefreshToken.for_user(user)
+    
+    if user is None:
+        # Kiểm tra xem tài khoản có tồn tại nhưng chưa kích hoạt không
+        try:
+            inactive_user = UserAccount.objects.get(username=username)
+            if not inactive_user.is_active:
+                return Response({
+                    'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
+                    'status': status.HTTP_401_UNAUTHORIZED
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        except UserAccount.DoesNotExist:
+            pass
+        
         return Response({
-            'message': 'Login successful',
-            'status': status.HTTP_200_OK,
-            'data': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        }, status=status.HTTP_200_OK)
+            'message': 'Thông tin đăng nhập không hợp lệ',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    refresh = RefreshToken.for_user(user)
     return Response({
-        'message': 'Invalid credentials',
-        'status': status.HTTP_400_BAD_REQUEST
-    }, status=status.HTTP_400_BAD_REQUEST)
+        'message': 'Đăng nhập thành công',
+        'status': status.HTTP_200_OK,
+        'data': {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+    }, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
     method='post',
