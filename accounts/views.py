@@ -333,6 +333,7 @@ def login(request):
         role = "admin"
     else:
         role = user.get_role()
+    refresh["role"]=role
     return Response({
         'message': 'Đăng nhập thành công',
         'status': status.HTTP_200_OK,
@@ -392,7 +393,11 @@ def token_refresh(request):
         user_id=refresh_token.payload.get('user_id')
         user=UserAccount.objects.get(id=user_id)
         refresh_token["is_active"]=user.is_active
-
+        if user.is_superuser:
+            role = "admin"
+        else:
+            role = user.get_role()
+        refresh_token["role"]=role
         return Response({
             'message': 'Token refreshed successfully',
             'status': status.HTTP_200_OK,
