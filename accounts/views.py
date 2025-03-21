@@ -18,6 +18,7 @@ from django.utils.crypto import get_random_string
 from datetime import datetime, timedelta
 from .models import UserAccount, Role, UserRole
 from profiles.models import UserInfo
+from django.utils import timezone
 
 UserAccount = get_user_model()
 
@@ -35,7 +36,7 @@ def register_function(request, is_recruiter=False):
             role = "người tìm việc"
         UserRole.objects.create(user=user, role=_role)
         activation_token = get_random_string(64)
-        expiry_date = datetime.now() + timedelta(days=3)
+        expiry_date = timezone.now() + timedelta(days=3)
         
         user.activation_token = activation_token
         user.activation_token_expiry = expiry_date
@@ -147,7 +148,7 @@ def register(request):
 def activate_account(request, token):
     try:
         user = UserAccount.objects.get(activation_token=token)
-        if user.activation_token_expiry and user.activation_token_expiry < datetime.now():
+        if user.activation_token_expiry and user.activation_token_expiry < timezone.now():
             return Response({
                 'message': 'Token kích hoạt đã hết hạn. Vui lòng yêu cầu gửi lại email kích hoạt.',
                 'status': status.HTTP_400_BAD_REQUEST,
@@ -229,7 +230,7 @@ def resend_activation_email(request):
         
         # Tạo token kích hoạt mới
         activation_token = get_random_string(64)
-        expiry_date = datetime.now() + timedelta(days=3)
+        expiry_date = timezone.now() + timedelta(days=3)
         
         user.activation_token = activation_token
         user.activation_token_expiry = expiry_date
