@@ -120,13 +120,26 @@ WSGI_APPLICATION = 'tuyendung.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'neondb',  
+        'USER': 'neondb_owner',  
+        'PASSWORD': 'npg_8Km1izGFhoCH',  
+        'HOST': 'ep-shiny-scene-a14lxlb5-pooler.ap-southeast-1.aws.neon.tech',  
+        'PORT': '5432',  
+        'OPTIONS': {
+            'sslmode': 'require', 
+        },
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
