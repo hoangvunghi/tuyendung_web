@@ -328,9 +328,11 @@ def login(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     refresh = RefreshToken.for_user(user)
-    role = user.get_role()
+    refresh["is_active"]=user.is_active
     if user.is_superuser:
         role = "admin"
+    else:
+        role = user.get_role()
     return Response({
         'message': 'Đăng nhập thành công',
         'status': status.HTTP_200_OK,
