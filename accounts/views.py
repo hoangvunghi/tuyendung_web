@@ -16,8 +16,60 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.crypto import get_random_string
 from datetime import datetime, timedelta
+from .models import UserAccount, Role, UserRole
+from profiles.models import UserInfo
 
 UserAccount = get_user_model()
+
+def register_function(request, is_recruiter=False):
+    data = request.data.copy()
+    
+    serializer = UserSerializer(data=data)
+    if serializer.is_valid():
+        user = serializer.save()
+        if is_recruiter:
+            _role, created = Role.objects.get_or_create(name='Nhà tuyển dụng')
+            role = "nhà tuyển dụng"
+        else:
+            _role, created = Role.objects.get_or_create(name='Người tìm việc')
+            role = "người tìm việc"
+        UserRole.objects.create(user=user, role=_role)
+        activation_token = get_random_string(64)
+        expiry_date = datetime.now() + timedelta(days=3)
+        
+        user.activation_token = activation_token
+        user.activation_token_expiry = expiry_date
+        user.save()
+        
+        # Gửi email kích hoạt
+        email_subject = f"Kích hoạt tài khoản {role} của bạn"
+        email_message = f"Xin chào {user.username},\n\n"
+        email_message += "Cảm ơn bạn đã đăng ký tài khoản trên hệ thống của chúng tôi.\n"
+        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
+        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
+        email_message += "Sau khi kích hoạt tài khoản, bạn sẽ được hoạt động trên website.\n\n"
+        email_message += "Trân trọng,\nĐội ngũ quản trị"
+        
+        send_mail(
+            email_subject,
+            email_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        
+        return Response({
+            'message': 'Đăng ký tài khoản thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
+            'status': status.HTTP_201_CREATED,
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        'message': 'Đăng ký thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 @swagger_auto_schema(
     method='post',
@@ -29,8 +81,8 @@ UserAccount = get_user_model()
             'username': openapi.Schema(type=openapi.TYPE_STRING, description="Tên đăng nhập"),
             'Email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Địa chỉ email"),
             'password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu"),
-            'is_recruiter': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Là nhà tuyển dụng"),
-            'is_applicant': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Là người tìm việc"),
+            "fullname": openapi.Schema(type=openapi.TYPE_STRING, description="Họ và tên"),
+            "gender": openapi.Schema(type=openapi.TYPE_STRING, description="Giới tính")
         }
     ),
     responses={
@@ -61,45 +113,8 @@ UserAccount = get_user_model()
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        
-        # Tạo token kích hoạt
-        activation_token = get_random_string(64)
-        # Thời gian hết hạn sau 3 ngày
-        expiry_date = datetime.now() + timedelta(days=3)
-        
-        user.activation_token = activation_token
-        user.activation_token_expiry = expiry_date
-        user.save()
-        
-        # Gửi email kích hoạt
-        email_subject = "Kích hoạt tài khoản của bạn"
-        email_message = f"Xin chào {user.username},\n\n"
-        email_message += "Cảm ơn bạn đã đăng ký tài khoản trên hệ thống của chúng tôi.\n"
-        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
-        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
-        email_message += "Trân trọng,\nĐội ngũ quản trị"
-        
-        send_mail(
-            email_subject,
-            email_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
-        
-        return Response({
-            'message': 'User registered successfully. Please check your email to activate your account.',
-            'status': status.HTTP_201_CREATED,
-            'data': serializer.data
-        }, status=status.HTTP_201_CREATED)
-    return Response({
-        'message': 'Registration failed',
-        'status': status.HTTP_400_BAD_REQUEST,
-        'errors': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    is_recruiter = request.data.get('is_recruiter', False)
+    return register_function(request, is_recruiter)
 
 @swagger_auto_schema(
     method='get',
