@@ -29,11 +29,11 @@ def register_function(request, is_recruiter=False):
     if serializer.is_valid():
         user = serializer.save()
         if is_recruiter:
-            _role, created = Role.objects.get_or_create(name='recuiter')
-            role = "recuiter"
+            _role, created = Role.objects.get_or_create(name='candidate')
+            role = "candidate"
         else:
-            _role, created = Role.objects.get_or_create(name='employee')
-            role = "employee"
+            _role, created = Role.objects.get_or_create(name='employer')
+            role = "employer"
         UserRole.objects.create(user=user, role=_role)
         activation_token = get_random_string(64)
         expiry_date = timezone.now() + timedelta(days=3)
