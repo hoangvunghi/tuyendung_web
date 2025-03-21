@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/token-refresh/', token_refresh, name='token-refresh'),
     path('api/forgot-password/', forgot_password_view, name='forgot-password'),
     path('api/reset-password/', reset_password_view, name='reset-password'),
+    path('resend-activation/', views.resend_activation_email, name='resend_activation'),
 ]

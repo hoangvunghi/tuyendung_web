@@ -15,6 +15,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.crypto import get_random_string
+from datetime import datetime, timedelta
 
 UserAccount = get_user_model()
 
@@ -66,7 +67,11 @@ def register(request):
         
         # Tạo token kích hoạt
         activation_token = get_random_string(64)
+        # Thời gian hết hạn sau 3 ngày
+        expiry_date = datetime.now() + timedelta(days=3)
+        
         user.activation_token = activation_token
+        user.activation_token_expiry = expiry_date
         user.save()
         
         # Gửi email kích hoạt
@@ -74,6 +79,7 @@ def register(request):
         email_message = f"Xin chào {user.username},\n\n"
         email_message += "Cảm ơn bạn đã đăng ký tài khoản trên hệ thống của chúng tôi.\n"
         email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
+        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
         email_message += "Trân trọng,\nĐội ngũ quản trị"
         
         send_mail(
@@ -94,7 +100,6 @@ def register(request):
         'status': status.HTTP_400_BAD_REQUEST,
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
-
 
 @swagger_auto_schema(
     method='get',
@@ -127,8 +132,16 @@ def register(request):
 def activate_account(request, token):
     try:
         user = UserAccount.objects.get(activation_token=token)
+        if user.activation_token_expiry and user.activation_token_expiry < datetime.now():
+            return Response({
+                'message': 'Token kích hoạt đã hết hạn. Vui lòng yêu cầu gửi lại email kích hoạt.',
+                'status': status.HTTP_400_BAD_REQUEST,
+                'expired': True
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         user.is_active = True
-        user.activation_token = None  # Xóa token sau khi kích hoạt
+        user.activation_token = None
+        user.activation_token_expiry = None
         user.save()
         
         return Response({
@@ -137,10 +150,102 @@ def activate_account(request, token):
         }, status=status.HTTP_200_OK)
     except UserAccount.DoesNotExist:
         return Response({
-            'message': 'Token kích hoạt không hợp lệ hoặc đã hết hạn.',
+            'message': 'Token kích hoạt không hợp lệ.',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
     
+@swagger_auto_schema(
+    method='post',
+    operation_description="Yêu cầu gửi lại email kích hoạt tài khoản",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['email'],
+        properties={
+            'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Địa chỉ email"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Activation email sent successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="User not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Account already active",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    }
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resend_activation_email(request):
+    email = request.data.get('email')
+    
+    try:
+        user = UserAccount.objects.get(email=email)
+        
+        # Kiểm tra nếu tài khoản đã kích hoạt
+        if user.is_active:
+            return Response({
+                'message': 'Tài khoản này đã được kích hoạt.',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Tạo token kích hoạt mới
+        activation_token = get_random_string(64)
+        expiry_date = datetime.now() + timedelta(days=3)
+        
+        user.activation_token = activation_token
+        user.activation_token_expiry = expiry_date
+        user.save()
+        
+        # Gửi email kích hoạt
+        email_subject = "Kích hoạt tài khoản của bạn"
+        email_message = f"Xin chào {user.username},\n\n"
+        email_message += "Bạn đã yêu cầu gửi lại email kích hoạt tài khoản.\n"
+        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
+        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
+        email_message += "Trân trọng,\nĐội ngũ quản trị"
+        
+        send_mail(
+            email_subject,
+            email_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+        
+        return Response({
+            'message': 'Email kích hoạt đã được gửi lại thành công. Vui lòng kiểm tra email của bạn.',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+        
+    except UserAccount.DoesNotExist:
+        return Response({
+            'message': 'Không tìm thấy tài khoản với email này.',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
 
 @swagger_auto_schema(
     method='post',
@@ -191,7 +296,6 @@ def login(request):
     user = authenticate(username=username, password=password)
     
     if user is None:
-        # Kiểm tra xem tài khoản có tồn tại nhưng chưa kích hoạt không
         try:
             inactive_user = UserAccount.objects.get(username=username)
             if not inactive_user.is_active:
@@ -212,6 +316,7 @@ def login(request):
         'message': 'Đăng nhập thành công',
         'status': status.HTTP_200_OK,
         'data': {
+            "is_active": user.is_active,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }

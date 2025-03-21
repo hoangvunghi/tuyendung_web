@@ -28,7 +28,8 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-
+    activation_token = models.CharField(max_length=255, blank=True, null=True)
+    activation_token_expiry = models.DateTimeField(null=True, blank=True)  
     objects = UserAccountManager()
 
     USERNAME_FIELD = 'username'
