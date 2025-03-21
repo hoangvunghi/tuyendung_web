@@ -74,7 +74,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 SECURITY_PASSWORD_SALT = "@bfjkh189721!@#kjds905-222ss"
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = "http://127.0.0.1:8000/api"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
