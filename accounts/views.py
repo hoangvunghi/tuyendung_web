@@ -29,11 +29,11 @@ def register_function(request, is_recruiter=False):
     if serializer.is_valid():
         user = serializer.save()
         if is_recruiter:
-            _role, created = Role.objects.get_or_create(name='Nhà tuyển dụng')
-            role = "nhà tuyển dụng"
+            _role, created = Role.objects.get_or_create(name='recuiter')
+            role = "recuiter"
         else:
-            _role, created = Role.objects.get_or_create(name='Người tìm việc')
-            role = "người tìm việc"
+            _role, created = Role.objects.get_or_create(name='employee')
+            role = "employee"
         UserRole.objects.create(user=user, role=_role)
         activation_token = get_random_string(64)
         expiry_date = timezone.now() + timedelta(days=3)
@@ -328,12 +328,15 @@ def login(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     refresh = RefreshToken.for_user(user)
+    role = user.get_role()
+    if user.is_superuser:
+        role = "admin"
     return Response({
         'message': 'Đăng nhập thành công',
         'status': status.HTTP_200_OK,
         'data': {
             "is_active": user.is_active,
-            "role": user.get_role(),
+            "role": role,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
@@ -387,7 +390,7 @@ def token_refresh(request):
         user_id=refresh_token.payload.get('user_id')
         user=UserAccount.objects.get(id=user_id)
         refresh_token["is_active"]=user.is_active
-        
+
         return Response({
             'message': 'Token refreshed successfully',
             'status': status.HTTP_200_OK,
