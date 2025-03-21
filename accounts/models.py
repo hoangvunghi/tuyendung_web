@@ -41,6 +41,9 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
 
+    def get_role(self):
+        return self.user_roles.first().role.name
+
     class Meta:
         verbose_name = 'Tài khoản'
         verbose_name_plural = 'Tài khoản'

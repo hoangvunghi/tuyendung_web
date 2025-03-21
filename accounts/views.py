@@ -333,6 +333,7 @@ def login(request):
         'status': status.HTTP_200_OK,
         'data': {
             "is_active": user.is_active,
+            "role": user.get_role(),
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
