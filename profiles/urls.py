@@ -14,4 +14,9 @@ urlpatterns = [
     path('cv/<int:pk>/status/', views.update_cv_status, name='update-cv-status'),
     path('cv/<int:pk>/mark/', views.mark_cv, name='mark-cv'),
     path('cv/<int:pk>/view/', views.view_cv, name='view-cv'),
+
+    # profile
+    path('profile/', views.get_profile, name='get-profile'),
+    path('profile/update/', views.update_profile, name='update-profile'),
+    path('create-user-info/', views.create_user_info, name='create-user-info'),
 ]
