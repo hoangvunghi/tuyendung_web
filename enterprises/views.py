@@ -296,9 +296,9 @@ def create_enterprise(request):
     serializer = EnterpriseSerializer(data=request.data)
     user = request.user
     # nếu role của user không phải là nhà tuyển dụng thì không được tạo doanh nghiệp
-    if user.get_role() != 'RECRUITER':
+    if user.get_role() != 'employer':
         return Response({
-            'message': 'You are not a recruiter',
+            'message': 'You are not a employer',
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
     if serializer.is_valid():
