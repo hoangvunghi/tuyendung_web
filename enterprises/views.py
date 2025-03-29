@@ -291,9 +291,16 @@ def get_enterprise_detail(request, pk):
     security=[{'Bearer': []}]
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def create_enterprise(request):
     serializer = EnterpriseSerializer(data=request.data)
+    user = request.user
+    # nếu role của user không phải là nhà tuyển dụng thì không được tạo doanh nghiệp
+    if user.role != 'RECRUITER':
+        return Response({
+            'message': 'You are not a recruiter',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
     if serializer.is_valid():
         serializer.save(user=request.user)
         return Response({
