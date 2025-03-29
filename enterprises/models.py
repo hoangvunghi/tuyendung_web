@@ -11,6 +11,7 @@ class EnterpriseEntity(models.Model):
     is_active = models.BooleanField(default=True)
     link_web_site = models.URLField(max_length=255, blank=True)
     logo = models.ImageField(upload_to='enterprise_logos/', blank=True)
+    background_image = models.ImageField(upload_to='enterprise_background_images/', blank=True)
     phone_number = models.CharField(max_length=20)
     scale = models.CharField(max_length=255)
     tax = models.CharField(max_length=255)

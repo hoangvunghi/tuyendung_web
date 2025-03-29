@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('enterprises/user/', views.get_enterprises_by_user, name='get-enterprises-by-user'),
     # Enterprise CRUD
     path('enterprises/', views.get_enterprises, name='get-enterprises'),
     path('enterprises/<int:pk>/', views.get_enterprise_detail, name='get-enterprise-detail'),

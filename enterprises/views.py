@@ -129,6 +129,61 @@ def get_enterprises(request):
     serializer = EnterpriseSerializer(paginated_enterprises, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+# lấy doanh nghiệp của nhà tuyển dụng đang đăng nhập
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy doanh nghiệp của nhà tuyển dụng đang đăng nhập",
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'company_name': openapi.Schema(type=openapi.TYPE_STRING),
+                            'address': openapi.Schema(type=openapi.TYPE_STRING),
+                            'business_certificate': openapi.Schema(type=openapi.TYPE_STRING),
+                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                            'email_company': openapi.Schema(type=openapi.TYPE_STRING),
+                            'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING),
+                            'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'link_web_site': openapi.Schema(type=openapi.TYPE_STRING),
+                            'logo': openapi.Schema(type=openapi.TYPE_STRING),
+                            'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+                            'scale': openapi.Schema(type=openapi.TYPE_STRING),
+                            'tax': openapi.Schema(type=openapi.TYPE_STRING),
+                            'user': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'city': openapi.Schema(type=openapi.TYPE_STRING),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                            'modified_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+                        }
+                    )
+                }
+            )
+        )
+    }
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_enterprises_by_user(request):
+    enterprises = EnterpriseEntity.objects.filter(user=request.user)
+    if not enterprises:
+        return Response({
+            'message': 'No enterprises found',
+            'status': status.HTTP_404_NOT_FOUND,
+        }, status=status.HTTP_404_NOT_FOUND)
+    serializer = EnterpriseSerializer(enterprises, many=True)
+    return Response({
+        'message': 'Enterprise details retrieved successfully',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    })
+
 @swagger_auto_schema(
     method='get',
     operation_description="Lấy chi tiết doanh nghiệp theo ID",
