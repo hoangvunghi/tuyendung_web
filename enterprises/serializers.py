@@ -1,11 +1,13 @@
 from rest_framework import serializers
 from .models import EnterpriseEntity, CampaignEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
+from base.cloudinary_utils import upload_image_to_cloudinary, delete_image_from_cloudinary
 
 class EnterpriseSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnterpriseEntity
         fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'modified_at')
+        read_only_fields = ('user', 'created_at', 'modified_at', 'logo_url', 'logo_public_id', 
+                          'background_image_url', 'background_image_public_id')
 
 class CampaignSerializer(serializers.ModelSerializer):
     class Meta:

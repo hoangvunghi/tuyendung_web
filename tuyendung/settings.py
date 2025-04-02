@@ -1,6 +1,10 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,6 +20,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# CLOUDINARY_URL=cloudinary://587339621414911:SpKe_0P24mcdPkHYWyQU-JQVV_Q@dyjo3qdxo
+
+cloudinary.config( 
+    cloud_name = "dyjo3qdxo", 
+    api_key = "587339621414911", 
+    api_secret = "SpKe_0P24mcdPkHYWyQU-JQVV_Q",
+    secure=True
+)
 
 # Application definition
 
@@ -206,8 +218,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,
@@ -232,8 +244,8 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
-    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=10),
 }
 
 SWAGGER_SETTINGS = {

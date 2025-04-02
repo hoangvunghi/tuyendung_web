@@ -22,6 +22,7 @@ from notifications.services import NotificationService
 from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from base.cloudinary_utils import delete_image_from_cloudinary, upload_image_to_cloudinary
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrEnterpriseOwner = create_permission_class_with_admin_override(IsEnterpriseOwner)
@@ -258,6 +259,7 @@ def get_enterprise_detail(request, pk):
             'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING, description="Lĩnh vực hoạt động"),
             'link_web_site': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_URI, description="Website"),
             'logo': openapi.Schema(type=openapi.TYPE_FILE, description="Logo"),
+            'background_image': openapi.Schema(type=openapi.TYPE_FILE, description="Ảnh nền"),
             'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
             'scale': openapi.Schema(type=openapi.TYPE_STRING, description="Quy mô"),
             'tax': openapi.Schema(type=openapi.TYPE_STRING, description="Mã số thuế"),
@@ -293,14 +295,42 @@ def get_enterprise_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_enterprise(request):
-    serializer = EnterpriseSerializer(data=request.data)
+    # Kiểm tra role của user
     user = request.user
-    # nếu role của user không phải là nhà tuyển dụng thì không được tạo doanh nghiệp
     if user.get_role() != 'employer':
         return Response({
             'message': 'You are not a employer',
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
+
+    # Lấy dữ liệu từ request
+    data = request.data.copy()
+    # business_certificate
+    business_certificate = request.FILES.get('business_certificate')
+    if business_certificate:
+        upload_result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
+        if upload_result:
+            data['business_certificate_url'] = upload_result['secure_url']
+            data['business_certificate_public_id'] = upload_result['public_id']
+
+    # Xử lý upload logo
+    logo = request.FILES.get('logo')
+    if logo:
+        upload_result = upload_image_to_cloudinary(logo, 'enterprise_logos')
+        if upload_result:
+            data['logo_url'] = upload_result['secure_url']
+            data['logo_public_id'] = upload_result['public_id']
+    
+    # Xử lý upload background image
+    background_image = request.FILES.get('background_image')
+    if background_image:
+        upload_result = upload_image_to_cloudinary(background_image, 'enterprise_backgrounds')
+        if upload_result:
+            data['background_image_url'] = upload_result['secure_url']
+            data['background_image_public_id'] = upload_result['public_id']
+
+    # Tạo serializer với dữ liệu đã xử lý
+    serializer = EnterpriseSerializer(data=data)
     if serializer.is_valid():
         serializer.save(user=request.user)
         return Response({
@@ -322,13 +352,13 @@ def create_enterprise(request):
         properties={
             'company_name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên doanh nghiệp"),
             'address': openapi.Schema(type=openapi.TYPE_STRING, description="Địa chỉ"),
-            'business_certificate': openapi.Schema(type=openapi.TYPE_STRING, description="Giấy phép kinh doanh"),
             'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả"),
             'email_company': openapi.Schema(type=openapi.TYPE_STRING, description="Email công ty"),
             'field_of_activity': openapi.Schema(type=openapi.TYPE_STRING, description="Lĩnh vực hoạt động"),
             'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Trạng thái hoạt động"),
             'link_web_site': openapi.Schema(type=openapi.TYPE_STRING, description="Đường link website"),
-            'logo': openapi.Schema(type=openapi.TYPE_STRING, description="Logo"),
+            'logo': openapi.Schema(type=openapi.TYPE_FILE, description="Logo mới"),
+            'background_image': openapi.Schema(type=openapi.TYPE_FILE, description="Ảnh nền mới"),
             'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
             'scale': openapi.Schema(type=openapi.TYPE_STRING, description="Quy mô"),
             'tax': openapi.Schema(type=openapi.TYPE_STRING, description="Mã số thuế"),
@@ -357,15 +387,6 @@ def create_enterprise(request):
                     'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
                 }
             )
-        ),
-        404: openapi.Response(
-            description="Enterprise not found",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
-                }
-            )
         )
     },
     security=[{'Bearer': []}]
@@ -374,7 +395,41 @@ def create_enterprise(request):
 @permission_classes([IsAuthenticated, AdminAccessPermission])
 def update_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
-    serializer = EnterpriseSerializer(enterprise, data=request.data)
+    data = request.data.copy()
+    # nếu is_active là true thì không cho sửa certificate
+    if enterprise.is_active:
+        data['business_certificate_url'] = enterprise.business_certificate_url
+        data['business_certificate_public_id'] = enterprise.business_certificate_public_id
+    else:
+        business_certificate = request.FILES.get('business_certificate')
+        if business_certificate:
+            upload_result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
+            if upload_result:
+                data['business_certificate_url'] = upload_result['secure_url']
+                data['business_certificate_public_id'] = upload_result['public_id']
+    logo = request.FILES.get('logo')
+    if logo:
+        if enterprise.logo_public_id:
+            delete_image_from_cloudinary(enterprise.logo_public_id)
+        # Upload logo mới
+        upload_result = upload_image_to_cloudinary(logo, 'enterprise_logos')
+        if upload_result:
+            data['logo_url'] = upload_result['secure_url']
+            data['logo_public_id'] = upload_result['public_id']
+
+    # Xử lý cập nhật background image
+    background_image = request.FILES.get('background_image')
+    if background_image:
+        # Xóa background image cũ nếu có
+        if enterprise.background_image_public_id:
+            delete_image_from_cloudinary(enterprise.background_image_public_id)
+        # Upload background image mới
+        upload_result = upload_image_to_cloudinary(background_image, 'enterprise_backgrounds')
+        if upload_result:
+            data['background_image_url'] = upload_result['secure_url']
+            data['background_image_public_id'] = upload_result['public_id']
+
+    serializer = EnterpriseSerializer(enterprise, data=data)
     if serializer.is_valid():
         serializer.save()
         return Response({
@@ -390,7 +445,7 @@ def update_enterprise(request):
 
 @swagger_auto_schema(
     method='delete',
-    operation_description="Xóa (vô hiệu hóa) doanh nghiệp",
+    operation_description="Xóa doanh nghiệp",
     responses={
         200: openapi.Response(
             description="Enterprise deleted successfully",
@@ -401,15 +456,6 @@ def update_enterprise(request):
                     'status': openapi.Schema(type=openapi.TYPE_INTEGER)
                 }
             )
-        ),
-        404: openapi.Response(
-            description="Enterprise not found",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
-                }
-            )
         )
     },
     security=[{'Bearer': []}]
@@ -418,6 +464,19 @@ def update_enterprise(request):
 @permission_classes([IsAuthenticated, AdminAccessPermission])
 def delete_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
+    # Xóa business certificate từ Cloudinary nếu có
+    if enterprise.business_certificate_public_id:
+        delete_image_from_cloudinary(enterprise.business_certificate_public_id)
+
+    # Xóa logo từ Cloudinary nếu có
+
+    if enterprise.logo_public_id:
+        delete_image_from_cloudinary(enterprise.logo_public_id)
+    
+    # Xóa background image từ Cloudinary nếu có
+    if enterprise.background_image_public_id:
+        delete_image_from_cloudinary(enterprise.background_image_public_id)
+    
     enterprise.delete()
     return Response({
         'message': 'Enterprise deleted successfully',
