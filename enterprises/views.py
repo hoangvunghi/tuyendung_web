@@ -15,7 +15,7 @@ from profiles.serializers import CvSerializer, CvStatusSerializer
 from base.permissions import (
     IsEnterpriseOwner, IsPostOwner, IsCampaignOwner,
     IsFieldManager, IsPositionManager, IsCriteriaOwner,
-    AdminAccessPermission
+    AdminAccessPermission,
 )
 from base.utils import create_permission_class_with_admin_override
 from notifications.services import NotificationService
@@ -583,12 +583,11 @@ def get_campaigns(request):
     operation_description="Tạo chiến dịch tuyển dụng mới",
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
-        required=['name', 'enterprise'],
+        required=['name'],
         properties={
             'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên chiến dịch"),
             'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả chiến dịch"),
             'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Trạng thái hoạt động của chiến dịch"),
-            'enterprise': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của doanh nghiệp"),
         }
     ),
     responses={
@@ -627,18 +626,38 @@ def get_campaigns(request):
     security=[{'Bearer': []}]
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def create_campaign(request):
-    serializer = CampaignSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(enterprise=request.user.enterprise)
+    # check role có phải employer không 
+    if not request.user.get_role() == 'employer':
         return Response({
-            'message': 'Campaign created successfully',
+            'message': 'Bạn không phải là nhà tuyển dụng',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    # Lấy doanh nghiệp của user hiện tại
+    try:
+        enterprise = EnterpriseEntity.objects.get(user=request.user)
+    except EnterpriseEntity.DoesNotExist:
+        return Response({
+            'message': 'Bạn chưa có doanh nghiệp',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Thêm enterprise vào data
+    data = request.data.copy()
+    data['enterprise'] = enterprise.id
+    
+    serializer = CampaignSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            'message': 'Tạo chiến dịch thành công',
             'status': status.HTTP_201_CREATED,
             'data': serializer.data
         }, status=status.HTTP_201_CREATED)
     return Response({
-        'message': 'Campaign creation failed',
+        'message': 'Tạo chiến dịch thất bại',
         'status': status.HTTP_400_BAD_REQUEST,
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
@@ -704,20 +723,27 @@ def create_campaign(request):
     }
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, AdminOrPostOwner])
+@permission_classes([IsAuthenticated])
 def get_posts(request):
-    campaigns = CampaignEntity.objects.filter(enterprise__user=request.user)
-    campaign_id = request.query_params.get('campaign_id')
-    if campaign_id:
-        posts = PostEntity.objects.filter(campaign__in=campaigns, campaign_id=campaign_id)
+    # Admin có thể xem tất cả posts
+    if request.user.is_superuser:
+        posts = PostEntity.objects.all()
     else:
-        posts = PostEntity.objects.filter(campaign__in=campaigns)
+        # Employer chỉ xem được posts của doanh nghiệp mình
+        enterprise = request.user.get_enterprise()
+        if not enterprise:
+            return Response({
+                'message': 'Bạn không phải là nhà tuyển dụng',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+        posts = PostEntity.objects.filter(enterprise=enterprise)
     
-    paginator = CustomPagination()
-    paginated_posts = paginator.paginate_queryset(posts, request)
-    
-    serializer = PostSerializer(paginated_posts, many=True)
-    return paginator.get_paginated_response(serializer.data)
+    serializer = PostSerializer(posts, many=True)
+    return Response({
+        'message': 'Lấy danh sách bài đăng thành công',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
     method='post',
@@ -775,18 +801,41 @@ def get_posts(request):
     security=[{'Bearer': []}]
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def create_post(request):
-    serializer = PostSerializer(data=request.data)
+    # Admin có thể tạo post cho bất kỳ doanh nghiệp nào
+    if request.user.is_superuser:
+        enterprise_id = request.data.get('enterprise')
+        try:
+            enterprise = EnterpriseEntity.objects.get(id=enterprise_id)
+        except EnterpriseEntity.DoesNotExist:
+            return Response({
+                'message': 'Doanh nghiệp không tồn tại',
+                'status': status.HTTP_404_NOT_FOUND
+            }, status=status.HTTP_404_NOT_FOUND)
+    else:
+        # Employer chỉ tạo được post cho doanh nghiệp mình
+        enterprise = request.user.get_enterprise()
+        if not enterprise:
+            return Response({
+                'message': 'Bạn không phải là nhà tuyển dụng',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+    
+    # Thêm enterprise vào data
+    data = request.data.copy()
+    data['enterprise'] = enterprise.id
+    
+    serializer = PostSerializer(data=data)
     if serializer.is_valid():
-        serializer.save(campaign=request.user.enterprise.campaign_set.get(id=request.data['campaign']))
+        serializer.save()
         return Response({
-            'message': 'Post created successfully',
+            'message': 'Tạo bài đăng thành công',
             'status': status.HTTP_201_CREATED,
             'data': serializer.data
         }, status=status.HTTP_201_CREATED)
     return Response({
-        'message': 'Post creation failed',
+        'message': 'Tạo bài đăng thất bại',
         'status': status.HTTP_400_BAD_REQUEST,
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
@@ -1735,19 +1784,36 @@ def delete_campaign(request, pk):
     security=[{'Bearer': []}]
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, AdminOrPostOwner])
+@permission_classes([IsAuthenticated])
 def update_post(request, pk):
-    post = get_object_or_404(PostEntity, id=pk, campaign__enterprise__user=request.user)
-    serializer = PostSerializer(post, data=request.data)
+    try:
+        post = PostEntity.objects.get(pk=pk)
+    except PostEntity.DoesNotExist:
+        return Response({
+            'message': 'Bài đăng không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Admin có thể sửa bất kỳ post nào
+    if not request.user.is_superuser:
+        # Employer chỉ sửa được post của doanh nghiệp mình
+        enterprise = request.user.get_enterprise()
+        if not enterprise or post.enterprise != enterprise:
+            return Response({
+                'message': 'Bạn không có quyền sửa bài đăng này',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+    
+    serializer = PostSerializer(post, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response({
-            'message': 'Post updated successfully',
+            'message': 'Cập nhật bài đăng thành công',
             'status': status.HTTP_200_OK,
             'data': serializer.data
-        })
+        }, status=status.HTTP_200_OK)
     return Response({
-        'message': 'Post update failed',
+        'message': 'Cập nhật bài đăng thất bại',
         'status': status.HTTP_400_BAD_REQUEST,
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
@@ -1780,14 +1846,31 @@ def update_post(request, pk):
     security=[{'Bearer': []}]
 )
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, AdminOrPostOwner])
+@permission_classes([IsAuthenticated])
 def delete_post(request, pk):
-    post = get_object_or_404(PostEntity, id=pk, campaign__enterprise__user=request.user)
+    try:
+        post = PostEntity.objects.get(pk=pk)
+    except PostEntity.DoesNotExist:
+        return Response({
+            'message': 'Bài đăng không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Admin có thể xóa bất kỳ post nào
+    if not request.user.is_superuser:
+        # Employer chỉ xóa được post của doanh nghiệp mình
+        enterprise = request.user.get_enterprise()
+        if not enterprise or post.enterprise != enterprise:
+            return Response({
+                'message': 'Bạn không có quyền xóa bài đăng này',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+    
     post.delete()
     return Response({
-        'message': 'Post deleted successfully',
+        'message': 'Xóa bài đăng thành công',
         'status': status.HTTP_200_OK
-    })
+    }, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
     method='get',

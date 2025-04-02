@@ -24,9 +24,9 @@ class EnterpriseAdmin(BaseAdminClass):
 class FieldAdmin(BaseAdminClass):
     pass
 
-@admin.register(CampaignEntity)
-class CampaignAdmin(BaseAdminClass):
-    pass
+# @admin.register(CampaignEntity)
+# class CampaignAdmin(BaseAdminClass):
+#     pass
 
 @admin.register(PositionEntity)
 class PositionAdmin(BaseAdminClass):

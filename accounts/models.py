@@ -43,6 +43,20 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
 
     def get_role(self):
         return self.user_roles.first().role.name
+    
+    def is_employer(self):
+        return self.user_roles.filter(role__name='employer').exists()
+    
+    def get_enterprise(self):
+        """
+        Lấy doanh nghiệp của user nếu là employer, ngược lại trả về None
+        """
+        if self.is_employer():
+            try:
+                return self.enterprise
+            except:
+                return None
+        return None
 
     class Meta:
         verbose_name = 'Tài khoản'
