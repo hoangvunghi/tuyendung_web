@@ -35,4 +35,16 @@ urlpatterns = [
     
     # Filter Options
     path('filter-options/', views.get_filter_options, name='get-filter-options'),
+
+    # Position URLs
+    path('positions/', views.get_positions, name='get_positions'),
+    path('positions/create/', views.create_position, name='create_position'),
+    path('positions/<int:pk>/', views.update_position, name='update_position'),
+    path('positions/<int:pk>/delete/', views.delete_position, name='delete_position'),
+
+    # Criteria URLs
+    path('criteria/', views.get_criteria, name='get_criteria'),
+    path('criteria/create/', views.create_criteria, name='create_criteria'),
+    path('criteria/update/', views.update_criteria, name='update_criteria'),
+    path('criteria/delete/', views.delete_criteria, name='delete_criteria'),
 ]

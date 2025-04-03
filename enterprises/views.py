@@ -1946,3 +1946,254 @@ def get_post_detail(request, pk):
         'status': status.HTTP_200_OK,
         'data': serializer.data
     })
+
+@swagger_auto_schema(
+    method='get',
+    operation_description='Lấy danh sách vị trí công việc',
+    responses={
+        200: openapi.Response(
+            description='Thành công',
+            schema=PositionSerializer(many=True)
+        ),
+        401: 'Chưa xác thực',
+        403: 'Không có quyền truy cập'
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_positions(request):
+    positions = PositionEntity.objects.all()
+    serializer = PositionSerializer(positions, many=True)
+    return Response({
+        'message': 'Lấy danh sách vị trí thành công',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description='Tạo vị trí công việc mới',
+    request_body=PositionSerializer,
+    responses={
+        201: openapi.Response(
+            description='Tạo thành công',
+            schema=PositionSerializer
+        ),
+        400: 'Dữ liệu không hợp lệ',
+        401: 'Chưa xác thực',
+        403: 'Không có quyền truy cập'
+    }
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_position(request):
+    serializer = PositionSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            'message': 'Tạo vị trí thành công',
+            'status': status.HTTP_201_CREATED,
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        'message': 'Tạo vị trí thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='put',
+    operation_description='Cập nhật vị trí công việc',
+    request_body=PositionSerializer,
+    responses={
+        200: openapi.Response(
+            description='Cập nhật thành công',
+            schema=PositionSerializer
+        ),
+        400: 'Dữ liệu không hợp lệ',
+        401: 'Chưa xác thực',
+        403: 'Không có quyền truy cập',
+        404: 'Vị trí không tồn tại'
+    }
+)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_position(request, pk):
+    try:
+        position = PositionEntity.objects.get(pk=pk)
+    except PositionEntity.DoesNotExist:
+        return Response({
+            'message': 'Vị trí không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = PositionSerializer(position, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            'message': 'Cập nhật vị trí thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    return Response({
+        'message': 'Cập nhật vị trí thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='delete',
+    operation_description='Xóa vị trí công việc',
+    responses={
+        200: 'Xóa thành công',
+        401: 'Chưa xác thực',
+        403: 'Không có quyền truy cập',
+        404: 'Vị trí không tồn tại'
+    }
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_position(request, pk):
+    try:
+        position = PositionEntity.objects.get(pk=pk)
+    except PositionEntity.DoesNotExist:
+        return Response({
+            'message': 'Vị trí không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    position.delete()
+    return Response({
+        'message': 'Xóa vị trí thành công',
+        'status': status.HTTP_200_OK
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description='Lấy tiêu chí tìm việc của user',
+    responses={
+        200: openapi.Response(
+            description='Thành công',
+            schema=CriteriaSerializer
+        ),
+        401: 'Chưa xác thực',
+        404: 'Chưa có tiêu chí'
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_criteria(request):
+    try:
+        criteria = CriteriaEntity.objects.get(user=request.user)
+        serializer = CriteriaSerializer(criteria)
+        return Response({
+            'message': 'Lấy tiêu chí thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    except CriteriaEntity.DoesNotExist:
+        return Response({
+            'message': 'Bạn chưa có tiêu chí tìm việc',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description='Tạo tiêu chí tìm việc mới',
+    request_body=CriteriaSerializer,
+    responses={
+        201: openapi.Response(
+            description='Tạo thành công',
+            schema=CriteriaSerializer
+        ),
+        400: 'Dữ liệu không hợp lệ',
+        401: 'Chưa xác thực'
+    }
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_criteria(request):
+    # Kiểm tra xem user đã có criteria chưa
+    if CriteriaEntity.objects.filter(user=request.user).exists():
+        return Response({
+            'message': 'Bạn đã có tiêu chí tìm việc',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    serializer = CriteriaSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(user=request.user)
+        return Response({
+            'message': 'Tạo tiêu chí thành công',
+            'status': status.HTTP_201_CREATED,
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        'message': 'Tạo tiêu chí thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='put',
+    operation_description='Cập nhật tiêu chí tìm việc',
+    request_body=CriteriaSerializer,
+    responses={
+        200: openapi.Response(
+            description='Cập nhật thành công',
+            schema=CriteriaSerializer
+        ),
+        400: 'Dữ liệu không hợp lệ',
+        401: 'Chưa xác thực',
+        404: 'Chưa có tiêu chí'
+    }
+)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_criteria(request):
+    try:
+        criteria = CriteriaEntity.objects.get(user=request.user)
+    except CriteriaEntity.DoesNotExist:
+        return Response({
+            'message': 'Bạn chưa có tiêu chí tìm việc',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = CriteriaSerializer(criteria, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            'message': 'Cập nhật tiêu chí thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    return Response({
+        'message': 'Cập nhật tiêu chí thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(
+    method='delete',
+    operation_description='Xóa tiêu chí tìm việc',
+    responses={
+        200: 'Xóa thành công',
+        401: 'Chưa xác thực',
+        404: 'Chưa có tiêu chí'
+    }
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_criteria(request):
+    try:
+        criteria = CriteriaEntity.objects.get(user=request.user)
+        criteria.delete()
+        return Response({
+            'message': 'Xóa tiêu chí thành công',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    except CriteriaEntity.DoesNotExist:
+        return Response({
+            'message': 'Bạn chưa có tiêu chí tìm việc',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
