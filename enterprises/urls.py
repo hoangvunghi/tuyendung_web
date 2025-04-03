@@ -41,6 +41,7 @@ urlpatterns = [
     path('positions/create/', views.create_position, name='create_position'),
     path('positions/<int:pk>/', views.update_position, name='update_position'),
     path('positions/<int:pk>/delete/', views.delete_position, name='delete_position'),
+    path('positions/field/<int:field_id>/', views.get_positions_by_field, name='get_positions_by_field'),
 
     # Criteria URLs
     path('criteria/', views.get_criteria, name='get_criteria'),

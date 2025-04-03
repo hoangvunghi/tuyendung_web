@@ -67,6 +67,7 @@ class CampaignEntity(models.Model):
 class PositionEntity(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=255, unique=True)
+    field = models.ForeignKey(FieldEntity, on_delete=models.CASCADE, related_name='positions')
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive')

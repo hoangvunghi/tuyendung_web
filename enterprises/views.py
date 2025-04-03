@@ -2197,3 +2197,32 @@ def delete_criteria(request):
             'message': 'Bạn chưa có tiêu chí tìm việc',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description='Lấy danh sách vị trí theo lĩnh vực',
+    responses={
+        200: openapi.Response(
+            description='Thành công',
+            schema=PositionSerializer(many=True)
+        ),
+        404: 'Lĩnh vực không tồn tại'
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_positions_by_field(request, field_id):
+    try:
+        field = FieldEntity.objects.get(id=field_id)
+        positions = PositionEntity.objects.filter(field=field, status='active')
+        serializer = PositionSerializer(positions, many=True)
+        return Response({
+            'message': 'Lấy danh sách vị trí thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    except FieldEntity.DoesNotExist:
+        return Response({
+            'message': 'Lĩnh vực không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
