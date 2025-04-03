@@ -6,8 +6,7 @@ class EnterpriseSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnterpriseEntity
         fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'modified_at', 'logo_url', 'logo_public_id', 
-                          'background_image_url', 'background_image_public_id')
+        read_only_fields = ('user', 'created_at', 'modified_at')
 
 class CampaignSerializer(serializers.ModelSerializer):
     class Meta:

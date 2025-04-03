@@ -392,14 +392,15 @@ def create_enterprise(request):
     security=[{'Bearer': []}]
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def update_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
     data = request.data.copy()
     # nếu is_active là true thì không cho sửa certificate
+    data['business_certificate_url'] = enterprise.business_certificate_url
+    data['business_certificate_public_id'] = enterprise.business_certificate_public_id
     if enterprise.is_active:
-        data['business_certificate_url'] = enterprise.business_certificate_url
-        data['business_certificate_public_id'] = enterprise.business_certificate_public_id
+        pass
     else:
         business_certificate = request.FILES.get('business_certificate')
         if business_certificate:
@@ -428,14 +429,12 @@ def update_enterprise(request):
         if upload_result:
             data['background_image_url'] = upload_result['secure_url']
             data['background_image_public_id'] = upload_result['public_id']
-
     serializer = EnterpriseSerializer(enterprise, data=data)
     if serializer.is_valid():
         serializer.save()
         return Response({
             'message': 'Enterprise updated successfully',
             'status': status.HTTP_200_OK,
-            'data': serializer.data
         })
     return Response({
         'message': 'Enterprise update failed',
