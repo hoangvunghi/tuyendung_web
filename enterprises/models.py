@@ -9,7 +9,7 @@ class EnterpriseEntity(models.Model):
     description = models.TextField()
     email_company = models.EmailField(max_length=255)
     field_of_activity = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     link_web_site = models.URLField(max_length=255, blank=True)
     logo_url = models.CharField(max_length=255, blank=True)
     logo_public_id = models.CharField(max_length=255, blank=True)
@@ -51,7 +51,7 @@ class FieldEntity(models.Model):
 
 class CampaignEntity(models.Model):
     name = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     enterprise = models.ForeignKey(EnterpriseEntity, on_delete=models.CASCADE, related_name='campaigns')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)

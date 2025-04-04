@@ -1,0 +1,362 @@
+[
+    {
+        "code": "DEV",
+        "name": "Lập trình viên",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "BA",
+        "name": "Phân tích nghiệp vụ",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "ACCOUNTANT",
+        "name": "Kế toán",
+        "field_code": "FINANCE",
+        "status": "active"
+    },
+    {
+        "code": "RECRUITER",
+        "name": "Nhân viên tuyển dụng",
+        "field_code": "HR",
+        "status": "active"
+    },
+    {
+        "code": "MARKETING_SPECIALIST",
+        "name": "Chuyên viên Marketing",
+        "field_code": "MARKETING",
+        "status": "active"
+    },
+    {
+        "code": "SALES_REP",
+        "name": "Nhân viên kinh doanh",
+        "field_code": "SALES",
+        "status": "active"
+    },
+    {
+        "code": "TEACHER",
+        "name": "Giáo viên",
+        "field_code": "EDUCATION",
+        "status": "active"
+    },
+    {
+        "code": "DOCTOR",
+        "name": "Bác sĩ",
+        "field_code": "HEALTHCARE",
+        "status": "active"
+    },
+    {
+        "code": "NURSE",
+        "name": "Y tá",
+        "field_code": "HEALTHCARE",
+        "status": "active"
+    },
+    {
+        "code": "CIVIL_ENGINEER",
+        "name": "Kỹ sư xây dựng",
+        "field_code": "CONSTRUCTION",
+        "status": "active"
+    },
+    {
+        "code": "PRODUCTION_MANAGER",
+        "name": "Quản lý sản xuất",
+        "field_code": "MANUFACTURING",
+        "status": "active"
+    },
+    {
+        "code": "LOGISTICS_MANAGER",
+        "name": "Quản lý logistics",
+        "field_code": "LOGISTICS",
+        "status": "active"
+    },
+    {
+        "code": "STORE_MANAGER",
+        "name": "Quản lý cửa hàng",
+        "field_code": "RETAIL",
+        "status": "active"
+    },
+    {
+        "code": "HOTEL_MANAGER",
+        "name": "Quản lý khách sạn",
+        "field_code": "HOSPITALITY",
+        "status": "active"
+    },
+    {
+        "code": "LAWYER",
+        "name": "Luật sư",
+        "field_code": "LEGAL",
+        "status": "active"
+    },
+    {
+        "code": "GRAPHIC_DESIGNER",
+        "name": "Thiết kế đồ họa",
+        "field_code": "DESIGN",
+        "status": "active"
+    },
+    {
+        "code": "JOURNALIST",
+        "name": "Phóng viên",
+        "field_code": "MEDIA",
+        "status": "active"
+    },
+    {
+        "code": "SYSTEM_ADMIN",
+        "name": "Quản trị hệ thống",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "DATA_ANALYST",
+        "name": "Chuyên viên phân tích dữ liệu",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "FINANCIAL_ANALYST",
+        "name": "Chuyên viên phân tích tài chính",
+        "field_code": "FINANCE",
+        "status": "active"
+    },
+    {
+        "code": "HR_MANAGER",
+        "name": "Quản lý nhân sự",
+        "field_code": "HR",
+        "status": "active"
+    },
+    {
+        "code": "DIGITAL_MARKETING",
+        "name": "Chuyên viên Marketing số",
+        "field_code": "MARKETING",
+        "status": "active"
+    },
+    {
+        "code": "SALES_MANAGER",
+        "name": "Quản lý bán hàng",
+        "field_code": "SALES",
+        "status": "active"
+    },
+    {
+        "code": "UNIVERSITY_LECTURER",
+        "name": "Giảng viên đại học",
+        "field_code": "EDUCATION",
+        "status": "active"
+    },
+    {
+        "code": "PHARMACIST",
+        "name": "Dược sĩ",
+        "field_code": "HEALTHCARE",
+        "status": "active"
+    },
+    {
+        "code": "ARCHITECT",
+        "name": "Kiến trúc sư",
+        "field_code": "CONSTRUCTION",
+        "status": "active"
+    },
+    {
+        "code": "QUALITY_CONTROL",
+        "name": "Kiểm soát chất lượng",
+        "field_code": "MANUFACTURING",
+        "status": "active"
+    },
+    {
+        "code": "SUPPLY_CHAIN",
+        "name": "Quản lý chuỗi cung ứng",
+        "field_code": "LOGISTICS",
+        "status": "active"
+    },
+    {
+        "code": "MERCHANDISER",
+        "name": "Nhân viên mua hàng",
+        "field_code": "RETAIL",
+        "status": "active"
+    },
+    {
+        "code": "TOUR_GUIDE",
+        "name": "Hướng dẫn viên du lịch",
+        "field_code": "HOSPITALITY",
+        "status": "active"
+    },
+    {
+        "code": "LEGAL_CONSULTANT",
+        "name": "Tư vấn pháp lý",
+        "field_code": "LEGAL",
+        "status": "active"
+    },
+    {
+        "code": "UI_UX_DESIGNER",
+        "name": "Thiết kế UI/UX",
+        "field_code": "DESIGN",
+        "status": "active"
+    },
+    {
+        "code": "CONTENT_WRITER",
+        "name": "Biên tập viên",
+        "field_code": "MEDIA",
+        "status": "active"
+    },
+    {
+        "code": "FRONTEND_DEV",
+        "name": "Lập trình viên Frontend",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "BACKEND_DEV",
+        "name": "Lập trình viên Backend",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "FULLSTACK_DEV",
+        "name": "Lập trình viên Fullstack",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "MOBILE_DEV",
+        "name": "Lập trình viên Mobile",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "DEVOPS_ENGINEER",
+        "name": "Kỹ sư DevOps",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "QA_ENGINEER",
+        "name": "Kỹ sư kiểm thử phần mềm",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "SECURITY_ENGINEER",
+        "name": "Kỹ sư bảo mật",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "CLOUD_ENGINEER",
+        "name": "Kỹ sư điện toán đám mây",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "AI_ENGINEER",
+        "name": "Kỹ sư AI/ML",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "DATA_ENGINEER",
+        "name": "Kỹ sư dữ liệu",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "BLOCKCHAIN_DEV",
+        "name": "Lập trình viên Blockchain",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "GAME_DEV",
+        "name": "Lập trình viên Game",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_MANAGER",
+        "name": "Quản lý CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "PROJECT_MANAGER",
+        "name": "Quản lý dự án",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "PRODUCT_MANAGER",
+        "name": "Quản lý sản phẩm",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "TECH_LEAD",
+        "name": "Trưởng nhóm kỹ thuật",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "SOLUTION_ARCHITECT",
+        "name": "Kiến trúc sư giải pháp",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "SYSTEM_ARCHITECT",
+        "name": "Kiến trúc sư hệ thống",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "NETWORK_ENGINEER",
+        "name": "Kỹ sư mạng",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "DATABASE_ADMIN",
+        "name": "Quản trị cơ sở dữ liệu",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_CONSULTANT",
+        "name": "Tư vấn CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_AUDITOR",
+        "name": "Kiểm toán CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_TRAINER",
+        "name": "Giảng viên CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_SUPPORT",
+        "name": "Hỗ trợ kỹ thuật",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_SALES",
+        "name": "Nhân viên kinh doanh CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_MARKETING",
+        "name": "Chuyên viên Marketing CNTT",
+        "field_code": "IT",
+        "status": "active"
+    },
+    {
+        "code": "IT_HR",
+        "name": "Nhân sự CNTT",
+        "field_code": "IT",
+        "status": "active"
+    }
+] 

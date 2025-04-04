@@ -1,0 +1,77 @@
+[
+    {
+        "code": "IT",
+        "name": "Công nghệ thông tin",
+        "status": "active"
+    },
+    {
+        "code": "FINANCE",
+        "name": "Tài chính",
+        "status": "active"
+    },
+    {
+        "code": "HR",
+        "name": "Nhân sự",
+        "status": "active"
+    },
+    {
+        "code": "MARKETING",
+        "name": "Marketing",
+        "status": "active"
+    },
+    {
+        "code": "SALES",
+        "name": "Bán hàng",
+        "status": "active"
+    },
+    {
+        "code": "EDUCATION",
+        "name": "Giáo dục",
+        "status": "active"
+    },
+    {
+        "code": "HEALTHCARE",
+        "name": "Y tế",
+        "status": "active"
+    },
+    {
+        "code": "CONSTRUCTION",
+        "name": "Xây dựng",
+        "status": "active"
+    },
+    {
+        "code": "MANUFACTURING",
+        "name": "Sản xuất",
+        "status": "active"
+    },
+    {
+        "code": "LOGISTICS",
+        "name": "Vận tải & Logistics",
+        "status": "active"
+    },
+    {
+        "code": "RETAIL",
+        "name": "Bán lẻ",
+        "status": "active"
+    },
+    {
+        "code": "HOSPITALITY",
+        "name": "Dịch vụ & Du lịch",
+        "status": "active"
+    },
+    {
+        "code": "LEGAL",
+        "name": "Pháp lý",
+        "status": "active"
+    },
+    {
+        "code": "DESIGN",
+        "name": "Thiết kế",
+        "status": "active"
+    },
+    {
+        "code": "MEDIA",
+        "name": "Truyền thông",
+        "status": "active"
+    }
+] 
