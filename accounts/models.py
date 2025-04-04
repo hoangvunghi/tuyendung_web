@@ -53,7 +53,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         """
         if self.is_employer():
             try:
-                return self.enterprise
+                return self.enterprises.first()
             except:
                 return None
         return None
