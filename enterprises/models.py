@@ -90,6 +90,7 @@ class PostEntity(models.Model):
     experience = models.CharField(max_length=255)
     enterprise = models.ForeignKey(EnterpriseEntity, on_delete=models.CASCADE, related_name='posts')
     position = models.ForeignKey(PositionEntity, on_delete=models.CASCADE, related_name='posts')
+    field = models.ForeignKey(FieldEntity, on_delete=models.SET_NULL, related_name='posts', null=True, blank=True)
     interest = models.TextField()
     level = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField()
