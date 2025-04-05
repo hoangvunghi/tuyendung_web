@@ -8,7 +8,7 @@ class EnterpriseEntity(models.Model):
     business_certificate_public_id = models.CharField(max_length=255)
     description = models.TextField()
     email_company = models.EmailField(max_length=255)
-    field_of_activity = models.CharField(max_length=255)
+    field_of_activity = models.TextField()
     is_active = models.BooleanField(default=False)
     link_web_site = models.URLField(max_length=255, blank=True)
     logo_url = models.CharField(max_length=255, blank=True)
