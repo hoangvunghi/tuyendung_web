@@ -1300,21 +1300,6 @@ def search_enterprises(request):
                                                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                                             }
                                         ),
-                                        'campaign': openapi.Schema(
-                                            type=openapi.TYPE_OBJECT,
-                                            properties={
-                                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                                'name': openapi.Schema(type=openapi.TYPE_STRING),
-                                                'enterprise': openapi.Schema(
-                                                    type=openapi.TYPE_OBJECT,
-                                                    properties={
-                                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                                        'company_name': openapi.Schema(type=openapi.TYPE_STRING),
-                                                        'logo': openapi.Schema(type=openapi.TYPE_STRING),
-                                                    }
-                                                ),
-                                            }
-                                        ),
                                         'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                                     }
                                 )
