@@ -667,13 +667,6 @@ def create_campaign(request):
     operation_description="Lấy danh sách bài đăng việc làm",
     manual_parameters=[
         openapi.Parameter(
-            'campaign_id', 
-            openapi.IN_QUERY, 
-            description="ID của chiến dịch để lọc bài đăng", 
-            type=openapi.TYPE_INTEGER,
-            required=False
-        ),
-        openapi.Parameter(
             'page', 
             openapi.IN_QUERY, 
             description="Số trang", 
@@ -812,7 +805,7 @@ def get_all_posts(request):
     operation_description="Tạo bài đăng việc làm mới",
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
-        required=['title', 'campaign', 'position', 'city', 'experience', 'type_working'],
+        required=['title', 'position', 'city', 'experience', 'type_working'],
         properties={
             'title': openapi.Schema(type=openapi.TYPE_STRING, description="Tiêu đề bài đăng"),
             'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả công việc"),
@@ -824,7 +817,6 @@ def get_all_posts(request):
             'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số lượng cần tuyển"),
             'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố"),
             'position': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của vị trí"),
-            'campaign': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của chiến dịch"),
         }
     ),
     responses={
@@ -851,7 +843,7 @@ def get_all_posts(request):
             )
         ),
         404: openapi.Response(
-            description="Campaign not found",
+            description="lỗi",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
@@ -1402,9 +1394,9 @@ def get_recommended_posts(request):
             Q(city__iexact=criteria.city) |
             Q(experience__iexact=criteria.experience) |
             Q(type_working__iexact=criteria.type_working) |
-            Q(campaign__enterprise__scale__iexact=criteria.scales) |
+            Q(enterprise__scale__iexact=criteria.scales) |
             Q(position=criteria.position) |
-            Q(campaign__enterprise__field_of_activity__icontains=criteria.field.name)
+            Q(enterprise__field_of_activity__icontains=criteria.field.name)
         ).distinct()
         
         # Sắp xếp theo độ phù hợp (có thể thêm logic tính điểm phù hợp ở đây)
@@ -1437,7 +1429,6 @@ def get_recommended_posts(request):
                     'data': openapi.Schema(
                         type=openapi.TYPE_OBJECT,
                         properties={
-                            'total_campaigns': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số chiến dịch"),
                             'total_posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số bài đăng"),
                             'cv_statistics': openapi.Schema(
                                 type=openapi.TYPE_OBJECT,
@@ -1467,18 +1458,14 @@ def get_recommended_posts(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, AdminOrEnterpriseOwner])
 def get_enterprise_stats(request, pk):
-    """Lấy thống kê về doanh nghiệp: số lượng CV theo trạng thái, số chiến dịch, số bài đăng"""
+    """Lấy thống kê về doanh nghiệp: số lượng CV theo trạng thái, số bài đăng"""
     enterprise = get_object_or_404(EnterpriseEntity, pk=pk, user=request.user)
-    
-    # Tổng số chiến dịch
-    total_campaigns = CampaignEntity.objects.filter(enterprise=enterprise).count()
-    
     # Tổng số bài đăng
-    total_posts = PostEntity.objects.filter(campaign__enterprise=enterprise).count()
+    total_posts = PostEntity.objects.filter(enterprise=enterprise).count()
     
     # Số lượng CV theo trạng thái
     cv_stats = {}
-    posts = PostEntity.objects.filter(campaign__enterprise=enterprise)
+    posts = PostEntity.objects.filter(enterprise=enterprise)
     for status_choice in ['pending', 'approved', 'rejected']:
         cv_count = Cv.objects.filter(post__in=posts, status=status_choice).count()
         cv_stats[status_choice] = cv_count
@@ -1487,7 +1474,6 @@ def get_enterprise_stats(request, pk):
         'message': 'Enterprise statistics retrieved successfully',
         'status': status.HTTP_200_OK,
         'data': {
-            'total_campaigns': total_campaigns,
             'total_posts': total_posts,
             'cv_statistics': cv_stats
         }
@@ -1792,7 +1778,6 @@ def delete_campaign(request, pk):
             'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số lượng cần tuyển"),
             'city': openapi.Schema(type=openapi.TYPE_STRING, description="Thành phố"),
             'position': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của vị trí"),
-            'campaign': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của chiến dịch"),
         }
     ),
     responses={
@@ -1949,21 +1934,6 @@ def delete_post(request, pk):
                                     'name': openapi.Schema(type=openapi.TYPE_STRING),
                                 }
                             ),
-                            'campaign': openapi.Schema(
-                                type=openapi.TYPE_OBJECT,
-                                properties={
-                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
-                                    'enterprise': openapi.Schema(
-                                        type=openapi.TYPE_OBJECT,
-                                        properties={
-                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                                            'company_name': openapi.Schema(type=openapi.TYPE_STRING),
-                                            'logo': openapi.Schema(type=openapi.TYPE_STRING),
-                                        }
-                                    ),
-                                }
-                            ),
                             'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                             'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                         }
@@ -1986,7 +1956,13 @@ def delete_post(request, pk):
 @permission_classes([AllowAny])
 def get_post_detail(request, pk):
     """Chi tiết bài đăng"""
-    post = get_object_or_404(PostEntity, pk=pk)
+    # post = get_object_or_404(PostEntity, pk=pk)
+    post = PostEntity.objects.get(pk=pk)
+    if not post:
+        return Response({
+            'message': 'Bài đăng không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
     serializer = PostSerializer(post)
     return Response({
         'message': 'Post details retrieved successfully',
