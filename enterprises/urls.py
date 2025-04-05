@@ -28,6 +28,7 @@ urlpatterns = [
     path('posts/<int:pk>/delete/', views.delete_post, name='delete-post'),
     path('posts/search/', views.search_posts, name='search-posts'),
     path('posts/recommended/', views.get_recommended_posts, name='get-recommended-posts'),
+    path('posts/all/', views.get_all_posts, name='get-all-posts'),
 
     # Field Management
     path('fields/', views.get_fields, name='get-fields'),

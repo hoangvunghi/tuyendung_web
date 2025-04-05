@@ -745,6 +745,27 @@ def get_posts(request):
     }, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách bài đăng việc làm",
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(type=openapi.TYPE_OBJECT)
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_posts(request):
+    posts = PostEntity.objects.filter(is_active=True)
+    serializer = PostSerializer(posts, many=True)
+    return Response({
+        'message': 'Lấy danh sách bài đăng thành công',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
     method='post',
     operation_description="Tạo bài đăng việc làm mới",
     request_body=openapi.Schema(
