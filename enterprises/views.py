@@ -1808,13 +1808,12 @@ def delete_campaign(request, pk):
 @permission_classes([IsAuthenticated])
 def update_post(request, pk):
     try:
-        post = PostEntity.objects.get(pk=pk)
+        post = PostEntity.objects.get(pk=pk,is_active=True)
     except PostEntity.DoesNotExist:
         return Response({
-            'message': 'Bài đăng không tồn tại',
+            'message': 'Bài đăng không tồn tại hoặc đã được xét duyệt',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
-    
     # Admin có thể sửa bất kỳ post nào
     if not request.user.is_superuser:
         # Employer chỉ sửa được post của doanh nghiệp mình
