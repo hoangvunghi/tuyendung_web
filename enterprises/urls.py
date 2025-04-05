@@ -16,18 +16,18 @@ urlpatterns = [
     path('posts/', views.get_posts, name='get-posts'),
     path('posts/<int:pk>/', views.get_post_detail, name='get-post-detail'),
     path('posts/create/', views.create_post, name='create-post'),
-    path('posts/<int:pk>/update/', views.update_post, name='update-post'),
-    path('posts/<int:pk>/delete/', views.delete_post, name='delete-post'),
+    path('posts/update/<int:pk>/', views.update_post, name='update-post'),
+    path('posts/delete/<int:pk>/', views.delete_post, name='delete-post'),
     path('posts/search/', views.search_posts, name='search-posts'),
     path('posts/recommended/', views.get_recommended_posts, name='get-recommended-posts'),
     path('posts/all/', views.get_all_posts, name='get-all-posts'),
     path('posts/enterprise/<int:enterprise_id>/', views.get_post_of_enterprise, name='get-post-of-enterprise'),
     path('posts/user/', views.get_post_of_user, name='get-post-of-user'),
-
+    path('posts/<int:pk>/toggle-status/', views.toogle_post_status, name='toggle-post-status'),
     # Field Management
     path('fields/', views.get_fields, name='get-fields'),
     path('fields/create/', views.create_field, name='create-field'),
-    
+    path('fields/<int:field_id>/', views.get_field_name, name='get-field-name'),
     # Filter Options
     path('filter-options/', views.get_filter_options, name='get-filter-options'),
 
@@ -37,7 +37,7 @@ urlpatterns = [
     path('positions/<int:pk>/', views.update_position, name='update_position'),
     path('positions/<int:pk>/delete/', views.delete_position, name='delete_position'),
     path('positions/field/<int:field_id>/', views.get_positions_by_field, name='get_positions_by_field'),
-
+    path('position/<int:pk>/', views.get_position_name, name='get_position_name'),
     # Criteria URLs
     path('criteria/', views.get_criteria, name='get_criteria'),
     path('criteria/create/', views.create_criteria, name='create_criteria'),

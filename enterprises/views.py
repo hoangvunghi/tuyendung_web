@@ -8,7 +8,8 @@ from django.db.models import Q
 from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
 from .serializers import (
     EnterpriseSerializer, PostSerializer,
-    FieldSerializer, PositionSerializer, CriteriaSerializer
+    FieldSerializer, PositionSerializer, CriteriaSerializer,
+    PostUpdateSerializer
 )
 from profiles.models import Cv
 from profiles.serializers import CvSerializer, CvStatusSerializer
@@ -1486,13 +1487,19 @@ def update_cv_status(request, cv_id):
     security=[{'Bearer': []}]
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsEnterpriseOwner])
 def update_post(request, pk):
     try:
-        post = PostEntity.objects.get(pk=pk,is_active=True)
+        post = PostEntity.objects.get(pk=pk)
+        # Kiểm tra nếu post đã active thì không cho phép sửa
+        if post.is_active:
+            return Response({
+                'message': 'Bài đăng đã được xét duyệt, không được sửa',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
     except PostEntity.DoesNotExist:
         return Response({
-            'message': 'Bài đăng không tồn tại hoặc đã được xét duyệt',
+            'message': 'Bài đăng không tồn tại',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
     # Admin có thể sửa bất kỳ post nào
@@ -1505,7 +1512,7 @@ def update_post(request, pk):
                 'status': status.HTTP_403_FORBIDDEN
             }, status=status.HTTP_403_FORBIDDEN)
     
-    serializer = PostSerializer(post, data=request.data, partial=True)
+    serializer = PostUpdateSerializer(post, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response({
@@ -1664,6 +1671,24 @@ def get_positions(request):
     serializer = PositionSerializer(paginated_positions, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+#get_position_name
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_position_name(request, pk):
+    try:
+        position = PositionEntity.objects.get(pk=pk)
+        return Response({
+            'message': 'Tên vị trí',
+            'name': position.name,
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    except PositionEntity.DoesNotExist:
+        return Response({
+            'message': 'Vị trí không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
 @swagger_auto_schema(
     method='post',
     operation_description='Tạo vị trí công việc mới',
@@ -1678,6 +1703,7 @@ def get_positions(request):
         403: 'Không có quyền truy cập'
     }
 )
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_position(request):
@@ -1922,3 +1948,39 @@ def get_positions_by_field(request, field_id):
             'message': 'Lĩnh vực không tồn tại',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_field_name(request, field_id):
+    try:
+        field = FieldEntity.objects.get(id=field_id)
+        return Response({
+            'message': 'Tên lĩnh vực',
+            'name': field.name,
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    except FieldEntity.DoesNotExist:
+        return Response({
+            'message': 'Lĩnh vực không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['PUT'])
+@permission_classes([IsEnterpriseOwner])
+def toogle_post_status(request, pk):
+    try:
+        post = PostEntity.objects.get(pk=pk)
+        post.is_active = not post.is_active
+        post.save()
+        return Response({
+            'message': 'Cập nhật trạng thái bài đăng thành công',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    except PostEntity.DoesNotExist:
+        return Response({
+            'message': 'Bài đăng không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+

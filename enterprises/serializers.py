@@ -13,7 +13,11 @@ class PostSerializer(serializers.ModelSerializer):
         model = PostEntity
         fields = '__all__'
         read_only_fields = ('created_at', 'modified_at')
-
+class PostUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostEntity
+        fields = '__all__'
+        read_only_fields = ('created_at', 'modified_at', 'is_active', 'enterprise', 'position', 'field')
 class FieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldEntity
