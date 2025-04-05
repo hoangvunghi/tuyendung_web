@@ -273,24 +273,24 @@ if __name__ == '__main__':
     #     for error in positions_result['errors']:
     #         print(f"- {error}")
 
-    # # Import enterprises and recruiters
-    # enterprises_result = import_enterprises_from_json('data/enterprises.json')
-    # print("\nImport Enterprises and Recruiters Result:")
-    # print(f"Total: {enterprises_result['total']}")
-    # print(f"Success: {enterprises_result['success']}")
-    # print(f"Failed: {enterprises_result['failed']}")
-    # if enterprises_result['errors']:
-    #     print("Errors:")
-    #     for error in enterprises_result['errors']:
-    #         print(f"- {error}")
-
-    # Import posts
-    posts_result = import_posts_from_json('data/posts.json')
-    print("\nImport Posts Result:")
-    print(f"Total: {posts_result['total']}")
-    print(f"Success: {posts_result['success']}")
-    print(f"Failed: {posts_result['failed']}")
-    if posts_result['errors']:
+    # Import enterprises and recruiters
+    enterprises_result = import_enterprises_from_json('data/enterprises.json')
+    print("\nImport Enterprises and Recruiters Result:")
+    print(f"Total: {enterprises_result['total']}")
+    print(f"Success: {enterprises_result['success']}")
+    print(f"Failed: {enterprises_result['failed']}")
+    if enterprises_result['errors']:
         print("Errors:")
-        for error in posts_result['errors']:
-            print(f"- {error}") 
+        for error in enterprises_result['errors']:
+            print(f"- {error}")
+
+    # # Import posts
+    # posts_result = import_posts_from_json('data/posts.json')
+    # print("\nImport Posts Result:")
+    # print(f"Total: {posts_result['total']}")
+    # print(f"Success: {posts_result['success']}")
+    # print(f"Failed: {posts_result['failed']}")
+    # if posts_result['errors']:
+    #     print("Errors:")
+    #     for error in posts_result['errors']:
+    #         print(f"- {error}") 

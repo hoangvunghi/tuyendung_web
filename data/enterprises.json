@@ -10,7 +10,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Công nghệ ABC",
             "email_company": "contact@abc.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "123 Đường ABC, Quận 1, TP.HCM",
             "description": "Công ty công nghệ hàng đầu Việt Nam",
             "phone_number": "0123456789",
@@ -38,7 +38,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Tài chính XYZ",
             "email_company": "info@xyz.com",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "456 Đường XYZ, Quận 3, TP.HCM",
             "description": "Công ty cung cấp dịch vụ tài chính và đầu tư",
             "phone_number": "0987654321",
@@ -66,7 +66,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Giáo dục DEF",
             "email_company": "contact@def.edu.vn",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "789 Đường DEF, Quận Thanh Xuân, Hà Nội",
             "description": "Công ty hoạt động trong lĩnh vực giáo dục và đào tạo",
             "phone_number": "02412345678",
@@ -94,7 +94,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Y tế GHI",
             "email_company": "info@ghi.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "321 Đường GHI, Quận Đống Đa, Hà Nội",
             "description": "Công ty cung cấp dịch vụ y tế và chăm sóc sức khỏe",
             "phone_number": "02498765432",
@@ -122,7 +122,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Xây dựng JKL",
             "email_company": "contact@jkl.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "654 Đường JKL, Quận Cầu Giấy, Hà Nội",
             "description": "Công ty chuyên về xây dựng và phát triển bất động sản",
             "phone_number": "02411223344",
@@ -150,7 +150,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Dịch vụ Logistics MNO",
             "email_company": "info@mno.com",
-            "field_of_activity": "LOGISTICS",
+            "field_of_activity": "Quản lí chuỗi cung ứng",
             "address": "12 Đường MNO, Quận Hải Châu, Đà Nẵng",
             "description": "Công ty chuyên cung cấp dịch vụ vận tải và logistics",
             "phone_number": "02361122334",
@@ -178,7 +178,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Bán lẻ PQR",
             "email_company": "contact@pqr.vn",
-            "field_of_activity": "RETAIL",
+            "field_of_activity": "Bán lẻ",
             "address": "45 Đường PQR, Quận Ngô Quyền, Hải Phòng",
             "description": "Công ty hoạt động trong lĩnh vực bán lẻ và phân phối",
             "phone_number": "02251122334",
@@ -206,7 +206,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Thiết kế STU",
             "email_company": "design@stu.com",
-            "field_of_activity": "DESIGN",
+            "field_of_activity": "Thiết kế nội thất và kiến trúc",
             "address": "78 Đường STU, Quận Ninh Kiều, Cần Thơ",
             "description": "Công ty chuyên về thiết kế nội thất và kiến trúc",
             "phone_number": "02921122334",
@@ -234,7 +234,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Truyền thông VWX",
             "email_company": "media@vwx.com",
-            "field_of_activity": "MEDIA",
+            "field_of_activity": "Truyền thông",
             "address": "101 Đường VWX, Quận Sơn Trà, Đà Nẵng",
             "description": "Công ty cung cấp dịch vụ truyền thông và quảng cáo",
             "phone_number": "02362233445",
@@ -262,7 +262,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Sản xuất YZA",
             "email_company": "contact@yza.com",
-            "field_of_activity": "MANUFACTURING",
+            "field_of_activity": "Sản xuất",
             "address": "15 Đường YZA, Quận Lê Chân, Hải Phòng",
             "description": "Công ty chuyên sản xuất linh kiện điện tử",
             "phone_number": "02252233445",
@@ -290,7 +290,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Nhân sự BCD",
             "email_company": "hr@bcd.vn",
-            "field_of_activity": "HR",
+            "field_of_activity": "Nhân sự",
             "address": "23 Đường BCD, Quận Hồng Bàng, Hải Phòng",
             "description": "Công ty cung cấp dịch vụ tuyển dụng và quản lý nhân sự",
             "phone_number": "02253344556",
@@ -318,7 +318,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Marketing EFG",
             "email_company": "info@efg.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "56 Đường EFG, Quận Liên Chiểu, Đà Nẵng",
             "description": "Công ty chuyên về chiến lược marketing và quảng bá thương hiệu",
             "phone_number": "02364455667",
@@ -346,7 +346,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Bán hàng HIJ",
             "email_company": "sales@hij.com",
-            "field_of_activity": "SALES",
+            "field_of_activity": "Bán hàng",
             "address": "89 Đường HIJ, Quận Bình Thủy, Cần Thơ",
             "description": "Công ty tập trung vào bán hàng và phát triển thị trường",
             "phone_number": "02925566778",
@@ -374,7 +374,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Du lịch KLM",
             "email_company": "tour@klm.vn",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "34 Đường KLM, Quận Ngũ Hành Sơn, Đà Nẵng",
             "description": "Công ty cung cấp dịch vụ du lịch và khách sạn",
             "phone_number": "02366677889",
@@ -402,7 +402,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Pháp lý NOP",
             "email_company": "legal@nop.com",
-            "field_of_activity": "LEGAL",
+            "field_of_activity": "Pháp luật",
             "address": "67 Đường NOP, Quận Hòn Chông, Cần Thơ",
             "description": "Công ty cung cấp dịch vụ tư vấn pháp lý và luật sư",
             "phone_number": "02927788990",
@@ -430,7 +430,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Công nghệ QRS",
             "email_company": "tech@qrs.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "90 Đường QRS, Quận Thủ Đức, TP.HCM",
             "description": "Công ty phát triển phần mềm và giải pháp công nghệ",
             "phone_number": "02888990011",
@@ -458,7 +458,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Tài chính TUV",
             "email_company": "finance@tuv.vn",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "123 Đường TUV, Quận Ba Đình, Hà Nội",
             "description": "Công ty cung cấp dịch vụ tài chính và tư vấn đầu tư",
             "phone_number": "02499001122",
@@ -486,7 +486,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Giáo dục WXY",
             "email_company": "edu@wxy.edu.vn",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "456 Đường WXY, Quận Tân Bình, TP.HCM",
             "description": "Công ty hoạt động trong lĩnh vực đào tạo và giáo dục",
             "phone_number": "02811223344",
@@ -514,7 +514,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Y tế ZAB",
             "email_company": "health@zab.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "789 Đường ZAB, Quận Cẩm Lệ, Đà Nẵng",
             "description": "Công ty cung cấp dịch vụ y tế và thiết bị chăm sóc sức khỏe",
             "phone_number": "02368899001",
@@ -542,7 +542,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Xây dựng CDE",
             "email_company": "build@cde.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "101 Đường CDE, Quận Gò Vấp, TP.HCM",
             "description": "Công ty chuyên về xây dựng dân dụng và công nghiệp",
             "phone_number": "02822334455",
@@ -570,7 +570,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Thương mại FGH",
             "email_company": "trade@fgh.com",
-            "field_of_activity": "TRADE",
+            "field_of_activity": "Xuất nhập khẩu",
             "address": "234 Đường FGH, Quận Hải Châu, Đà Nẵng",
             "description": "Công ty chuyên về xuất nhập khẩu và thương mại quốc tế",
             "phone_number": "02367788990",
@@ -598,7 +598,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Nông nghiệp IJK",
             "email_company": "agri@ijk.com",
-            "field_of_activity": "AGRICULTURE",
+            "field_of_activity": "Nông sản",
             "address": "45 Đường IJK, Thành phố Vinh, Nghệ An",
             "description": "Công ty chuyên về sản xuất và chế biến nông sản",
             "phone_number": "02381122334",
@@ -626,7 +626,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Du lịch LMN",
             "email_company": "travel@lmn.com",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "67 Đường LMN, Thành phố Nha Trang, Khánh Hòa",
             "description": "Công ty cung cấp dịch vụ du lịch và lữ hành",
             "phone_number": "02581122334",
@@ -654,7 +654,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Thực phẩm OPQ",
             "email_company": "food@opq.com",
-            "field_of_activity": "FOOD",
+            "field_of_activity": "Thực phẩm",
             "address": "89 Đường OPQ, Thành phố Huế, Thừa Thiên Huế",
             "description": "Công ty chuyên về sản xuất và chế biến thực phẩm",
             "phone_number": "02341122334",
@@ -682,7 +682,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Dệt may RST",
             "email_company": "textile@rst.com",
-            "field_of_activity": "TEXTILE",
+            "field_of_activity": "Dệt may",
             "address": "101 Đường RST, Thành phố Nam Định, Nam Định",
             "description": "Công ty chuyên về sản xuất và xuất khẩu hàng dệt may",
             "phone_number": "02281122334",
@@ -710,7 +710,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Giáo dục UVW2",
             "email_company": "edu@uvw2.com",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "123 Đường UVW2, Thành phố Quy Nhơn, Bình Định",
             "description": "Công ty hoạt động trong lĩnh vực đào tạo và giáo dục",
             "phone_number": "02561122334",
@@ -738,7 +738,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Y tế XYZ2",
             "email_company": "health@xyz2.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "456 Đường XYZ2, Thành phố Buôn Ma Thuột, Đắk Lắk",
             "description": "Công ty cung cấp dịch vụ y tế và thiết bị y khoa",
             "phone_number": "02621122334",
@@ -766,7 +766,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Xây dựng ABC2",
             "email_company": "build@abc2.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "789 Đường ABC2, Thành phố Vũng Tàu, Bà Rịa - Vũng Tàu",
             "description": "Công ty chuyên về xây dựng và phát triển bất động sản",
             "phone_number": "02541122334",
@@ -794,7 +794,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Công nghệ DEF2",
             "email_company": "tech@def2.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "12 Đường DEF2, Thành phố Thái Nguyên, Thái Nguyên",
             "description": "Công ty phát triển phần mềm và giải pháp công nghệ",
             "phone_number": "02081122334",
@@ -822,7 +822,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Tài chính GHI2",
             "email_company": "finance@ghi2.com",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "34 Đường GHI2, Thành phố Hạ Long, Quảng Ninh",
             "description": "Công ty cung cấp dịch vụ tài chính và đầu tư",
             "phone_number": "02031122334",
@@ -850,7 +850,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Marketing JKL2",
             "email_company": "marketing@jkl2.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "56 Đường JKL2, Thành phố Việt Trì, Phú Thọ",
             "description": "Công ty chuyên về chiến lược marketing và quảng bá thương hiệu",
             "phone_number": "02101122334",
@@ -877,8 +877,8 @@
         "is_superuser": false,
         "enterprise": {
             "company_name": "Công ty Cổ phần Bán lẻ MNO2",
-            "email_company": "retail@mno2.com",
-            "field_of_activity": "RETAIL",
+            "email_company": "Bán lẻ@mno2.com",
+            "field_of_activity": "Bán lẻ",
             "address": "78 Đường MNO2, Thành phố Thanh Hóa, Thanh Hóa",
             "description": "Công ty hoạt động trong lĩnh vực bán lẻ và phân phối",
             "phone_number": "02371122334",
@@ -906,7 +906,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Thiết kế PQR2",
             "email_company": "design@pqr2.com",
-            "field_of_activity": "DESIGN",
+            "field_of_activity": "Thiết kế",
             "address": "90 Đường PQR2, Thành phố Hải Dương, Hải Dương",
             "description": "Công ty chuyên về thiết kế nội thất và kiến trúc",
             "phone_number": "02201122334",
@@ -934,7 +934,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Truyền thông STU2",
             "email_company": "media@stu2.com",
-            "field_of_activity": "MEDIA",
+            "field_of_activity": "Truyền thông",
             "address": "101 Đường STU2, Thành phố Hưng Yên, Hưng Yên",
             "description": "Công ty cung cấp dịch vụ truyền thông và quảng cáo",
             "phone_number": "02211122334",
@@ -962,7 +962,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Sản xuất VWX2",
             "email_company": "manufacture@vwx2.com",
-            "field_of_activity": "MANUFACTURING",
+            "field_of_activity": "Sản xuất",
             "address": "123 Đường VWX2, Thành phố Bắc Ninh, Bắc Ninh",
             "description": "Công ty chuyên sản xuất linh kiện điện tử",
             "phone_number": "02221122334",
@@ -990,7 +990,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Nhân sự YZA2",
             "email_company": "hr@yza2.com",
-            "field_of_activity": "HR",
+            "field_of_activity": "Nhân sự",
             "address": "234 Đường YZA2, Thành phố Bắc Giang, Bắc Giang",
             "description": "Công ty cung cấp dịch vụ tuyển dụng và quản lý nhân sự",
             "phone_number": "02041122334",
@@ -1018,7 +1018,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Bán hàng BCD2",
             "email_company": "sales@bcd2.com",
-            "field_of_activity": "SALES",
+            "field_of_activity": "Bán hàng",
             "address": "456 Đường BCD2, Thành phố Vĩnh Yên, Vĩnh Phúc",
             "description": "Công ty tập trung vào bán hàng và phát triển thị trường",
             "phone_number": "02111122334",
@@ -1046,7 +1046,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Du lịch EFG2",
             "email_company": "travel@efg2.com",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "789 Đường EFG2, Thành phố Hòa Bình, Hòa Bình",
             "description": "Công ty cung cấp dịch vụ du lịch và khách sạn",
             "phone_number": "02181122334",
@@ -1074,7 +1074,7 @@
         "enterprise": {
             "company_name": "Công ty TNHH Pháp lý HIJ2",
             "email_company": "legal@hij2.com",
-            "field_of_activity": "LEGAL",
+            "field_of_activity": "Pháp luật",
             "address": "12 Đường HIJ2, Thành phố Sơn La, Sơn La",
             "description": "Công ty cung cấp dịch vụ tư vấn pháp lý và luật sư",
             "phone_number": "02121122334",
@@ -1102,7 +1102,7 @@
         "enterprise": {
             "company_name": "Công ty Cổ phần Logistics KLM2",
             "email_company": "logistics@klm2.com",
-            "field_of_activity": "LOGISTICS",
+            "field_of_activity": "Quản lí chuỗi cung ứng",
             "address": "34 Đường KLM2, Thành phố Lào Cai, Lào Cai",
             "description": "Công ty chuyên cung cấp dịch vụ vận tải và logistics",
             "phone_number": "02141122334",
@@ -1131,7 +1131,7 @@
         "enterprise": {
             "company_name": "Công ty Công nghệ Ent41 Solutions",
             "email_company": "contact@ent41.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "100 Đường Nguyễn Hữu Cảnh, Quận Bình Thạnh, TP.HCM",
             "description": "Giải pháp phần mềm doanh nghiệp",
             "phone_number": "02811110041",
@@ -1159,7 +1159,7 @@
         "enterprise": {
             "company_name": "Công ty Tài chính Ent42 Capital",
             "email_company": "finance@ent42.vn",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "200 Phố Huế, Quận Hai Bà Trưng, Hà Nội",
             "description": "Tư vấn đầu tư và quản lý tài sản",
             "phone_number": "02411110042",
@@ -1187,7 +1187,7 @@
         "enterprise": {
             "company_name": "Công ty Marketing Ent43 Agency",
             "email_company": "hello@ent43.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "300 Đường 2/9, Quận Hải Châu, Đà Nẵng",
             "description": "Dịch vụ marketing tổng thể cho SME",
             "phone_number": "02361110043",
@@ -1215,7 +1215,7 @@
         "enterprise": {
             "company_name": "Công ty Nhân sự Ent44 Connect",
             "email_company": "hr@ent44.com",
-            "field_of_activity": "HR",
+            "field_of_activity": "Nhân sự",
             "address": "400 Đường Pasteur, Quận 3, TP.HCM",
             "description": "Kết nối nhân tài và doanh nghiệp",
             "phone_number": "02811110044",
@@ -1243,7 +1243,7 @@
         "enterprise": {
             "company_name": "Trung tâm Giáo dục Ent45 Academy",
             "email_company": "info@ent45.edu.vn",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "500 Đường Láng, Quận Đống Đa, Hà Nội",
             "description": "Đào tạo lập trình và ngoại ngữ",
             "phone_number": "02411110045",
@@ -1271,7 +1271,7 @@
         "enterprise": {
             "company_name": "Công ty Bán hàng Ent46 Trading",
             "email_company": "sales@ent46.com",
-            "field_of_activity": "SALES",
+            "field_of_activity": "Bán hàng",
             "address": "600 Đường Điện Biên Phủ, Quận Thanh Khê, Đà Nẵng",
             "description": "Phân phối hàng tiêu dùng nhanh",
             "phone_number": "02361110046",
@@ -1299,7 +1299,7 @@
         "enterprise": {
             "company_name": "Phòng khám Đa khoa Ent47 Health",
             "email_company": "info@ent47.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "700 Đường Cách Mạng Tháng Tám, Quận 10, TP.HCM",
             "description": "Chăm sóc sức khỏe toàn diện",
             "phone_number": "02811110047",
@@ -1327,7 +1327,7 @@
         "enterprise": {
             "company_name": "Công ty Xây dựng Ent48 Group",
             "email_company": "contact@ent48.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "800 Đường Giải Phóng, Quận Hoàng Mai, Hà Nội",
             "description": "Tổng thầu xây dựng công trình dân dụng và công nghiệp",
             "phone_number": "02411110048",
@@ -1355,7 +1355,7 @@
         "enterprise": {
             "company_name": "Nhà máy Sản xuất Ent49 Tech",
             "email_company": "factory@ent49.com",
-            "field_of_activity": "MANUFACTURING",
+            "field_of_activity": "Sản xuất",
             "address": "Khu Công nghiệp Hòa Khánh, Quận Liên Chiểu, Đà Nẵng",
             "description": "Sản xuất linh kiện điện tử chính xác",
             "phone_number": "02361110049",
@@ -1383,7 +1383,7 @@
         "enterprise": {
             "company_name": "Công ty Logistics Ent50 Express",
             "email_company": "info@ent50.com",
-            "field_of_activity": "LOGISTICS",
+            "field_of_activity": "Quản lí chuỗi cung ứng",
             "address": "1000 Đường Trường Chinh, Quận Tân Bình, TP.HCM",
             "description": "Dịch vụ vận chuyển và giao nhận hàng hóa",
             "phone_number": "02811110050",
@@ -1411,7 +1411,7 @@
         "enterprise": {
             "company_name": "Chuỗi Bán lẻ Ent51 Mart",
             "email_company": "contact@ent51.vn",
-            "field_of_activity": "RETAIL",
+            "field_of_activity": "Bán lẻ",
             "address": "1100 Đường Trần Duy Hưng, Quận Cầu Giấy, Hà Nội",
             "description": "Hệ thống siêu thị tiện lợi",
             "phone_number": "02411110051",
@@ -1439,7 +1439,7 @@
         "enterprise": {
             "company_name": "Khách sạn Ent52 Premier",
             "email_company": "booking@ent52.com",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "1200 Đường Võ Nguyên Giáp, Quận Sơn Trà, Đà Nẵng",
             "description": "Khách sạn 5 sao ven biển",
             "phone_number": "02361110052",
@@ -1467,7 +1467,7 @@
         "enterprise": {
             "company_name": "Công ty Luật Ent53 & Cộng sự",
             "email_company": "legal@ent53.com",
-            "field_of_activity": "LEGAL",
+            "field_of_activity": "Pháp luật",
             "address": "Tầng 10, Tòa nhà Bitexco, Quận 1, TP.HCM",
             "description": "Tư vấn pháp lý doanh nghiệp và đầu tư",
             "phone_number": "02811110053",
@@ -1495,7 +1495,7 @@
         "enterprise": {
             "company_name": "Studio Thiết kế Ent54 Creative",
             "email_company": "design@ent54.com",
-            "field_of_activity": "DESIGN",
+            "field_of_activity": "Thiết kế",
             "address": "1400 Đường Kim Mã, Quận Ba Đình, Hà Nội",
             "description": "Thiết kế thương hiệu và nội thất",
             "phone_number": "02411110054",
@@ -1523,7 +1523,7 @@
         "enterprise": {
             "company_name": "Công ty Truyền thông Ent55 Media",
             "email_company": "contact@ent55.com",
-            "field_of_activity": "MEDIA",
+            "field_of_activity": "Truyền thông",
             "address": "1500 Đường Nguyễn Văn Linh, Quận Hải Châu, Đà Nẵng",
             "description": "Sản xuất nội dung số và tổ chức sự kiện",
             "phone_number": "02361110055",
@@ -1551,7 +1551,7 @@
         "enterprise": {
             "company_name": "Công ty Công nghệ Ent56 Soft",
             "email_company": "dev@ent56.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "Công viên phần mềm Quang Trung, Quận 12, TP.HCM",
             "description": "Phát triển ứng dụng di động và web",
             "phone_number": "02811110056",
@@ -1579,7 +1579,7 @@
         "enterprise": {
             "company_name": "Quỹ đầu tư Ent57 Ventures",
             "email_company": "investment@ent57.com",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "Tòa nhà Keangnam, Quận Nam Từ Liêm, Hà Nội",
             "description": "Đầu tư mạo hiểm vào các startup công nghệ",
             "phone_number": "02411110057",
@@ -1607,7 +1607,7 @@
         "enterprise": {
             "company_name": "Công ty Marketing Ent58 Digital",
             "email_company": "digital@ent58.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "1800 Đường Hoàng Diệu, Quận Hải Châu, Đà Nẵng",
             "description": "Chuyên gia về SEO và quảng cáo trực tuyến",
             "phone_number": "02361110058",
@@ -1635,7 +1635,7 @@
         "enterprise": {
             "company_name": "Công ty Tư vấn Nhân sự Ent59 HR",
             "email_company": "consulting@ent59.com",
-            "field_of_activity": "HR",
+            "field_of_activity": "Nhân sự",
             "address": "1900 Đường Lê Thánh Tôn, Quận 1, TP.HCM",
             "description": "Giải pháp quản trị nhân sự cho doanh nghiệp lớn",
             "phone_number": "02811110059",
@@ -1663,7 +1663,7 @@
         "enterprise": {
             "company_name": "Hệ thống Trường học Ent60 School",
             "email_company": "admissions@ent60.edu.vn",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "Khu đô thị Ecopark, Hưng Yên (Văn phòng HN: Quận Hoàn Kiếm)",
             "description": "Trường liên cấp quốc tế",
             "phone_number": "02411110060",
@@ -1691,7 +1691,7 @@
         "enterprise": {
             "company_name": "Công ty Bán hàng Ent61 Solutions",
             "email_company": "info@ent61.com",
-            "field_of_activity": "SALES",
+            "field_of_activity": "Bán hàng",
             "address": "2100 Đường Hùng Vương, Quận Ngũ Hành Sơn, Đà Nẵng",
             "description": "Cung cấp giải pháp bán hàng và CRM",
             "phone_number": "02361110061",
@@ -1719,7 +1719,7 @@
         "enterprise": {
             "company_name": "Bệnh viện Quốc tế Ent62 Care",
             "email_company": "care@ent62.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "Khu đô thị Phú Mỹ Hưng, Quận 7, TP.HCM",
             "description": "Dịch vụ y tế chất lượng cao",
             "phone_number": "02811110062",
@@ -1747,7 +1747,7 @@
         "enterprise": {
             "company_name": "Tập đoàn Xây dựng Ent63 Holdings",
             "email_company": "info@ent63.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "2300 Đường Phạm Hùng, Quận Nam Từ Liêm, Hà Nội",
             "description": "Phát triển dự án bất động sản và hạ tầng",
             "phone_number": "02411110063",
@@ -1775,7 +1775,7 @@
         "enterprise": {
             "company_name": "Công ty Sản xuất Ent64 Global",
             "email_company": "global@ent64.com",
-            "field_of_activity": "MANUFACTURING",
+            "field_of_activity": "Sản xuất",
             "address": "Khu Công nghiệp Đà Nẵng, Quận Sơn Trà, Đà Nẵng",
             "description": "Sản xuất hàng may mặc xuất khẩu",
             "phone_number": "02361110064",
@@ -1803,7 +1803,7 @@
         "enterprise": {
             "company_name": "Công ty Logistics Ent65 Trans",
             "email_company": "transport@ent65.vn",
-            "field_of_activity": "LOGISTICS",
+            "field_of_activity": "Quản lí chuỗi cung ứng",
             "address": "Cảng Cát Lái, Thành phố Thủ Đức, TP.HCM",
             "description": "Dịch vụ logistics và chuỗi cung ứng",
             "phone_number": "02811110065",
@@ -1831,7 +1831,7 @@
         "enterprise": {
             "company_name": "Siêu thị Điện máy Ent66 Plaza",
             "email_company": "sales@ent66.com",
-            "field_of_activity": "RETAIL",
+            "field_of_activity": "Bán lẻ",
             "address": "2600 Đường Nguyễn Trãi, Quận Thanh Xuân, Hà Nội",
             "description": "Trung tâm mua sắm điện máy và gia dụng",
             "phone_number": "02411110066",
@@ -1859,7 +1859,7 @@
         "enterprise": {
             "company_name": "Khu nghỉ dưỡng Ent67 Resort & Spa",
             "email_company": "reservations@ent67.com",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "Bãi biển Mỹ Khê, Quận Sơn Trà, Đà Nẵng",
             "description": "Resort cao cấp với dịch vụ spa và ẩm thực",
             "phone_number": "02361110067",
@@ -1887,7 +1887,7 @@
         "enterprise": {
             "company_name": "Công ty Luật Ent68 Advisory",
             "email_company": "advisory@ent68.com",
-            "field_of_activity": "LEGAL",
+            "field_of_activity": "Pháp luật",
             "address": "Tòa nhà Landmark 81, Quận Bình Thạnh, TP.HCM",
             "description": "Tư vấn luật đầu tư và M&A",
             "phone_number": "02811110068",
@@ -1915,7 +1915,7 @@
         "enterprise": {
             "company_name": "Công ty Thiết kế Kiến trúc Ent69 Arch",
             "email_company": "arch@ent69.vn",
-            "field_of_activity": "DESIGN",
+            "field_of_activity": "Thiết kế nội thất và kiến trúc",
             "address": "2900 Đường Tây Sơn, Quận Đống Đa, Hà Nội",
             "description": "Thiết kế kiến trúc và quy hoạch đô thị",
             "phone_number": "02411110069",
@@ -1943,7 +1943,7 @@
         "enterprise": {
             "company_name": "Hãng Truyền thông Ent70 Group",
             "email_company": "group@ent70.com",
-            "field_of_activity": "MEDIA",
+            "field_of_activity": "Truyền thông",
             "address": "3000 Đường Lê Duẩn, Quận Hải Châu, Đà Nẵng",
             "description": "Tổ hợp truyền thông đa phương tiện",
             "phone_number": "02361110070",
@@ -1971,7 +1971,7 @@
         "enterprise": {
             "company_name": "Công ty Công nghệ Ent71 AI",
             "email_company": "ai@ent71.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "Khu Công nghệ cao, Thành phố Thủ Đức, TP.HCM",
             "description": "Nghiên cứu và phát triển trí tuệ nhân tạo",
             "phone_number": "02811110071",
@@ -1999,7 +1999,7 @@
         "enterprise": {
             "company_name": "Công ty Chứng khoán Ent72 Sec",
             "email_company": "sec@ent72.vn",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "3200 Đường Lý Thường Kiệt, Quận Hoàn Kiếm, Hà Nội",
             "description": "Môi giới và tư vấn đầu tư chứng khoán",
             "phone_number": "02411110072",
@@ -2027,7 +2027,7 @@
         "enterprise": {
             "company_name": "Công ty Marketing Ent73 Performance",
             "email_company": "performance@ent73.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "3300 Đường Nguyễn Hữu Thọ, Quận Cẩm Lệ, Đà Nẵng",
             "description": "Tối ưu hóa chiến dịch quảng cáo đa kênh",
             "phone_number": "02361110073",
@@ -2055,7 +2055,7 @@
         "enterprise": {
             "company_name": "Nền tảng Tuyển dụng Ent74 Jobs",
             "email_company": "support@ent74.com",
-            "field_of_activity": "HR",
+            "field_of_activity": "Nhân sự",
             "address": "3400 Đường Võ Văn Tần, Quận 3, TP.HCM",
             "description": "Cổng thông tin việc làm trực tuyến",
             "phone_number": "02811110074",
@@ -2083,7 +2083,7 @@
         "enterprise": {
             "company_name": "Đại học Tư thục Ent75 University",
             "email_company": "contact@ent75.edu.vn",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "3500 Đường Hoàng Quốc Việt, Quận Cầu Giấy, Hà Nội",
             "description": "Đào tạo đa ngành bậc đại học và sau đại học",
             "phone_number": "02411110075",
@@ -2111,7 +2111,7 @@
         "enterprise": {
             "company_name": "Công ty Phân phối Dược phẩm Ent76 Pharma",
             "email_company": "pharma@ent76.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "3600 Đường Cách Mạng Tháng Tám, Quận Tân Bình, TP.HCM",
             "description": "Nhập khẩu và phân phối dược phẩm",
             "phone_number": "02811110076",
@@ -2139,7 +2139,7 @@
         "enterprise": {
             "company_name": "Công ty Bán hàng Thiết bị Công nghiệp Ent77",
             "email_company": "industry@ent77.com",
-            "field_of_activity": "SALES",
+            "field_of_activity": "Bán hàng",
             "address": "3700 Đường Ngô Quyền, Quận Sơn Trà, Đà Nẵng",
             "description": "Cung cấp máy móc và thiết bị công nghiệp",
             "phone_number": "02361110077",
@@ -2167,7 +2167,7 @@
         "enterprise": {
             "company_name": "Công ty Xây dựng Dân dụng Ent78",
             "email_company": "civil@ent78.com",
-            "field_of_activity": "CONSTRUCTION",
+            "field_of_activity": "Xây dựng",
             "address": "3800 Đường Lạc Long Quân, Quận Tây Hồ, Hà Nội",
             "description": "Thi công nhà ở và biệt thự",
             "phone_number": "02411110078",
@@ -2195,7 +2195,7 @@
         "enterprise": {
             "company_name": "Nhà máy Chế biến Thực phẩm Ent79 Food",
             "email_company": "food@ent79.com",
-            "field_of_activity": "MANUFACTURING",
+            "field_of_activity": "Sản xuất",
             "address": "Khu Công nghiệp Tân Tạo, Quận Bình Tân, TP.HCM",
             "description": "Chế biến nông sản và thực phẩm đóng hộp",
             "phone_number": "02811110079",
@@ -2223,7 +2223,7 @@
         "enterprise": {
             "company_name": "Công ty Giao nhận Quốc tế Ent80 Freight",
             "email_company": "freight@ent80.com",
-            "field_of_activity": "LOGISTICS",
+            "field_of_activity": "Quản lí chuỗi cung ứng",
             "address": "4000 Đường Tôn Đức Thắng, Quận 1, TP.HCM",
             "description": "Dịch vụ giao nhận hàng hóa quốc tế bằng đường biển và hàng không",
             "phone_number": "02811110080",
@@ -2251,7 +2251,7 @@
         "enterprise": {
             "company_name": "Chuỗi Cà phê Ent81 Coffee",
             "email_company": "coffee@ent81.com",
-            "field_of_activity": "RETAIL",
+            "field_of_activity": "Bán lẻ",
             "address": "4100 Phố Nhà Thờ, Quận Hoàn Kiếm, Hà Nội",
             "description": "Chuỗi cửa hàng cà phê và đồ uống",
             "phone_number": "02411110081",
@@ -2279,7 +2279,7 @@
         "enterprise": {
             "company_name": "Công ty Lữ hành Ent82 Travel",
             "email_company": "tour@ent82.com",
-            "field_of_activity": "HOSPITALITY",
+            "field_of_activity": "Du lịch",
             "address": "4200 Đường Trần Phú, Quận Hải Châu, Đà Nẵng",
             "description": "Tổ chức tour du lịch trong nước và quốc tế",
             "phone_number": "02361110082",
@@ -2307,7 +2307,7 @@
         "enterprise": {
             "company_name": "Văn phòng Luật sư Ent83 Law Firm",
             "email_company": "law@ent83.com",
-            "field_of_activity": "LEGAL",
+            "field_of_activity": "Pháp luật",
             "address": "Tầng 20, Vincom Center, Quận 1, TP.HCM",
             "description": "Tư vấn luật dân sự và hình sự",
             "phone_number": "02811110083",
@@ -2335,7 +2335,7 @@
         "enterprise": {
             "company_name": "Công ty Thiết kế Đồ họa Ent84 Graphics",
             "email_company": "graphics@ent84.vn",
-            "field_of_activity": "DESIGN",
+            "field_of_activity": "Thiết kế nội thất và kiến trúc",
             "address": "4400 Phố Tràng Tiền, Quận Hoàn Kiếm, Hà Nội",
             "description": "Thiết kế bộ nhận diện thương hiệu và ấn phẩm quảng cáo",
             "phone_number": "02411110084",
@@ -2363,7 +2363,7 @@
         "enterprise": {
             "company_name": "Công ty Tổ chức Sự kiện Ent85 Events",
             "email_company": "events@ent85.com",
-            "field_of_activity": "MEDIA",
+            "field_of_activity": "Truyền thông",
             "address": "4500 Đường Bạch Đằng, Quận Hải Châu, Đà Nẵng",
             "description": "Tổ chức hội nghị, hội thảo và sự kiện doanh nghiệp",
             "phone_number": "02361110085",
@@ -2391,7 +2391,7 @@
         "enterprise": {
             "company_name": "Công ty Công nghệ Blockchain Ent86",
             "email_company": "blockchain@ent86.com",
-            "field_of_activity": "IT",
+            "field_of_activity": "Công nghệ thông tin",
             "address": "4600 Đường Nguyễn Thị Minh Khai, Quận 3, TP.HCM",
             "description": "Giải pháp công nghệ Blockchain và Fintech",
             "phone_number": "02811110086",
@@ -2419,7 +2419,7 @@
         "enterprise": {
             "company_name": "Công ty Bảo hiểm Nhân thọ Ent87 Life",
             "email_company": "life@ent87.com",
-            "field_of_activity": "FINANCE",
+            "field_of_activity": "Tài chính",
             "address": "4700 Phố Bà Triệu, Quận Hai Bà Trưng, Hà Nội",
             "description": "Cung cấp các sản phẩm bảo hiểm nhân thọ và sức khỏe",
             "phone_number": "02411110087",
@@ -2447,7 +2447,7 @@
         "enterprise": {
             "company_name": "Công ty Marketing Sáng tạo Ent88",
             "email_company": "creative@ent88.com",
-            "field_of_activity": "MARKETING",
+            "field_of_activity": "Marketing",
             "address": "4800 Đường Phạm Văn Đồng, Quận Sơn Trà, Đà Nẵng",
             "description": "Xây dựng chiến lược thương hiệu và truyền thông sáng tạo",
             "phone_number": "02361110088",
@@ -2475,7 +2475,7 @@
         "enterprise": {
             "company_name": "Công ty Đào tạo Kỹ năng Ent89 Skills",
             "email_company": "training@ent89.com",
-            "field_of_activity": "EDUCATION",
+            "field_of_activity": "Giáo dục",
             "address": "4900 Đường Điện Biên Phủ, Quận Bình Thạnh, TP.HCM",
             "description": "Đào tạo kỹ năng mềm và kỹ năng chuyên môn",
             "phone_number": "02811110089",
@@ -2503,7 +2503,7 @@
         "enterprise": {
             "company_name": "Công ty Dịch vụ Y tế tại nhà Ent90 Homecare",
             "email_company": "homecare@ent90.com",
-            "field_of_activity": "HEALTHCARE",
+            "field_of_activity": "Y tế",
             "address": "5000 Đường Xã Đàn, Quận Đống Đa, Hà Nội",
             "description": "Cung cấp dịch vụ chăm sóc sức khỏe tại nhà",
             "phone_number": "02411110090",
