@@ -737,12 +737,12 @@ def get_posts(request):
             }, status=status.HTTP_403_FORBIDDEN)
         posts = PostEntity.objects.filter(enterprise=enterprise)
     
-    serializer = PostSerializer(posts, many=True)
-    return Response({
-        'message': 'Lấy danh sách bài đăng thành công',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    }, status=status.HTTP_200_OK)
+    # Phân trang
+    paginator = CustomPagination()
+    paginated_posts = paginator.paginate_queryset(posts, request)
+    
+    serializer = PostSerializer(paginated_posts, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
     method='get',
@@ -758,12 +758,13 @@ def get_posts(request):
 @permission_classes([AllowAny])
 def get_all_posts(request):
     posts = PostEntity.objects.filter(is_active=True)
-    serializer = PostSerializer(posts, many=True)
-    return Response({
-        'message': 'Lấy danh sách bài đăng thành công',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    }, status=status.HTTP_200_OK)
+    
+    # Phân trang
+    paginator = CustomPagination()
+    paginated_posts = paginator.paginate_queryset(posts, request)
+    
+    serializer = PostSerializer(paginated_posts, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
     method='post',
@@ -1984,12 +1985,13 @@ def get_post_detail(request, pk):
 @permission_classes([IsAuthenticated])
 def get_positions(request):
     positions = PositionEntity.objects.all()
-    serializer = PositionSerializer(positions, many=True)
-    return Response({
-        'message': 'Lấy danh sách vị trí thành công',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    }, status=status.HTTP_200_OK)
+    
+    # Phân trang
+    paginator = CustomPagination()
+    paginated_positions = paginator.paginate_queryset(positions, request)
+    
+    serializer = PositionSerializer(paginated_positions, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
     method='post',
@@ -2106,12 +2108,13 @@ def delete_position(request, pk):
 def get_criteria(request):
     try:
         criteria = CriteriaEntity.objects.get(user=request.user)
-        serializer = CriteriaSerializer(criteria)
-        return Response({
-            'message': 'Lấy tiêu chí thành công',
-            'status': status.HTTP_200_OK,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
+        
+        # Phân trang
+        paginator = CustomPagination()
+        paginated_criteria = paginator.paginate_queryset([criteria], request)
+        
+        serializer = CriteriaSerializer(paginated_criteria, many=True)
+        return paginator.get_paginated_response(serializer.data)
     except CriteriaEntity.DoesNotExist:
         return Response({
             'message': 'Bạn chưa có tiêu chí tìm việc',
@@ -2236,12 +2239,13 @@ def get_positions_by_field(request, field_id):
     try:
         field = FieldEntity.objects.get(id=field_id)
         positions = PositionEntity.objects.filter(field=field, status='active')
-        serializer = PositionSerializer(positions, many=True)
-        return Response({
-            'message': 'Lấy danh sách vị trí thành công',
-            'status': status.HTTP_200_OK,
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
+        
+        # Phân trang
+        paginator = CustomPagination()
+        paginated_positions = paginator.paginate_queryset(positions, request)
+        
+        serializer = PositionSerializer(paginated_positions, many=True)
+        return paginator.get_paginated_response(serializer.data)
     except FieldEntity.DoesNotExist:
         return Response({
             'message': 'Lĩnh vực không tồn tại',
