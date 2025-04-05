@@ -1337,14 +1337,14 @@ def search_posts(request):
     salary_min = request.query_params.get('salary_min')
     salary_max = request.query_params.get('salary_max')
     
-    posts = PostEntity.objects.filter(campaign__is_active=True)
+    posts = PostEntity.objects.filter(is_active=True)
     
     if query:
         posts = posts.filter(
             Q(title__icontains=query) |
             Q(description__icontains=query) |
             Q(required__icontains=query) |
-            Q(campaign__enterprise__company_name__icontains=query)
+            Q(enterprise__company_name__icontains=query)
         )
     
     if city:
