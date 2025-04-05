@@ -24,10 +24,6 @@ class EnterpriseAdmin(BaseAdminClass):
 class FieldAdmin(BaseAdminClass):
     pass
 
-# @admin.register(CampaignEntity)
-# class CampaignAdmin(BaseAdminClass):
-#     pass
-
 @admin.register(PositionEntity)
 class PositionAdmin(BaseAdminClass):
     pass
@@ -40,10 +36,3 @@ class PostAdmin(BaseAdminClass):
 class CriteriaAdmin(BaseAdminClass):
     pass
 
-
-# admin.site.register(EnterpriseEntity)
-# admin.site.register(FieldEntity)
-# admin.site.register(CampaignEntity)
-# admin.site.register(PositionEntity)
-# admin.site.register(PostEntity)
-# admin.site.register(CriteriaEntity)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EnterpriseEntity, CampaignEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
+from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
 from base.cloudinary_utils import upload_image_to_cloudinary, delete_image_from_cloudinary
 
 class EnterpriseSerializer(serializers.ModelSerializer):
@@ -7,12 +7,6 @@ class EnterpriseSerializer(serializers.ModelSerializer):
         model = EnterpriseEntity
         fields = '__all__'
         read_only_fields = ('user', 'created_at', 'modified_at')
-
-class CampaignSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CampaignEntity
-        fields = '__all__'
-        read_only_fields = ('created_at', 'modified_at')
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:

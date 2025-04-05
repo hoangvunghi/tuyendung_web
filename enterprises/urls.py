@@ -12,14 +12,6 @@ urlpatterns = [
     path('enterprises/<int:pk>/delete/', views.delete_enterprise, name='delete-enterprise'),
     path('enterprises/search/', views.search_enterprises, name='search-enterprises'),
     path('enterprises/<int:pk>/stats/', views.get_enterprise_stats, name='get-enterprise-stats'),
-
-    # Campaign CRUD
-    # path('campaigns/', views.get_campaigns, name='get-campaigns'),
-    # path('campaigns/<int:pk>/', views.get_campaign_detail, name='get-campaign-detail'),
-    # path('campaigns/create/', views.create_campaign, name='create-campaign'),
-    # path('campaigns/<int:pk>/update/', views.update_campaign, name='update-campaign'),
-    # path('campaigns/<int:pk>/delete/', views.delete_campaign, name='delete-campaign'),
-
     # Post CRUD
     path('posts/', views.get_posts, name='get-posts'),
     path('posts/<int:pk>/', views.get_post_detail, name='get-post-detail'),
