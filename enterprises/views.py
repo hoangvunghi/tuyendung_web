@@ -746,6 +746,47 @@ def get_posts(request):
 
 @swagger_auto_schema(
     method='get',
+    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là người dùng",
+    responses={
+        200: openapi.Response(description="Successful operation")
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_post_of_enterprise(request, enterprise_id):
+    posts = PostEntity.objects.filter(enterprise_id=enterprise_id, is_active=True)
+    # phân trang
+    paginator = CustomPagination()
+    paginated_posts = paginator.paginate_queryset(posts, request)
+    serializer = PostSerializer(paginated_posts, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là employer",
+    responses={
+        200: openapi.Response(description="Successful operation")
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_of_user(request):
+    # lấy enterprise của user
+    enterprise = request.user.get_enterprise()
+    if not enterprise:
+        return Response({
+            'message': 'Bạn không phải là nhà tuyển dụng',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    posts = PostEntity.objects.filter(enterprise=enterprise)
+    # phân trang
+    paginator = CustomPagination()
+    paginated_posts = paginator.paginate_queryset(posts, request)
+    serializer = PostSerializer(paginated_posts, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@swagger_auto_schema(
+    method='get',
     operation_description="Lấy danh sách bài đăng việc làm",
     responses={
         200: openapi.Response(
