@@ -68,17 +68,17 @@ UNFOLD = {
                     },
                     {
                         "title": _("Tài khoản"),
-                        "icon": "people",
+                        "icon": "person",
                         "link": reverse_lazy("admin:accounts_useraccount_changelist"),
                     },
                     {
                         "title": _("Vai trò"),
-                        "icon": "people",
+                        "icon": "admin_panel_settings",
                         "link": reverse_lazy("admin:accounts_role_changelist"),
                     },
                     {
                         "title": _("Vai trò người dùng"),
-                        "icon": "people",
+                        "icon": "supervisor_account",
                         "link": reverse_lazy("admin:accounts_userrole_changelist"),
                     },
                 ],
@@ -90,27 +90,27 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Doanh nghiệp"),
-                        "icon": "people",
+                        "icon": "business",
                         "link": reverse_lazy("admin:enterprises_enterpriseentity_changelist"),
                     },
                     {
                         "title": _("Lĩnh vực"),
-                        "icon": "people",
+                        "icon": "category",
                         "link": reverse_lazy("admin:enterprises_fieldentity_changelist"),
                     },
                     {
                         "title": _("Vị trí"),
-                        "icon": "people",
+                        "icon": "category",
                         "link": reverse_lazy("admin:enterprises_positionentity_changelist"),
                     },
                     {
                         "title": _("Bài viết"),
-                        "icon": "people",
+                        "icon": "article",
                         "link": reverse_lazy("admin:enterprises_postentity_changelist"),
                     },
                     {
                         "title": _("Tiêu chí"),
-                        "icon": "people",
+                        "icon": "checklist",
                         "link": reverse_lazy("admin:enterprises_criteriaentity_changelist"),
                     },
                 ]
@@ -122,7 +122,7 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Tin nhắn"),
-                        "icon": "people",
+                        "icon": "chat",
                         "link": reverse_lazy("admin:chat_message_changelist"),
                     },
                 ]
@@ -134,7 +134,7 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Phỏng vấn"),
-                        "icon": "people",
+                        "icon": "event_note",
                         "link": reverse_lazy("admin:interviews_interview_changelist"),
                     },
                 ]
@@ -147,7 +147,7 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Thông báo"),
-                        "icon": "people",
+                        "icon": "notifications",
                         "link": reverse_lazy("admin:notifications_notification_changelist"),
                     },
                 ]
@@ -160,22 +160,22 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Hồ sơ"),
-                        "icon": "people",
+                        "icon": "account_box",
                         "link": reverse_lazy("admin:profiles_userinfo_changelist"),
                     },
                     {
                         "title": _("CV"),
-                        "icon": "people",
+                        "icon": "description",
                         "link": reverse_lazy("admin:profiles_cv_changelist"),
                     },
                     {
                         "title": _("CV đã xem"),
-                        "icon": "people",
+                        "icon": "visibility",
                         "link": reverse_lazy("admin:profiles_cvview_changelist"),
                     },
                     {
                         "title": _("CV đã đánh dấu"),
-                        "icon": "people",
+                        "icon": "bookmark",
                         "link": reverse_lazy("admin:profiles_cvmark_changelist"),
                     },
                 ],
@@ -188,17 +188,17 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Loại dịch vụ"),
-                        "icon": "people",
+                        "icon": "design_services",
                         "link": reverse_lazy("admin:services_typeservice_changelist"),
                     },
                     {
                         "title": _("Gói dịch vụ"),
-                        "icon": "people",
+                        "icon": "widgets",
                         "link": reverse_lazy("admin:services_packageentity_changelist"),
                     },
                     {
                         "title": _("Gói đăng ký"),
-                        "icon": "people",
+                        "icon": "subscriptions",
                         "link": reverse_lazy("admin:services_packagecampaign_changelist"),
                     },
                 ],
@@ -211,7 +211,7 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Lịch sử giao dịch"),
-                        "icon": "people",
+                        "icon": "payments",
                         "link": reverse_lazy("admin:transactions_historymoney_changelist"),
                     },
                 ],
