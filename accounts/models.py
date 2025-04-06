@@ -81,5 +81,5 @@ class UserRole(models.Model):
     
     class Meta:
         unique_together = ('user', 'role')
-        verbose_name = 'Vai trò'
-        verbose_name_plural = 'Vai trò'
+        verbose_name = 'Vai trò người dùng'
+        verbose_name_plural = 'Vai trò người dùng'

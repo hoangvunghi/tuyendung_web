@@ -4,6 +4,10 @@ import os
 import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,19 +17,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d%cot4=)90%f3fsef@$gxg%%81z(fj0nh3w4%+*80qz!#f%l$w'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = []
 
-# CLOUDINARY_URL=cloudinary://587339621414911:SpKe_0P24mcdPkHYWyQU-JQVV_Q@dyjo3qdxo
-
+# Cloudinary configuration
 cloudinary.config( 
-    cloud_name = "dyjo3qdxo", 
-    api_key = "587339621414911", 
-    api_secret = "SpKe_0P24mcdPkHYWyQU-JQVV_Q",
+    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.getenv('CLOUDINARY_API_KEY'),
+    api_secret = os.getenv('CLOUDINARY_API_SECRET'),
     secure=True
 )
 
@@ -116,14 +119,15 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.static',
                 'social_django.context_processors.backends',
             ],
         },
     },
 ]
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=' # Add your client id here '
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '#Add your secret key here'
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_SECRET')
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:8000/complete/google-oauth2/'
 
 WSGI_APPLICATION = 'tuyendung.wsgi.application'
@@ -142,13 +146,13 @@ WSGI_APPLICATION = 'tuyendung.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'neondb',  
-        'USER': 'neondb_owner',  
-        'PASSWORD': 'npg_8Km1izGFhoCH',  
-        'HOST': 'ep-shiny-scene-a14lxlb5-pooler.ap-southeast-1.aws.neon.tech',  
-        'PORT': '5432',  
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
         'OPTIONS': {
-            'sslmode': 'require', 
+            'sslmode': 'require',
         },
     }
 }
@@ -193,6 +197,10 @@ LANGUAGES = [
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "staticfiles"),
+]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -201,8 +209,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'test12202023test@gmail.com'
-EMAIL_HOST_PASSWORD = 'prymsxigzsntalpj'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = True
 
 MEDIA_URL = '/media/'
@@ -258,3 +266,17 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
 }
+
+# Unfold Admin Configuration
+from .admin_config import UNFOLD, get_dashboard_config
+
+UNFOLD = {
+    **UNFOLD,
+    "DASHBOARD_CALLBACK": "tuyendung.admin_config.get_dashboard_config",
+}
+
+# Admin site configuration
+JAZZMIN_SETTINGS = None  # Tắt Jazzmin nếu đang dùng
+ADMIN_SITE_TITLE = UNFOLD["SITE_TITLE"]
+ADMIN_SITE_HEADER = UNFOLD["SITE_HEADER"]
+ADMIN_INDEX_TITLE = UNFOLD["SITE_SUBHEADER"]
