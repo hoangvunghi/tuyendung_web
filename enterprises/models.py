@@ -84,29 +84,40 @@ class PositionEntity(models.Model):
         verbose_name_plural = 'Vị trí'
 
 class PostEntity(models.Model):
-    title = models.CharField(max_length=255)
-    deadline = models.DateField()
-    district = models.CharField(max_length=255)
-    experience = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, db_index=True)
+    deadline = models.DateField(null=True, blank=True)
+    district = models.CharField(max_length=100, default='', blank=True)
+    experience = models.CharField(max_length=50, db_index=True, default='Không yêu cầu')
     enterprise = models.ForeignKey(EnterpriseEntity, on_delete=models.CASCADE, related_name='posts')
     position = models.ForeignKey(PositionEntity, on_delete=models.CASCADE, related_name='posts')
-    field = models.ForeignKey(FieldEntity, on_delete=models.SET_NULL, related_name='posts', null=True, blank=True)
-    interest = models.TextField()
-    level = models.CharField(max_length=255)
-    quantity = models.PositiveIntegerField()
-    required = models.TextField()
-    salary_range = models.CharField(max_length=255)
-    time_working = models.CharField(max_length=255)
-    type_working = models.CharField(max_length=255)
-    city = models.CharField(max_length=255)
-    description = models.TextField()
-    detail_address = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)  
+    field = models.ForeignKey(FieldEntity, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
+    interest = models.TextField(default='')
+    level = models.CharField(max_length=50, default='', blank=True)
+    quantity = models.IntegerField(default=1)
+    required = models.TextField(default='')
+    salary_min = models.IntegerField(default=0)
+    salary_max = models.IntegerField(default=0)
+    is_salary_negotiable = models.BooleanField(default=False, db_index=True)
+    time_working = models.CharField(max_length=255, default='', blank=True)
+    type_working = models.CharField(max_length=50, db_index=True, default='Toàn thời gian')
+    city = models.CharField(max_length=100, db_index=True)
+    description = models.TextField(default='')
+    detail_address = models.CharField(max_length=255, default='', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     modified_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False, db_index=True)
     
     def __str__(self):
         return self.title
+
+    class Meta:
+        db_table = 'posts'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['title', 'city', 'experience', 'type_working']),
+            models.Index(fields=['is_active', 'is_salary_negotiable']),
+            models.Index(fields=['salary_min', 'salary_max']),
+        ]
 
 class CriteriaEntity(models.Model):
     city = models.CharField(max_length=255)

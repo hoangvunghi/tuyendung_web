@@ -999,6 +999,13 @@ def search_enterprises(request):
     Tìm kiếm và lọc bài đăng việc làm.
     API này cho phép tìm kiếm bài đăng theo từ khóa, vị trí địa lý, vị trí công việc, kinh nghiệm, loại công việc và khoảng lương.
     Kết quả được phân trang và có thể sắp xếp theo các tiêu chí khác nhau.
+    
+    Lưu ý về lọc lương:
+    - Nếu chỉ cung cấp salary_min: lọc các bài đăng có lương tối thiểu >= salary_min
+    - Nếu chỉ cung cấp salary_max: lọc các bài đăng có lương tối đa <= salary_max
+    - Nếu cung cấp cả salary_min và salary_max: lọc các bài đăng có khoảng lương nằm trong khoảng [salary_min, salary_max]
+    - Nếu negotiable=true: lọc các bài đăng có lương thỏa thuận
+    - Có thể kết hợp các điều kiện lọc lương với nhau
     """,
     manual_parameters=[
         openapi.Parameter(
@@ -1033,14 +1040,21 @@ def search_enterprises(request):
         ),
         openapi.Parameter(
             'salary_min', openapi.IN_QUERY, 
-            description="Lương tối thiểu", 
+            description="Lương tối thiểu (triệu đồng)", 
             type=openapi.TYPE_INTEGER,
             required=False
         ),
         openapi.Parameter(
             'salary_max', openapi.IN_QUERY, 
-            description="Lương tối đa", 
+            description="Lương tối đa (triệu đồng)", 
             type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'negotiable', openapi.IN_QUERY, 
+            description="Lọc bài đăng có lương thỏa thuận. Giá trị: 'true' hoặc 'false'. Có thể kết hợp với salary_min và salary_max", 
+            type=openapi.TYPE_STRING,
+            enum=['true', 'false'],
             required=False
         ),
         openapi.Parameter(
@@ -1057,7 +1071,7 @@ def search_enterprises(request):
         ),
         openapi.Parameter(
             'sort_by', openapi.IN_QUERY, 
-            description="Trường sắp xếp (ví dụ: 'created_at', 'salary_range')", 
+            description="Trường sắp xếp (ví dụ: 'created_at', 'salary_min', 'salary_max')", 
             type=openapi.TYPE_STRING,
             required=False
         ),
@@ -1103,7 +1117,9 @@ def search_enterprises(request):
                                         'benefit': openapi.Schema(type=openapi.TYPE_STRING),
                                         'experience': openapi.Schema(type=openapi.TYPE_STRING),
                                         'type_working': openapi.Schema(type=openapi.TYPE_STRING),
-                                        'salary_range': openapi.Schema(type=openapi.TYPE_STRING),
+                                        'salary_min': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'salary_max': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                        'is_salary_negotiable': openapi.Schema(type=openapi.TYPE_BOOLEAN),
                                         'quantity': openapi.Schema(type=openapi.TYPE_INTEGER),
                                         'city': openapi.Schema(type=openapi.TYPE_STRING),
                                         'position': openapi.Schema(
@@ -1127,6 +1143,7 @@ def search_enterprises(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_posts(request):
+    # Lấy các tham số tìm kiếm
     query = request.query_params.get('q', '')
     city = request.query_params.get('city', '')
     position = request.query_params.get('position', '')
@@ -1135,44 +1152,62 @@ def search_posts(request):
     salary_min = request.query_params.get('salary_min')
     salary_max = request.query_params.get('salary_max')
     
-    posts = PostEntity.objects.filter(is_active=True)
+    # Tạo base queryset với select_related để tối ưu các foreign key
+    posts = PostEntity.objects.select_related('position', 'enterprise', 'field').filter(is_active=True)
     
+    # Tạo Q objects cho việc tìm kiếm
+    search_conditions = Q()
     if query:
-        posts = posts.filter(
+        search_conditions |= (
             Q(title__icontains=query) |
             Q(description__icontains=query) |
             Q(required__icontains=query) |
             Q(enterprise__company_name__icontains=query)
         )
+        posts = posts.filter(search_conditions)
     
+    # Áp dụng các bộ lọc chính xác
     if city:
         posts = posts.filter(city__iexact=city)
-        
     if position:
         posts = posts.filter(position__name__iexact=position)
-        
     if experience:
         posts = posts.filter(experience__iexact=experience)
-        
     if type_working:
         posts = posts.filter(type_working__iexact=type_working)
     
+    # Xử lý lọc theo khoảng lương
     if salary_min and salary_max:
         posts = posts.filter(
-            Q(salary_range__regex=fr'^{salary_min}-{salary_max}$') |
-            Q(salary_range__regex=fr'^(\d+)-(\d+)$',
-              salary_range__gte=salary_min,
-              salary_range__lte=salary_max)
+            salary_min__gte=salary_min,
+            salary_max__lte=salary_max,
+            is_salary_negotiable=False
+        )
+    elif salary_min:
+        posts = posts.filter(
+            salary_min__gte=salary_min,
+            is_salary_negotiable=False
+        )
+    elif salary_max:
+        posts = posts.filter(
+            salary_max__lte=salary_max,
+            is_salary_negotiable=False
         )
     
-    # Sắp xếp kết quả
-    sort_by = request.query_params.get('sort_by', '-created_at')  # Mặc định sắp xếp theo thời gian tạo mới nhất
-    sort_order = request.query_params.get('sort_order', 'desc')
+    # Lọc lương thỏa thuận
+    if request.query_params.get('negotiable') == 'true':
+        posts = posts.filter(is_salary_negotiable=True)
     
+    # Sắp xếp kết quả
+    sort_by = request.query_params.get('sort_by', '-created_at')
+    sort_order = request.query_params.get('sort_order', 'desc')
     if sort_order == 'desc' and not sort_by.startswith('-'):
         sort_by = f'-{sort_by}'
-    posts = posts.order_by(sort_by)
     
+    # Thực hiện sắp xếp và đánh index
+    posts = posts.order_by(sort_by).distinct()
+    
+    # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
     
@@ -1633,19 +1668,22 @@ def delete_post(request, pk):
 @permission_classes([AllowAny])
 def get_post_detail(request, pk):
     """Chi tiết bài đăng"""
-    # post = get_object_or_404(PostEntity, pk=pk)
-    post = PostEntity.objects.get(pk=pk)
-    if not post:
+    try:
+        post = PostEntity.objects.select_related('enterprise').get(pk=pk)
+        serializer = PostSerializer(post)
+        data = serializer.data
+        # Thêm thông tin ảnh của doanh nghiệp
+        data['enterprise_logo'] = post.enterprise.logo_url
+        return Response({
+            'message': 'Post details retrieved successfully',
+            'status': status.HTTP_200_OK,
+            'data': data
+        })
+    except PostEntity.DoesNotExist:
         return Response({
             'message': 'Bài đăng không tồn tại',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
-    serializer = PostSerializer(post)
-    return Response({
-        'message': 'Post details retrieved successfully',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    })
 
 @swagger_auto_schema(
     method='get',

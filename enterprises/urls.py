@@ -14,7 +14,7 @@ urlpatterns = [
     path('enterprises/<int:pk>/stats/', views.get_enterprise_stats, name='get-enterprise-stats'),
     # Post CRUD
     path('posts/', views.get_posts, name='get-posts'),
-    path('posts/<int:pk>/', views.get_post_detail, name='get-post-detail'),
+    path('post/<int:pk>/', views.get_post_detail, name='get-post-detail'),
     path('posts/create/', views.create_post, name='create-post'),
     path('posts/update/<int:pk>/', views.update_post, name='update-post'),
     path('posts/delete/<int:pk>/', views.delete_post, name='delete-post'),
