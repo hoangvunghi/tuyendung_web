@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
 from .serializers import (
-    EnterpriseSerializer, PostSerializer,
+    EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
     FieldSerializer, PositionSerializer, CriteriaSerializer,
     PostUpdateSerializer
 )
@@ -237,7 +237,7 @@ def get_enterprises_by_user(request):
 @permission_classes([AllowAny])
 def get_enterprise_detail(request, pk):
     enterprise = get_object_or_404(EnterpriseEntity, pk=pk, is_active=True)
-    serializer = EnterpriseSerializer(enterprise)
+    serializer = EnterpriseDetailSerializer(enterprise)
     return Response({
         'message': 'Enterprise details retrieved successfully',
         'status': status.HTTP_200_OK,
@@ -572,7 +572,7 @@ def get_post_of_enterprise(request, enterprise_id):
     # phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    serializer = PostSerializer(paginated_posts, many=True)
+    serializer = PostEnterpriseSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
@@ -1144,6 +1144,7 @@ def search_enterprises(request):
 @permission_classes([AllowAny])
 def search_posts(request):
     # Lấy các tham số tìm kiếm
+    #Trả về thêm tên của công ty là enterprise_name và ảnh logo của công ty là enterprise_logo
     query = request.query_params.get('q', '')
     city = request.query_params.get('city', '')
     position = request.query_params.get('position', '')
@@ -1206,7 +1207,6 @@ def search_posts(request):
     
     # Thực hiện sắp xếp và đánh index
     posts = posts.order_by(sort_by).distinct()
-    
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
