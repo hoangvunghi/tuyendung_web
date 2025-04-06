@@ -10,4 +10,7 @@ from base.admin import BaseAdminClass
 
 @admin.register(HistoryMoney)
 class HistoryMoneyAdmin(BaseAdminClass):
-    pass
+    list_display = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
+    list_filter = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
+    search_fields = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
+    list_display_links = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')

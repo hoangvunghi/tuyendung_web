@@ -168,18 +168,53 @@ UNFOLD = {
                         "icon": "people",
                         "link": reverse_lazy("admin:profiles_cv_changelist"),
                     },
-                    # {
-                    #     "title": _("CV đã xem"),
-                    #     "icon": "people",
-                    #     "link": reverse_lazy("admin:profiles_cvview_changelist"),
-                    # },
-                    # {
-                    #     "title": _("CV đã đánh dấu"),
-                    #     "icon": "people",
-                    #     "link": reverse_lazy("admin:profiles_cvmark_changelist"),
-                    # },
+                    {
+                        "title": _("CV đã xem"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:profiles_cvview_changelist"),
+                    },
+                    {
+                        "title": _("CV đã đánh dấu"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:profiles_cvmark_changelist"),
+                    },
                 ],
-
+            },
+            # services
+            {
+                "title": _("Dịch vụ"),
+                "separator": True,  # Top border
+                "collapsible": True,  # Collapsible group of links
+                "items": [
+                    {
+                        "title": _("Loại dịch vụ"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:services_typeservice_changelist"),
+                    },
+                    {
+                        "title": _("Gói dịch vụ"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:services_packageentity_changelist"),
+                    },
+                    {
+                        "title": _("Gói đăng ký"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:services_packagecampaign_changelist"),
+                    },
+                ],
+            },
+            # transactions
+            {
+                "title": _("Giao dịch"),
+                "separator": True,  # Top border
+                "collapsible": True,  # Collapsible group of links
+                "items": [
+                    {
+                        "title": _("Lịch sử giao dịch"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:transactions_historymoney_changelist"),
+                    },
+                ],
             },
             
         ],

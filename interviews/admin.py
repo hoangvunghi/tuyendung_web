@@ -9,4 +9,8 @@ from base.admin import BaseAdminClass
 
 @admin.register(Interview)
 class InterviewAdmin(BaseAdminClass):
-    pass
+    list_display = ('enterprise', 'candidate', 'cv', 'title', 'description', 'interview_date', 'location', 'status', 'note', 'created_at', 'updated_at')
+    list_filter = ('enterprise', 'candidate', 'cv', 'title', 'description', 'interview_date', 'location', 'status', 'note', 'created_at', 'updated_at')
+    search_fields = ('enterprise', 'candidate', 'cv', 'title', 'description', 'interview_date', 'location', 'status', 'note', 'created_at', 'updated_at')
+    list_display_links = ('enterprise', 'candidate', 'cv', 'title', 'description', 'interview_date', 'location', 'status', 'note', 'created_at', 'updated_at')  
+    

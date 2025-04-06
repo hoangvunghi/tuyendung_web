@@ -9,4 +9,10 @@ from base.admin import BaseAdminClass
 
 @admin.register(Notification)
 class NotificationAdmin(BaseAdminClass):
-    pass
+    list_display = ('recipient', 'notification_type', 'title', 'message', 'is_read', 'created_at')
+    list_filter = ('recipient', 'notification_type', 'title', 'message', 'is_read', 'created_at')
+    search_fields = ('recipient', 'notification_type', 'title', 'message', 'created_at')
+    list_editable = ('is_read',)
+    list_display_links = ('recipient', 'notification_type', 'title', 'message', 'created_at')
+
+
