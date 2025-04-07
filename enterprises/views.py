@@ -1173,20 +1173,31 @@ def search_enterprises(request):
 @permission_classes([AllowAny])
 def search_posts(request):
     # Tạo cache key dựa trên tất cả các tham số tìm kiếm
-    params = {
-        'q': request.query_params.get('q', ''),
-        'city': request.query_params.get('city', ''),
-        'position': request.query_params.get('position', ''),
-        'experience': request.query_params.get('experience', ''),
-        'type_working': request.query_params.get('type_working', ''),
-        'salary_min': request.query_params.get('salary_min'),
-        'salary_max': request.query_params.get('salary_max'),
-        'negotiable': request.query_params.get('negotiable'),
-        'sort_by': request.query_params.get('sort_by', '-created_at'),
-        'sort_order': request.query_params.get('sort_order', 'desc'),
-        'page': request.query_params.get('page', '1'),
-        'page_size': request.query_params.get('page_size', '10')
-    }
+    params = {}
+    
+    # Lấy các tham số và chỉ thêm vào dict nếu có giá trị
+    for key in ['q', 'city', 'position', 'experience', 'type_working']:
+        value = request.query_params.get(key, '')
+        if value:
+            params[key] = value
+            
+    # Xử lý các tham số số nguyên
+    for key in ['salary_min', 'salary_max']:
+        value = request.query_params.get(key)
+        if value and value.isdigit():
+            params[key] = value
+            
+    # Xử lý tham số boolean negotiable
+    negotiable = request.query_params.get('negotiable')
+    if negotiable in ['true', 'false']:
+        params['negotiable'] = negotiable
+        
+    # Thêm các tham số phân trang và sắp xếp
+    params['sort_by'] = request.query_params.get('sort_by', '-created_at')
+    params['sort_order'] = request.query_params.get('sort_order', 'desc')
+    params['page'] = request.query_params.get('page', '1')
+    params['page_size'] = request.query_params.get('page_size', '10')
+    
     cache_key = f'posts_search_{urlencode(params)}'
     
     # Kiểm tra cache
@@ -1199,7 +1210,7 @@ def search_posts(request):
     
     # Tạo Q objects cho việc tìm kiếm
     search_conditions = Q()
-    if params['q']:
+    if params.get('q'):
         search_conditions |= (
             Q(title__icontains=params['q']) |
             Q(description__icontains=params['q']) |
@@ -1209,35 +1220,35 @@ def search_posts(request):
         posts = posts.filter(search_conditions)
     
     # Áp dụng các bộ lọc chính xác
-    if params['city']:
+    if params.get('city'):
         posts = posts.filter(city__iexact=params['city'])
-    if params['position']:
+    if params.get('position'):
         posts = posts.filter(position__name__iexact=params['position'])
-    if params['experience']:
+    if params.get('experience'):
         posts = posts.filter(experience__iexact=params['experience'])
-    if params['type_working']:
+    if params.get('type_working'):
         posts = posts.filter(type_working__iexact=params['type_working'])
     
     # Xử lý lọc theo khoảng lương
-    if params['salary_min'] and params['salary_max']:
+    if params.get('salary_min') and params.get('salary_max'):
         posts = posts.filter(
             salary_min__gte=params['salary_min'],
             salary_max__lte=params['salary_max'],
             is_salary_negotiable=False
         )
-    elif params['salary_min']:
+    elif params.get('salary_min'):
         posts = posts.filter(
             salary_min__gte=params['salary_min'],
             is_salary_negotiable=False
         )
-    elif params['salary_max']:
+    elif params.get('salary_max'):
         posts = posts.filter(
             salary_max__lte=params['salary_max'],
             is_salary_negotiable=False
         )
     
     # Lọc lương thỏa thuận
-    if params['negotiable'] == 'true':
+    if params.get('negotiable') == 'true':
         posts = posts.filter(is_salary_negotiable=True)
     
     # Sắp xếp kết quả
