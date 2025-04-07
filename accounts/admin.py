@@ -10,12 +10,12 @@ from base.admin import BaseAdminClass
 @admin.register(UserAccount)
 class UserAccountAdmin(BaseAdminClass):
     # custom o day 
-    list_display = ('username', 'email', 'is_active', 'is_staff')
-    list_filter = ('is_active', 'is_staff')
+    list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned')
+    list_filter = ('is_active', 'is_staff', 'is_banned')
     search_fields = ('username', 'email')
     list_per_page = 10
     list_max_show_all = 100
-    list_editable = ('is_active', 'is_staff')
+    list_editable = ('is_active', 'is_staff', 'is_banned')
     list_display_links = ('username', 'email')
 
     # Thêm các tính năng mới

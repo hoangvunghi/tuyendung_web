@@ -156,6 +156,7 @@ def activate_account(request, token):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         user.is_active = True
+        user.is_banned = False
         user.activation_token = None
         user.activation_token_expiry = None
         user.save()
@@ -319,6 +320,11 @@ def login(request):
                     'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
                     'status': status.HTTP_401_UNAUTHORIZED
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            if inactive_user.is_banned:
+                return Response({
+                    'message': 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để biết thêm thông tin.',
+                    'status': status.HTTP_401_UNAUTHORIZED
+                }, status=status.HTTP_401_UNAUTHORIZED)
         except UserAccount.DoesNotExist:
             pass
         
@@ -329,6 +335,7 @@ def login(request):
     
     refresh = RefreshToken.for_user(user)
     refresh["is_active"]=user.is_active
+    refresh["is_banned"]=user.is_banned
     if user.is_superuser:
         role = "admin"
     else:
@@ -339,6 +346,7 @@ def login(request):
         'status': status.HTTP_200_OK,
         'data': {
             "is_active": user.is_active,
+            "is_banned": user.is_banned,
             "role": role,
             'refresh': str(refresh),
             'access': str(refresh.access_token),
