@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -297,7 +298,6 @@ def get_enterprise_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_enterprise(request):
-    # Kiểm tra role của user
     user = request.user
     if user.get_role() != 'employer':
         return Response({
@@ -305,33 +305,43 @@ def create_enterprise(request):
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
 
-    # Lấy dữ liệu từ request
     data = request.data.copy()
-    # business_certificate
-    business_certificate = request.FILES.get('business_certificate')
-    if business_certificate:
-        upload_result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
-        if upload_result:
-            data['business_certificate_url'] = upload_result['secure_url']
-            data['business_certificate_public_id'] = upload_result['public_id']
+    uploads = {
+        'business_certificate': ('business_certificates', None),
+        'logo': ('enterprise_logos', None),
+        'background_image': ('enterprise_backgrounds', None),
+    }
 
-    # Xử lý upload logo
-    logo = request.FILES.get('logo')
-    if logo:
-        upload_result = upload_image_to_cloudinary(logo, 'enterprise_logos')
-        if upload_result:
-            data['logo_url'] = upload_result['secure_url']
-            data['logo_public_id'] = upload_result['public_id']
-    
-    # Xử lý upload background image
-    background_image = request.FILES.get('background_image')
-    if background_image:
-        upload_result = upload_image_to_cloudinary(background_image, 'enterprise_backgrounds')
-        if upload_result:
-            data['background_image_url'] = upload_result['secure_url']
-            data['background_image_public_id'] = upload_result['public_id']
+    # Gọi hàm upload
+    def upload_image(key, folder):
+        file = request.FILES.get(key)
+        if file:
+            result = upload_image_to_cloudinary(file, folder)
+            return key, result
+        return key, None
 
-    # Tạo serializer với dữ liệu đã xử lý
+    # Multithreading upload
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(upload_image, key, folder) for key, (folder, _) in uploads.items()]
+        for future in futures:
+            key, result = future.result()
+            if result:
+                uploads[key] = (uploads[key][0], result)
+
+    # Cập nhật dữ liệu sau khi upload
+    if uploads['business_certificate'][1]:
+        data['business_certificate_url'] = uploads['business_certificate'][1]['secure_url']
+        data['business_certificate_public_id'] = uploads['business_certificate'][1]['public_id']
+
+    if uploads['logo'][1]:
+        data['logo_url'] = uploads['logo'][1]['secure_url']
+        data['logo_public_id'] = uploads['logo'][1]['public_id']
+
+    if uploads['background_image'][1]:
+        data['background_image_url'] = uploads['background_image'][1]['secure_url']
+        data['background_image_public_id'] = uploads['background_image'][1]['public_id']
+
+    # Tạo serializer
     serializer = EnterpriseSerializer(data=data)
     if serializer.is_valid():
         serializer.save(user=request.user)
@@ -340,6 +350,7 @@ def create_enterprise(request):
             'status': status.HTTP_201_CREATED,
             'data': serializer.data
         }, status=status.HTTP_201_CREATED)
+    
     return Response({
         'message': 'Enterprise creation failed',
         'status': status.HTTP_400_BAD_REQUEST,
@@ -398,46 +409,63 @@ def create_enterprise(request):
 def update_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
     data = request.data.copy()
-    # nếu is_active là true thì không cho sửa certificate
+
+    # Giữ nguyên trạng thái is_active
+    data['is_active'] = enterprise.is_active
+
+    # Giữ nguyên xử lý certificate
     data['business_certificate_url'] = enterprise.business_certificate_url
     data['business_certificate_public_id'] = enterprise.business_certificate_public_id
-    if enterprise.is_active:
-        pass
-    else:
+    if not enterprise.is_active:
         business_certificate = request.FILES.get('business_certificate')
         if business_certificate:
-            upload_result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
-            if upload_result:
-                data['business_certificate_url'] = upload_result['secure_url']
-                data['business_certificate_public_id'] = upload_result['public_id']
-    logo = request.FILES.get('logo')
-    if logo:
-        if enterprise.logo_public_id:
-            delete_image_from_cloudinary(enterprise.logo_public_id)
-        # Upload logo mới
-        upload_result = upload_image_to_cloudinary(logo, 'enterprise_logos')
-        if upload_result:
-            data['logo_url'] = upload_result['secure_url']
-            data['logo_public_id'] = upload_result['public_id']
+            result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
+            if result:
+                data['business_certificate_url'] = result['secure_url']
+                data['business_certificate_public_id'] = result['public_id']
 
-    # Xử lý cập nhật background image
-    background_image = request.FILES.get('background_image')
-    if background_image:
-        # Xóa background image cũ nếu có
-        if enterprise.background_image_public_id:
-            delete_image_from_cloudinary(enterprise.background_image_public_id)
-        # Upload background image mới
-        upload_result = upload_image_to_cloudinary(background_image, 'enterprise_backgrounds')
-        if upload_result:
-            data['background_image_url'] = upload_result['secure_url']
-            data['background_image_public_id'] = upload_result['public_id']
+    # Hàm xử lý upload 1 ảnh
+    def upload_image(field_name, folder, old_public_id=None):
+        file = request.FILES.get(field_name)
+        if file:
+            if old_public_id:
+                delete_image_from_cloudinary(old_public_id)
+            result = upload_image_to_cloudinary(file, folder)
+            return field_name, result
+        return field_name, None
+
+    # Tạo task nếu có ảnh
+    tasks = []
+    if 'logo' in request.FILES:
+        tasks.append(('logo', 'enterprise_logos', enterprise.logo_public_id))
+    if 'background_image' in request.FILES:
+        tasks.append(('background_image', 'enterprise_backgrounds', enterprise.background_image_public_id))
+
+    # Chạy upload ảnh song song nếu có
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(upload_image, name, folder, old_id) for name, folder, old_id in tasks]
+        for future in futures:
+            key, result = future.result()
+            if result:
+                data[f"{key}_url"] = result['secure_url']
+                data[f"{key}_public_id"] = result['public_id']
+
+    # Giữ nguyên các URL và public_id nếu không có file mới upload
+    if 'logo' not in request.FILES:
+        data['logo_url'] = enterprise.logo_url
+        data['logo_public_id'] = enterprise.logo_public_id
+    if 'background_image' not in request.FILES:
+        data['background_image_url'] = enterprise.background_image_url
+        data['background_image_public_id'] = enterprise.background_image_public_id
+
     serializer = EnterpriseSerializer(enterprise, data=data)
     if serializer.is_valid():
         serializer.save()
         return Response({
             'message': 'Enterprise updated successfully',
             'status': status.HTTP_200_OK,
-        })
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
     return Response({
         'message': 'Enterprise update failed',
         'status': status.HTTP_400_BAD_REQUEST,
