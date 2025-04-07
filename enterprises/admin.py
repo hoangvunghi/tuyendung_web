@@ -25,6 +25,17 @@ class EnterpriseAdmin(BaseAdminClass):
     list_max_show_all = 100
     list_editable = ('is_active',)
     list_display_links = ('company_name', 'address')
+    compressed_fields = True  # Hiển thị form chỉnh sửa ở chế độ thu gọn
+    warn_unsaved_form = True  # Cảnh báo khi có thay đổi chưa lưu
+    list_filter_submit = True  # Thêm nút submit trong bộ lọc
+    change_form_show_cancel_button = True  # Hiển thị nút Cancel trong form
+
+    # Tùy chỉnh widget cho các trường
+    formfield_overrides = {
+        models.TextField: {
+            "widget": WysiwygWidget,
+        },
+    }
 
     def company_name(self, obj):
         return obj.company_name

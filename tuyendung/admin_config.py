@@ -2,23 +2,95 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
+
+def get_dashboard_config(request, context):
+    """Hàm trả về cấu hình dashboard."""
+    from django.apps import apps
+    
+    try:
+        user_count = apps.get_model("accounts", "UserAccount").objects.count()
+        user_info_count = apps.get_model("profiles", "UserInfo").objects.count()
+    except:
+        user_count = user_info_count = 0
+
+    context.update({
+        "stats": [
+            {
+                "label": "Tổng số tài khoản",
+                "value": user_count,
+                "url": reverse_lazy("admin:accounts_useraccount_changelist"),
+                "color": "primary",
+                "icon": "person",
+            },
+            {
+                "label": "Tổng số hồ sơ",
+                "value": user_info_count,
+                "url": reverse_lazy("admin:profiles_userinfo_changelist"),
+                "color": "info",
+                "icon": "folder",
+            },
+        ],
+        "charts": [
+            {
+                "id": "users-chart",
+                "type": "line",
+                "data": {
+                    "labels": ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
+                    "datasets": [
+                        {
+                            "label": "Người dùng mới",
+                            "data": [10, 15, 8, 12, 9, 5, 3],
+                            "borderColor": "rgb(168, 85, 247)",
+                            "backgroundColor": "rgba(168, 85, 247, 0.1)",
+                        },
+                    ],
+                },
+                "options": {
+                    "responsive": True,
+                    "plugins": {
+                        "title": {
+                            "display": True,
+                            "text": "Biểu Đồ Hoạt Động Trong Tuần"
+                        },
+                        "legend": {
+                            "position": "bottom"
+                        }
+                    }
+                }
+            }
+        ]
+    })
+    return context 
+
 # Cấu hình cơ bản cho Unfold
 UNFOLD = {
     "SITE_TITLE": "Hệ Thống Tuyển Dụng",
     "SITE_HEADER": "Quản Lý Tuyển Dụng",
     "SITE_SUBHEADER": "Hệ thống quản lý tuyển dụng chuyên nghiệp",
     "SITE_URL": "/",
-    "SITE_SYMBOL": "work",  # Biểu tượng từ Google Material Icons
+    "SITE_SYMBOL": "work", 
+    "DASHBOARD_CALLBACK": get_dashboard_config,
+    "SITE_DROPDOWN": [
+        {
+            "icon": "diamond",
+            "title": _("My site"),
+            "link": "http://127.0.0.1:8000",
+        },
+    ],
     
-    # Cấu hình favicon
+    "SITE_LOGO": {
+        "light": lambda request: static("logo.svg"),  # light mode
+        "dark": lambda request: static("logo.svg"),  # dark mode
+    },
+
     "SITE_FAVICONS": [
         {
             "rel": "icon",
             "sizes": "32x32",
-            "href": lambda request: static("favicon.ico"),
+            "type": "image/svg+xml",
+            "href": lambda request: static("logo.svg"),
         },
     ],
-    
     # Cấu hình chung
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
@@ -220,62 +292,3 @@ UNFOLD = {
         ],
     },
 }
-
-def get_dashboard_config(request, context):
-    """Hàm trả về cấu hình dashboard."""
-    from django.apps import apps
-    
-    try:
-        user_count = apps.get_model("accounts", "UserAccount").objects.count()
-        user_info_count = apps.get_model("profiles", "UserInfo").objects.count()
-    except:
-        user_count = user_info_count = 0
-
-    context.update({
-        "stats": [
-            {
-                "label": "Tổng số tài khoản",
-                "value": user_count,
-                "url": reverse_lazy("admin:accounts_useraccount_changelist"),
-                "color": "primary",
-                "icon": "person",
-            },
-            {
-                "label": "Tổng số hồ sơ",
-                "value": user_info_count,
-                "url": reverse_lazy("admin:profiles_userinfo_changelist"),
-                "color": "info",
-                "icon": "folder",
-            },
-        ],
-        "charts": [
-            {
-                "id": "users-chart",
-                "type": "line",
-                "data": {
-                    "labels": ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-                    "datasets": [
-                        {
-                            "label": "Người dùng mới",
-                            "data": [10, 15, 8, 12, 9, 5, 3],
-                            "borderColor": "rgb(168, 85, 247)",
-                            "backgroundColor": "rgba(168, 85, 247, 0.1)",
-                        },
-                    ],
-                },
-                "options": {
-                    "responsive": True,
-                    "plugins": {
-                        "title": {
-                            "display": True,
-                            "text": "Biểu Đồ Hoạt Động Trong Tuần"
-                        },
-                        "legend": {
-                            "position": "bottom"
-                        }
-                    }
-                }
-            }
-        ]
-    })
-    return context 
