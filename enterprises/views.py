@@ -24,6 +24,8 @@ from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.cloudinary_utils import delete_image_from_cloudinary, upload_image_to_cloudinary
+from django.core.cache import cache
+from django.utils.http import urlencode
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrEnterpriseOwner = create_permission_class_with_admin_override(IsEnterpriseOwner)
@@ -955,34 +957,56 @@ def create_field(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_enterprises(request):
-    query = request.query_params.get('q', '')
-    city = request.query_params.get('city', '')
-    field = request.query_params.get('field', '')
-    scale = request.query_params.get('scale', '')
+    # Tạo cache key dựa trên tất cả các tham số tìm kiếm:
+    # - q (từ khóa tìm kiếm)
+    # - city (thành phố)
+    # - field (lĩnh vực)
+    # - scale (quy mô)
+    # - sort_by (trường sắp xếp)
+    # - sort_order (thứ tự sắp xếp)
+    # - page (số trang)
+    # - page_size (số lượng doanh nghiệp mỗi trang)
+    params = {
+        'q': request.query_params.get('q', ''),
+        'city': request.query_params.get('city', ''),
+        'field': request.query_params.get('field', ''),
+        'scale': request.query_params.get('scale', ''),
+        'sort_by': request.query_params.get('sort_by', 'company_name'),
+        'sort_order': request.query_params.get('sort_order', 'asc'),
+        'page': request.query_params.get('page', '1'),
+        'page_size': request.query_params.get('page_size', '10')
+    }
+    cache_key = f'enterprises_search_{urlencode(params)}'
     
+    # Kiểm tra xem kết quả đã được cache chưa:
+    # - Nếu có trong cache thì trả về kết quả ngay lập tức
+    # - Nếu không có trong cache thì thực hiện tìm kiếm bình thường
+    cached_response = cache.get(cache_key)
+    if cached_response is not None:
+        return Response(cached_response)
+    
+    # Nếu không có trong cache, thực hiện tìm kiếm
     enterprises = EnterpriseEntity.objects.filter(is_active=True)
     
-    if query:
+    if params['q']:
         enterprises = enterprises.filter(
-            Q(company_name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(field_of_activity__icontains=query)
+            Q(company_name__icontains=params['q']) |
+            Q(description__icontains=params['q']) |
+            Q(field_of_activity__icontains=params['q'])
         )
     
-    if city:
-        enterprises = enterprises.filter(city__iexact=city)
+    if params['city']:
+        enterprises = enterprises.filter(city__iexact=params['city'])
     
-    if field:
-        enterprises = enterprises.filter(field_of_activity__icontains=field)
+    if params['field']:
+        enterprises = enterprises.filter(field_of_activity__icontains=params['field'])
         
-    if scale:
-        enterprises = enterprises.filter(scale__iexact=scale)
+    if params['scale']:
+        enterprises = enterprises.filter(scale__iexact=params['scale'])
     
     # Sắp xếp kết quả
-    sort_by = request.query_params.get('sort_by', 'company_name')
-    sort_order = request.query_params.get('sort_order', 'asc')
-    
-    if sort_order == 'desc':
+    sort_by = params['sort_by']
+    if params['sort_order'] == 'desc':
         sort_by = f'-{sort_by}'
     enterprises = enterprises.order_by(sort_by)
     
@@ -990,7 +1014,12 @@ def search_enterprises(request):
     paginated_enterprises = paginator.paginate_queryset(enterprises, request)
     
     serializer = EnterpriseSerializer(paginated_enterprises, many=True)
-    return paginator.get_paginated_response(serializer.data)
+    response_data = paginator.get_paginated_response(serializer.data).data
+    
+    # Sau khi tìm kiếm xong, lưu kết quả vào cache với thời gian sống là 5 phút (theo cấu hình trong settings.py)
+    cache.set(cache_key, response_data)
+    
+    return Response(response_data)
 
 # Post Search & Filter
 @swagger_auto_schema(
@@ -1143,76 +1172,93 @@ def search_enterprises(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_posts(request):
-    # Lấy các tham số tìm kiếm
-    #Trả về thêm tên của công ty là enterprise_name và ảnh logo của công ty là enterprise_logo
-    query = request.query_params.get('q', '')
-    city = request.query_params.get('city', '')
-    position = request.query_params.get('position', '')
-    experience = request.query_params.get('experience', '')
-    type_working = request.query_params.get('type_working', '')
-    salary_min = request.query_params.get('salary_min')
-    salary_max = request.query_params.get('salary_max')
+    # Tạo cache key dựa trên tất cả các tham số tìm kiếm
+    params = {
+        'q': request.query_params.get('q', ''),
+        'city': request.query_params.get('city', ''),
+        'position': request.query_params.get('position', ''),
+        'experience': request.query_params.get('experience', ''),
+        'type_working': request.query_params.get('type_working', ''),
+        'salary_min': request.query_params.get('salary_min'),
+        'salary_max': request.query_params.get('salary_max'),
+        'negotiable': request.query_params.get('negotiable'),
+        'sort_by': request.query_params.get('sort_by', '-created_at'),
+        'sort_order': request.query_params.get('sort_order', 'desc'),
+        'page': request.query_params.get('page', '1'),
+        'page_size': request.query_params.get('page_size', '10')
+    }
+    cache_key = f'posts_search_{urlencode(params)}'
     
-    # Tạo base queryset với select_related để tối ưu các foreign key
+    # Kiểm tra cache
+    cached_response = cache.get(cache_key)
+    if cached_response is not None:
+        return Response(cached_response)
+    
+    # Nếu không có trong cache, thực hiện tìm kiếm
     posts = PostEntity.objects.select_related('position', 'enterprise', 'field').filter(is_active=True)
     
     # Tạo Q objects cho việc tìm kiếm
     search_conditions = Q()
-    if query:
+    if params['q']:
         search_conditions |= (
-            Q(title__icontains=query) |
-            Q(description__icontains=query) |
-            Q(required__icontains=query) |
-            Q(enterprise__company_name__icontains=query)
+            Q(title__icontains=params['q']) |
+            Q(description__icontains=params['q']) |
+            Q(required__icontains=params['q']) |
+            Q(enterprise__company_name__icontains=params['q'])
         )
         posts = posts.filter(search_conditions)
     
     # Áp dụng các bộ lọc chính xác
-    if city:
-        posts = posts.filter(city__iexact=city)
-    if position:
-        posts = posts.filter(position__name__iexact=position)
-    if experience:
-        posts = posts.filter(experience__iexact=experience)
-    if type_working:
-        posts = posts.filter(type_working__iexact=type_working)
+    if params['city']:
+        posts = posts.filter(city__iexact=params['city'])
+    if params['position']:
+        posts = posts.filter(position__name__iexact=params['position'])
+    if params['experience']:
+        posts = posts.filter(experience__iexact=params['experience'])
+    if params['type_working']:
+        posts = posts.filter(type_working__iexact=params['type_working'])
     
     # Xử lý lọc theo khoảng lương
-    if salary_min and salary_max:
+    if params['salary_min'] and params['salary_max']:
         posts = posts.filter(
-            salary_min__gte=salary_min,
-            salary_max__lte=salary_max,
+            salary_min__gte=params['salary_min'],
+            salary_max__lte=params['salary_max'],
             is_salary_negotiable=False
         )
-    elif salary_min:
+    elif params['salary_min']:
         posts = posts.filter(
-            salary_min__gte=salary_min,
+            salary_min__gte=params['salary_min'],
             is_salary_negotiable=False
         )
-    elif salary_max:
+    elif params['salary_max']:
         posts = posts.filter(
-            salary_max__lte=salary_max,
+            salary_max__lte=params['salary_max'],
             is_salary_negotiable=False
         )
     
     # Lọc lương thỏa thuận
-    if request.query_params.get('negotiable') == 'true':
+    if params['negotiable'] == 'true':
         posts = posts.filter(is_salary_negotiable=True)
     
     # Sắp xếp kết quả
-    sort_by = request.query_params.get('sort_by', '-created_at')
-    sort_order = request.query_params.get('sort_order', 'desc')
-    if sort_order == 'desc' and not sort_by.startswith('-'):
+    sort_by = params['sort_by']
+    if params['sort_order'] == 'desc' and not sort_by.startswith('-'):
         sort_by = f'-{sort_by}'
     
     # Thực hiện sắp xếp và đánh index
     posts = posts.order_by(sort_by).distinct()
+    
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
     
     serializer = PostSerializer(paginated_posts, many=True)
-    return paginator.get_paginated_response(serializer.data)
+    response_data = paginator.get_paginated_response(serializer.data).data
+    
+    # Lưu kết quả vào cache
+    cache.set(cache_key, response_data)
+    
+    return Response(response_data)
 
 # Get Distinct Values for Filters
 @api_view(['GET'])

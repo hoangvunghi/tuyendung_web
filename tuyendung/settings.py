@@ -279,3 +279,12 @@ JAZZMIN_SETTINGS = None  # Tắt Jazzmin nếu đang dùng
 ADMIN_SITE_TITLE = UNFOLD["SITE_TITLE"]
 ADMIN_SITE_HEADER = UNFOLD["SITE_HEADER"]
 ADMIN_INDEX_TITLE = UNFOLD["SITE_SUBHEADER"]
+
+# Cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes
+    }
+}

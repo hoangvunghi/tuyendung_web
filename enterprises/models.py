@@ -7,30 +7,36 @@ def strip_html_tags(text):
         return re.sub(clean, '', text)
     return text
 class EnterpriseEntity(models.Model):
-    company_name = models.CharField(max_length=255)
+    company_name = models.CharField(max_length=255, db_index=True)
     address = models.CharField(max_length=255)
     business_certificate_url = models.CharField(max_length=255,blank=True,null=True)
     business_certificate_public_id = models.CharField(max_length=255,blank=True,null=True)
     description = models.TextField()
     email_company = models.EmailField(max_length=255)
-    field_of_activity = models.TextField()
-    is_active = models.BooleanField(default=False)
+    field_of_activity = models.TextField(db_index=True)
+    is_active = models.BooleanField(default=False, db_index=True)
     link_web_site = models.URLField(max_length=255, blank=True,null=True)
     logo_url = models.CharField(max_length=255, blank=True,null=True)
     logo_public_id = models.CharField(max_length=255, blank=True,null=True)
     background_image_url = models.CharField(max_length=255, blank=True,null=True)
     background_image_public_id = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=20)
-    scale = models.CharField(max_length=255)
+    scale = models.CharField(max_length=255, db_index=True)
     tax = models.CharField(max_length=255)
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='enterprises')
-    city = models.CharField(max_length=255)
+    city = models.CharField(max_length=255, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Doanh nghiệp'
         verbose_name_plural = 'Doanh nghiệp'
+        indexes = [
+            models.Index(fields=['company_name', 'city'], name='company_city_idx'),
+            models.Index(fields=['company_name', 'field_of_activity'], name='company_field_idx'),
+            models.Index(fields=['is_active', 'scale'], name='active_scale_idx'),
+            models.Index(fields=['created_at'], name='enterprise_created_idx'),
+        ]
 
     def __str__(self):
         return self.company_name
