@@ -16,11 +16,11 @@ class EnterpriseSerializer(serializers.ModelSerializer):
         read_only_fields = ('user', 'created_at', 'modified_at')
 
 class EnterpriseDetailSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['description'] = strip_html_tags(data.get('description'))
-        data['field_of_activity'] = strip_html_tags(data.get('field_of_activity'))
-        return data
+    # def to_representation(self, instance):
+    #     data = super().to_representation(instance)
+    #     data['description'] = strip_html_tags(data.get('description'))
+    #     data['field_of_activity'] = strip_html_tags(data.get('field_of_activity'))
+    #     return data
     class Meta:
         model = EnterpriseEntity
         fields = 'company_name', 'address', 'description', 'email_company', 'field_of_activity', 'link_web_site', 'logo_url',  'background_image_url', 'phone_number', 'scale', 'tax', 'city'
@@ -32,13 +32,13 @@ class PostSerializer(serializers.ModelSerializer):
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
     field_name = serializers.CharField(source='field.name', read_only=True)
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Strip HTML tags from text fields
-        data['description'] = strip_html_tags(data.get('description'))
-        data['required'] = strip_html_tags(data.get('required'))
-        data['interest'] = strip_html_tags(data.get('interest'))
-        return data
+    # def to_representation(self, instance):
+    #     data = super().to_representation(instance)
+    #     # Strip HTML tags from text fields
+    #     data['description'] = strip_html_tags(data.get('description'))
+    #     data['required'] = strip_html_tags(data.get('required'))
+    #     data['interest'] = strip_html_tags(data.get('interest'))
+    #     return data
 
     class Meta:
         model = PostEntity

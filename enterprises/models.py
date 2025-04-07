@@ -1,6 +1,11 @@
 from django.db import models
 from accounts.models import UserAccount
-
+import re
+def strip_html_tags(text):
+    if text:
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', text)
+    return text
 class EnterpriseEntity(models.Model):
     company_name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
@@ -29,6 +34,11 @@ class EnterpriseEntity(models.Model):
 
     def __str__(self):
         return self.company_name
+    
+    def save(self, *args, **kwargs):
+        self.description = strip_html_tags(self.description)
+        self.field_of_activity = strip_html_tags(self.field_of_activity)
+        super().save(*args, **kwargs)
 
 class FieldEntity(models.Model):
     name = models.CharField(max_length=255)
@@ -79,6 +89,10 @@ class PositionEntity(models.Model):
     def __str__(self):
         return self.name
     
+    def save(self, *args, **kwargs):
+        self.name = strip_html_tags(self.name)
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = 'Vị trí'
         verbose_name_plural = 'Vị trí'
