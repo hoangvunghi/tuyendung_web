@@ -726,7 +726,12 @@ def create_post(request):
                 'message': 'Bạn không phải là nhà tuyển dụng',
                 'status': status.HTTP_403_FORBIDDEN
             }, status=status.HTTP_403_FORBIDDEN)
-    
+    enterprise_active = enterprise.is_active
+    if not enterprise_active:
+        return Response({
+            'message': 'Doanh nghiệp đang trong thời gian xét duyệt',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
     # Thêm enterprise vào data
     data = request.data.copy()
     data['enterprise'] = enterprise.id
