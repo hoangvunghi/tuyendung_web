@@ -21,7 +21,7 @@ urlpatterns = [
     path('posts/search/', views.search_posts, name='search-posts'),
     path('posts/recommended/', views.get_recommended_posts, name='get-recommended-posts'),
     path('posts/all/', views.get_all_posts, name='get-all-posts'),
-    path('posts/enterprise/<int:enterprise_id>/', views.get_post_of_enterprise, name='get-post-of-enterprise'),
+    path('posts/enterprise/', views.get_post_of_enterprise, name='get-post-of-enterprise'),
     path('posts/user/', views.get_post_of_user, name='get-post-of-user'),
     path('posts/<int:pk>/toggle-status/', views.toogle_post_status, name='toggle-post-status'),
     # Field Management
@@ -43,4 +43,7 @@ urlpatterns = [
     path('criteria/create/', views.create_criteria, name='create_criteria'),
     path('criteria/update/', views.update_criteria, name='update_criteria'),
     path('criteria/delete/', views.delete_criteria, name='delete_criteria'),
+
+    #cv
+    
 ]

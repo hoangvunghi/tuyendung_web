@@ -566,25 +566,21 @@ def delete_enterprise(request):
     }
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_posts(request):
-    # Admin có thể xem tất cả posts
-    if request.user.is_superuser:
-        posts = PostEntity.objects.all()
-    else:
-        # Employer chỉ xem được posts của doanh nghiệp mình
-        enterprise = request.user.get_enterprise()
-        if not enterprise:
-            return Response({
-                'message': 'Bạn không phải là nhà tuyển dụng',
-                'status': status.HTTP_403_FORBIDDEN
-            }, status=status.HTTP_403_FORBIDDEN)
-        posts = PostEntity.objects.filter(enterprise=enterprise)
-    
+    #thêm phần sort nữa
+    sort = request.query_params.get('sort', '-created_at')
+    posts = PostEntity.objects.filter(is_active=True)
+    if (sort == '-salary_max'):
+        posts = posts.order_by('-salary_max')
+    elif (sort == '-salary_min'):
+        posts = posts.order_by('-salary_min')
+    elif (sort == '-created_at'):
+        posts = posts.order_by('-created_at')
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    
+    #thêm phần sort nữa
     serializer = PostSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
@@ -596,9 +592,16 @@ def get_posts(request):
     }
 )
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def get_post_of_enterprise(request, enterprise_id):
-    posts = PostEntity.objects.filter(enterprise_id=enterprise_id, is_active=True)
+@permission_classes([IsEnterpriseOwner])
+def get_post_of_enterprise(request):
+    enterprise = request.user.get_enterprise()
+    if not enterprise:
+        return Response({
+            'message': 'Bạn không phải là nhà tuyển dụng',
+                'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    posts = PostEntity.objects.filter(enterprise=enterprise)
+    posts = posts.order_by('-created_at')
     # phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
