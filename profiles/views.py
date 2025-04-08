@@ -10,6 +10,8 @@ from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.utils import create_permission_class_with_admin_override
+from base.aws_utils import get_content_type, upload_to_s3
+import os
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -28,6 +30,7 @@ AdminOrCanManageCv = create_permission_class_with_admin_override(CanManageCv)
             'fullname': openapi.Schema(type=openapi.TYPE_STRING, description="Họ tên đầy đủ"),
             'gender': openapi.Schema(type=openapi.TYPE_STRING, description="Giới tính", enum=['male', 'female', 'other']),
             'balance': openapi.Schema(type=openapi.TYPE_NUMBER, description="Số dư tài khoản"),
+            'cv_file': openapi.Schema(type=openapi.TYPE_FILE, description="File CV"),
         }
     ),
     responses={
@@ -58,19 +61,59 @@ AdminOrCanManageCv = create_permission_class_with_admin_override(CanManageCv)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def create_user_info(request):
-    serializer = UserInfoSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
+    try:
+        data = request.data.copy()
+
+        # Handle CV file upload if provided
+        if 'cv_file' in request.FILES:
+            cv_file = request.FILES['cv_file']
+            
+            # Get username from user ID
+            from accounts.models import UserAccount
+            user = UserAccount.objects.get(id=data['user'])
+            username = user.username
+            
+            # Generate unique filename with username
+            file_extension = os.path.splitext(cv_file.name)[1]
+            new_filename = f"{username}_cv{file_extension}"
+            
+            # Save temporarily
+            temp_path = f"temp_{new_filename}"
+            with open(temp_path, 'wb+') as destination:
+                for chunk in cv_file.chunks():
+                    destination.write(chunk)
+            
+            try:
+                # Upload to S3
+                url = upload_to_s3(temp_path, new_filename)
+                data['cv_attachments_url'] = url
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            except Exception as e:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return Response({'error': f'Error uploading file: {str(e)}'}, 
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = UserInfoSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "UserInfo created successfully",
+                "status": status.HTTP_201_CREATED,
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
         return Response({
-            "message": "UserInfo created successfully",
-            "status": status.HTTP_201_CREATED,
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
-    return Response({
-        "message": "Failed to create UserInfo",
-        "status": status.HTTP_400_BAD_REQUEST,
-        "errors": serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+            "message": "Failed to create UserInfo",
+            "status": status.HTTP_400_BAD_REQUEST,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            "message": str(e),
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     method='get',
@@ -129,11 +172,13 @@ def get_profile(request):
         properties={
             'fullname': openapi.Schema(type=openapi.TYPE_STRING, description="Họ tên đầy đủ"),
             'gender': openapi.Schema(type=openapi.TYPE_STRING, description="Giới tính", enum=['male', 'female', 'other']),
+            'balance': openapi.Schema(type=openapi.TYPE_NUMBER, description="Số dư tài khoản"),
+            'cv_file': openapi.Schema(type=openapi.TYPE_FILE, description="File CV"),
         }
     ),
     responses={
         200: openapi.Response(
-            description="Profile updated successfully",
+            description="UserInfo updated successfully",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
@@ -154,26 +199,66 @@ def get_profile(request):
                 }
             )
         )
-    },
-    security=[{'Bearer': []}]
+    }
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, AdminOrProfileOwner])
+@permission_classes([AdminOrProfileOwner])
 def update_profile(request):
-    profile = get_object_or_404(UserInfo, user=request.user)
-    serializer = UserInfoSerializer(profile, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
+    try:
+        user_info = UserInfo.objects.get(user=request.user)
+        data = request.data.copy()
+
+        # Handle CV file upload if provided
+        if 'cv_file' in request.FILES:
+            cv_file = request.FILES['cv_file']
+            username = request.user.username
+            
+            # Generate unique filename with username
+            file_extension = os.path.splitext(cv_file.name)[1]
+            new_filename = f"{username}_cv{file_extension}"
+            
+            # Save temporarily
+            temp_path = f"temp_{new_filename}"
+            with open(temp_path, 'wb+') as destination:
+                for chunk in cv_file.chunks():
+                    destination.write(chunk)
+            
+            try:
+                # Upload to S3
+                url = upload_to_s3(temp_path, new_filename)
+                data['cv_attachments_url'] = url
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            except Exception as e:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return Response({'error': f'Error uploading file: {str(e)}'}, 
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = UserInfoSerializer(user_info, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "Profile updated successfully",
+                "status": status.HTTP_200_OK,
+                "data": serializer.data
+            })
         return Response({
-            'message': 'Profile updated successfully',
-            'status': status.HTTP_200_OK,
-            'data': serializer.data
-        })
-    return Response({
-        'message': 'Profile update failed',
-        'status': status.HTTP_400_BAD_REQUEST,
-        'errors': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+            "message": "Failed to update profile",
+            "status": status.HTTP_400_BAD_REQUEST,
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except UserInfo.DoesNotExist:
+        return Response({
+            "message": "Profile not found",
+            "status": status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            "message": str(e),
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # @api_view(["DELETE"])
 # @permission_classes([AllowAny])
@@ -290,119 +375,130 @@ def get_cv_detail(request, pk):
     })
 
 @swagger_auto_schema(
-    method='post',
-    operation_description="Tạo CV mới",
+    methods=['post'],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
-        required=['post', 'name', 'email', 'phone_number', 'cv_file'],
+        required=['post', 'name', 'email', 'phone_number'],
         properties={
-            'post': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của bài đăng"),
-            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên ứng viên"),
-            'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Email"),
-            'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
-            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả về ứng viên"),
-            'cv_file': openapi.Schema(type=openapi.TYPE_FILE, description="File CV"),
+            'post': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'name': openapi.Schema(type=openapi.TYPE_STRING),
+            'email': openapi.Schema(type=openapi.TYPE_STRING),
+            'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+            'description': openapi.Schema(type=openapi.TYPE_STRING),
+            'cv_file': openapi.Schema(type=openapi.TYPE_FILE),
         }
     ),
     responses={
-        201: openapi.Response(
-            description="CV created successfully",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
-                }
-            )
-        ),
-        400: openapi.Response(
-            description="Bad request",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
-                }
-            )
-        )
-    },
-    security=[{'Bearer': []}]
+        201: CvSerializer,
+        400: 'Bad Request'
+    }
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def create_cv(request):
-    serializer = CvSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(user=request.user)
-        return Response({
-            'message': 'CV created successfully',
-            'status': status.HTTP_201_CREATED,
-            'data': serializer.data
-        }, status=status.HTTP_201_CREATED)
-    return Response({
-        'message': 'CV creation failed',
-        'status': status.HTTP_400_BAD_REQUEST,
-        'errors': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        data = request.data.copy()
+        data['user'] = request.user.id
+        
+        # Handle CV file upload if provided
+        if 'cv_file' in request.FILES:
+            cv_file = request.FILES['cv_file']
+            username = request.user.username
+            
+            # Generate unique filename with username
+            file_extension = os.path.splitext(cv_file.name)[1]
+            new_filename = f"{username}_cv_{data['post']}{file_extension}"
+            
+            # Save temporarily
+            temp_path = f"temp_{new_filename}"
+            with open(temp_path, 'wb+') as destination:
+                for chunk in cv_file.chunks():
+                    destination.write(chunk)
+            
+            try:
+                # Upload to S3
+                url = upload_to_s3(temp_path, new_filename)
+                data['cv_file_url'] = url
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            except Exception as e:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return Response({'error': f'Error uploading file: {str(e)}'}, 
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        serializer = CvSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
-    method='put',
-    operation_description="Cập nhật CV",
+    methods=['put'],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'name': openapi.Schema(type=openapi.TYPE_STRING, description="Tên ứng viên"),
-            'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Email"),
-            'phone_number': openapi.Schema(type=openapi.TYPE_STRING, description="Số điện thoại"),
-            'description': openapi.Schema(type=openapi.TYPE_STRING, description="Mô tả về ứng viên"),
-            'cv_file': openapi.Schema(type=openapi.TYPE_FILE, description="File CV"),
+            'name': openapi.Schema(type=openapi.TYPE_STRING),
+            'email': openapi.Schema(type=openapi.TYPE_STRING),
+            'phone_number': openapi.Schema(type=openapi.TYPE_STRING),
+            'description': openapi.Schema(type=openapi.TYPE_STRING),
+            'cv_file': openapi.Schema(type=openapi.TYPE_FILE),
         }
     ),
     responses={
-        200: openapi.Response(
-            description="CV updated successfully",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
-                }
-            )
-        ),
-        400: openapi.Response(
-            description="Bad request",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
-                }
-            )
-        )
-    },
-    security=[{'Bearer': []}]
+        200: CvSerializer,
+        404: 'Not Found'
+    }
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, AdminOrCvOwner])
+@permission_classes([AdminOrCvOwner])
 def update_cv(request, pk):
-    cv = get_object_or_404(Cv, id=pk, user=request.user)
-    serializer = CvSerializer(cv, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({
-            'message': 'CV updated successfully',
-            'status': status.HTTP_200_OK,
-            'data': serializer.data
-        })
-    return Response({
-        'message': 'CV update failed',
-        'status': status.HTTP_400_BAD_REQUEST,
-        'errors': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        cv = Cv.objects.get(pk=pk)
+        data = request.data.copy()
+        
+        # Handle CV file upload if provided
+        if 'cv_file' in request.FILES:
+            cv_file = request.FILES['cv_file']
+            username = request.user.username
+            
+            # Generate unique filename with username
+            file_extension = os.path.splitext(cv_file.name)[1]
+            new_filename = f"{username}_cv_{cv.post.id}{file_extension}"
+            
+            # Save temporarily
+            temp_path = f"temp_{new_filename}"
+            with open(temp_path, 'wb+') as destination:
+                for chunk in cv_file.chunks():
+                    destination.write(chunk)
+            
+            try:
+                # Upload to S3
+                url = upload_to_s3(temp_path, new_filename)
+                data['cv_file_url'] = url
+                
+                # Clean up temp file
+                os.remove(temp_path)
+            except Exception as e:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return Response({'error': f'Error uploading file: {str(e)}'}, 
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        serializer = CvSerializer(cv, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Cv.DoesNotExist:
+        return Response({'error': 'CV not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     method='put',

@@ -12,6 +12,7 @@ class UserInfo(models.Model):
     ]
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     balance = models.DecimalField(max_digits=38, decimal_places=2, default=0.00)
+    cv_attachments_url = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)  
     
@@ -29,7 +30,8 @@ class Cv(models.Model):
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=20)
     description = models.TextField()  
-    cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
+    # cv_file = models.FileField(upload_to='cvs/', blank=True, null=True)
+    cv_file_url = models.CharField(max_length=255, blank=True, null=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
