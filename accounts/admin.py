@@ -9,7 +9,6 @@ from base.admin import BaseAdminClass
 
 @admin.register(UserAccount)
 class UserAccountAdmin(BaseAdminClass):
-    # custom o day 
     list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned')
     list_filter = ('is_active', 'is_staff', 'is_banned')
     search_fields = ('username', 'email')
@@ -18,21 +17,18 @@ class UserAccountAdmin(BaseAdminClass):
     list_editable = ('is_active', 'is_staff', 'is_banned')
     list_display_links = ('username', 'email')
 
-    # Thêm các tính năng mới
-    compressed_fields = True  # Hiển thị form chỉnh sửa ở chế độ thu gọn
-    warn_unsaved_form = True  # Cảnh báo khi có thay đổi chưa lưu
-    list_filter_submit = True  # Thêm nút submit trong bộ lọc
-    change_form_show_cancel_button = True  # Hiển thị nút Cancel trong form
-
-    # Tùy chỉnh widget cho các trường
+    compressed_fields = True  
+    warn_unsaved_form = True 
+    list_filter_submit = True 
+    change_form_show_cancel_button = True 
     formfield_overrides = {
         models.TextField: {
             "widget": WysiwygWidget,
         },
+        ArrayField: {
+            "widget": ArrayWidget,
+        },
     }
-
-    # # Thêm các template tùy chỉnh nếu cần
-    # change_form_after_template = "admin/user_account_after.html"
 
 @admin.register(UserRole)
 class UserRoleAdmin(BaseAdminClass):
