@@ -20,6 +20,7 @@ from base.permissions import (
     AdminAccessPermission,
 )
 from base.utils import create_permission_class_with_admin_override
+from base.aws_utils import upload_to_s3
 from notifications.services import NotificationService
 from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
@@ -27,6 +28,7 @@ from drf_yasg import openapi
 from base.cloudinary_utils import delete_image_from_cloudinary, upload_image_to_cloudinary
 from django.core.cache import cache
 from django.utils.http import urlencode
+import os
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrEnterpriseOwner = create_permission_class_with_admin_override(IsEnterpriseOwner)
@@ -306,42 +308,64 @@ def create_enterprise(request):
         }, status=status.HTTP_403_FORBIDDEN)
 
     data = request.data.copy()
-    uploads = {
-        'business_certificate': ('business_certificates', None),
-        'logo': ('enterprise_logos', None),
-        'background_image': ('enterprise_backgrounds', None),
-    }
+    # xóa hết comment của hàm này
+    def upload_to_s3_handler(file, prefix):
+        username = request.user.username
+        file_extension = os.path.splitext(file.name)[1]
+        new_filename = f"{username}_{prefix}{file_extension}"
+        
+        temp_path = f"temp_{new_filename}"
+        with open(temp_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+        
+        try:
+            url = upload_to_s3(temp_path, new_filename)
+            os.remove(temp_path)
+            return url
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise e
 
-    # Gọi hàm upload
-    def upload_image(key, folder):
-        file = request.FILES.get(key)
-        if file:
-            result = upload_image_to_cloudinary(file, folder)
-            return key, result
-        return key, None
+    def upload_to_cloudinary_handler(file, folder):
+        result = upload_image_to_cloudinary(file, folder)
+        return result
 
-    # Multithreading upload
+    upload_tasks = []
+    
+    if 'business_certificate' in request.FILES:
+        upload_tasks.append(('business_certificate', 'business_certificate', 's3'))
+    
+    if 'logo' in request.FILES:
+        upload_tasks.append(('logo', 'enterprise_logos', 'cloudinary'))
+    if 'background_image' in request.FILES:
+        upload_tasks.append(('background_image', 'enterprise_backgrounds', 'cloudinary'))
+
     with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(upload_image, key, folder) for key, (folder, _) in uploads.items()]
-        for future in futures:
-            key, result = future.result()
-            if result:
-                uploads[key] = (uploads[key][0], result)
+        futures = []
+        for key, folder, service in upload_tasks:
+            file = request.FILES[key]
+            if service == 's3':
+                futures.append(executor.submit(upload_to_s3_handler, file, key))
+            else:
+                futures.append(executor.submit(upload_to_cloudinary_handler, file, folder))
 
-    # Cập nhật dữ liệu sau khi upload
-    if uploads['business_certificate'][1]:
-        data['business_certificate_url'] = uploads['business_certificate'][1]['secure_url']
-        data['business_certificate_public_id'] = uploads['business_certificate'][1]['public_id']
+        for i, future in enumerate(futures):
+            key, folder, service = upload_tasks[i]
+            try:
+                result = future.result()
+                if service == 's3':
+                    data[f'{key}_url'] = result
+                else:
+                    data[f'{key}_url'] = result['secure_url']
+                    data[f'{key}_public_id'] = result['public_id']
+            except Exception as e:
+                return Response({
+                    'message': f'Lỗi khi upload {key}: {str(e)}',
+                    'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    if uploads['logo'][1]:
-        data['logo_url'] = uploads['logo'][1]['secure_url']
-        data['logo_public_id'] = uploads['logo'][1]['public_id']
-
-    if uploads['background_image'][1]:
-        data['background_image_url'] = uploads['background_image'][1]['secure_url']
-        data['background_image_public_id'] = uploads['background_image'][1]['public_id']
-
-    # Tạo serializer
     serializer = EnterpriseSerializer(data=data)
     if serializer.is_valid():
         serializer.save(user=request.user)
@@ -410,53 +434,77 @@ def update_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
     data = request.data.copy()
 
-    # Giữ nguyên trạng thái is_active
     data['is_active'] = enterprise.is_active
 
-    # Giữ nguyên xử lý certificate
-    data['business_certificate_url'] = enterprise.business_certificate_url
-    data['business_certificate_public_id'] = enterprise.business_certificate_public_id
-    if not enterprise.is_active:
-        business_certificate = request.FILES.get('business_certificate')
-        if business_certificate:
-            result = upload_image_to_cloudinary(business_certificate, 'business_certificates')
-            if result:
-                data['business_certificate_url'] = result['secure_url']
-                data['business_certificate_public_id'] = result['public_id']
+    def upload_to_s3_handler(file, prefix):
+        username = request.user.username
+        file_extension = os.path.splitext(file.name)[1]
+        new_filename = f"{username}_{prefix}{file_extension}"
+        
+        temp_path = f"temp_{new_filename}"
+        with open(temp_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+        
+        try:
+            url = upload_to_s3(temp_path, new_filename)
+            os.remove(temp_path)
+            return url
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise e
 
-    # Hàm xử lý upload 1 ảnh
-    def upload_image(field_name, folder, old_public_id=None):
-        file = request.FILES.get(field_name)
-        if file:
-            if old_public_id:
-                delete_image_from_cloudinary(old_public_id)
-            result = upload_image_to_cloudinary(file, folder)
-            return field_name, result
-        return field_name, None
+    def upload_to_cloudinary_handler(file, folder, old_public_id=None):
+        if old_public_id:
+            delete_image_from_cloudinary(old_public_id)
+        result = upload_image_to_cloudinary(file, folder)
+        return result
 
-    # Tạo task nếu có ảnh
-    tasks = []
+    upload_tasks = []
+    
+    if not enterprise.is_active and 'business_certificate' in request.FILES:
+        upload_tasks.append(('business_certificate', 'business_certificate', 's3'))
+    else:
+        data['business_certificate_url'] = enterprise.business_certificate_url
+    
     if 'logo' in request.FILES:
-        tasks.append(('logo', 'enterprise_logos', enterprise.logo_public_id))
-    if 'background_image' in request.FILES:
-        tasks.append(('background_image', 'enterprise_backgrounds', enterprise.background_image_public_id))
-
-    # Chạy upload ảnh song song nếu có
-    with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(upload_image, name, folder, old_id) for name, folder, old_id in tasks]
-        for future in futures:
-            key, result = future.result()
-            if result:
-                data[f"{key}_url"] = result['secure_url']
-                data[f"{key}_public_id"] = result['public_id']
-
-    # Giữ nguyên các URL và public_id nếu không có file mới upload
-    if 'logo' not in request.FILES:
+        upload_tasks.append(('logo', 'enterprise_logos', 'cloudinary', enterprise.logo_public_id))
+    else:
         data['logo_url'] = enterprise.logo_url
         data['logo_public_id'] = enterprise.logo_public_id
-    if 'background_image' not in request.FILES:
+
+    if 'background_image' in request.FILES:
+        upload_tasks.append(('background_image', 'enterprise_backgrounds', 'cloudinary', enterprise.background_image_public_id))
+    else:
         data['background_image_url'] = enterprise.background_image_url
         data['background_image_public_id'] = enterprise.background_image_public_id
+
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for task in upload_tasks:
+            key, folder, service = task[:3]
+            file = request.FILES[key]
+            if service == 's3':
+                futures.append(executor.submit(upload_to_s3_handler, file, key))
+            else:
+                old_public_id = task[3] if len(task) > 3 else None
+                futures.append(executor.submit(upload_to_cloudinary_handler, file, folder, old_public_id))
+
+        for i, future in enumerate(futures):
+            key, folder, service = upload_tasks[i][:3]
+            try:
+                result = future.result()
+                if service == 's3':
+                    data[f'{key}_url'] = result
+                else:
+                    data[f'{key}_url'] = result['secure_url']
+                    data[f'{key}_public_id'] = result['public_id']
+            except Exception as e:
+                return Response({
+                    'message': f'Lỗi khi upload {key}: {str(e)}',
+                    'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     serializer = EnterpriseSerializer(enterprise, data=data)
     if serializer.is_valid():
@@ -493,16 +541,12 @@ def update_enterprise(request):
 @permission_classes([IsAuthenticated, AdminAccessPermission])
 def delete_enterprise(request):
     enterprise = get_object_or_404(EnterpriseEntity, user=request.user)
-    # Xóa business certificate từ Cloudinary nếu có
     if enterprise.business_certificate_public_id:
         delete_image_from_cloudinary(enterprise.business_certificate_public_id)
-
-    # Xóa logo từ Cloudinary nếu có
 
     if enterprise.logo_public_id:
         delete_image_from_cloudinary(enterprise.logo_public_id)
     
-    # Xóa background image từ Cloudinary nếu có
     if enterprise.background_image_public_id:
         delete_image_from_cloudinary(enterprise.background_image_public_id)
     
