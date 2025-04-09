@@ -49,7 +49,7 @@ class PostEnterpriseSerializer(serializers.ModelSerializer):
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
     class Meta:
         model = PostEntity
-        fields = 'title','enterprise_name', 'enterprise_logo', 'city', 'deadline'
+        fields = 'title','enterprise_name', 'enterprise_logo', 'city', 'deadline', 'id', 'is_active'
         read_only_fields = ('created_at', 'modified_at')
 
 class PostUpdateSerializer(serializers.ModelSerializer):

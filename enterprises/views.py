@@ -518,17 +518,10 @@ def delete_enterprise(request):
     operation_description="Lấy danh sách bài đăng việc làm",
     manual_parameters=[
         openapi.Parameter(
-            'page', 
+            'sort', 
             openapi.IN_QUERY, 
-            description="Số trang", 
-            type=openapi.TYPE_INTEGER,
-            required=False
-        ),
-        openapi.Parameter(
-            'page_size', 
-            openapi.IN_QUERY, 
-            description="Số lượng bài đăng mỗi trang", 
-            type=openapi.TYPE_INTEGER,
+            description="Sắp xếp theo (-created_at, -salary_min, -salary_max)", 
+            type=openapi.TYPE_STRING,
             required=False
         ),
     ],
@@ -540,26 +533,7 @@ def delete_enterprise(request):
                 properties={
                     'message': openapi.Schema(type=openapi.TYPE_STRING),
                     'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'data': openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'links': openapi.Schema(
-                                type=openapi.TYPE_OBJECT,
-                                properties={
-                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                                }
-                            ),
-                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'results': openapi.Schema(
-                                type=openapi.TYPE_ARRAY,
-                                items=openapi.Schema(type=openapi.TYPE_OBJECT)
-                            ),
-                        }
-                    )
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
                 }
             )
         )
@@ -568,7 +542,6 @@ def delete_enterprise(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_posts(request):
-    #thêm phần sort nữa
     sort = request.query_params.get('sort', '-created_at')
     posts = PostEntity.objects.filter(is_active=True)
     if (sort == '-salary_max'):
@@ -580,20 +553,20 @@ def get_posts(request):
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    #thêm phần sort nữa
     serializer = PostSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+
 @swagger_auto_schema(
     method='get',
-    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là người dùng",
+    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là employer",
     responses={
         200: openapi.Response(description="Successful operation")
     }
 )
 @api_view(['GET'])
 @permission_classes([IsEnterpriseOwner])
-def get_post_of_enterprise(request):
+def get_post_for_enterprise(request):
     enterprise = request.user.get_enterprise()
     if not enterprise:
         return Response({
@@ -608,9 +581,26 @@ def get_post_of_enterprise(request):
     serializer = PostEnterpriseSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
+
 @swagger_auto_schema(
     method='get',
-    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là employer",
+    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp cho trang chi tiết",
+    responses={
+        200: openapi.Response(description="Successful operation")
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_posts_for_enterprise_detail(request, pk):
+    posts = PostEntity.objects.filter(enterprise=pk)
+    posts = posts.order_by('-created_at')
+    serializer = PostSerializer(posts, many=True)
+    return Response(serializer.data)
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách bài đăng việc làm của doanh nghiệp vai trò user là người dùng",
     responses={
         200: openapi.Response(description="Successful operation")
     }
