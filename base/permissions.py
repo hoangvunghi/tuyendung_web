@@ -57,14 +57,14 @@ class IsCvOwner(BasePermission):
     Kiểm tra xem user có phải là người tạo CV không
     """
     def has_object_permission(self, request, view, obj):
-        return obj.user == request.user
+        return obj.post.enterprise.user == request.user
 
 class IsPostOwner(BasePermission):
     """
     Kiểm tra xem user có quyền với bài đăng không (thông qua campaign và enterprise)
     """
     def has_object_permission(self, request, view, obj):
-        return obj.campaign.enterprise.user == request.user
+        return obj.enterprise.user == request.user
 
 class IsCampaignOwner(BasePermission):
     """

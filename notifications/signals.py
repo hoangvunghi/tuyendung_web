@@ -17,7 +17,7 @@ def handle_cv_changes(sender, instance, created, **kwargs):
     # Trường hợp CV mới được tạo
     if created:
         NotificationService.create_notification(
-            recipient=instance.post.campaign.enterprise.user,
+            recipient=instance.post.enterprise.user,
             notification_type='cv_received',
             title='Có CV mới',
             message=f'Bạn nhận được CV mới cho vị trí {instance.post.title}',

@@ -37,7 +37,7 @@ def get_content_type(file_path):
         '.doc': 'application/msword',
         '.txt': 'text/plain'
     }
-    return content_types.get(extension, 'application/octet-stream')  # Mặc định nếu không nhận diện được
+    return content_types.get(extension, 'application/octet-stream') 
 
 def upload_to_s3(file_path, object_name=None):
     if object_name is None:

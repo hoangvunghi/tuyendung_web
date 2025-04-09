@@ -18,7 +18,7 @@ class NotificationService:
             recipient=cv.user,
             notification_type='cv_viewed',
             title='CV của bạn đã được xem',
-            message=f'CV của bạn đã được {cv.post.campaign.enterprise.company_name} xem',
+            message=f'CV của bạn đã được {cv.post.enterprise.company_name} xem',
             related_object=cv
         )
 

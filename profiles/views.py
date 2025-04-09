@@ -158,10 +158,13 @@ def create_user_info(request):
 def get_profile(request):
     profile = get_object_or_404(UserInfo, user=request.user)
     serializer = UserInfoSerializer(profile)
+    email = request.user.email
+    data = serializer.data.copy()  
+    data['email'] = email   
     return Response({
         'message': 'Profile retrieved successfully',
         'status': status.HTTP_200_OK,
-        'data': serializer.data
+        'data': data
     })
 
 @swagger_auto_schema(
@@ -400,27 +403,22 @@ def create_cv(request):
         data = request.data.copy()
         data['user'] = request.user.id
         
-        # Handle CV file upload if provided
         if 'cv_file' in request.FILES:
             cv_file = request.FILES['cv_file']
             username = request.user.username
             
-            # Generate unique filename with username
             file_extension = os.path.splitext(cv_file.name)[1]
             new_filename = f"{username}_cv_{data['post']}{file_extension}"
             
-            # Save temporarily
             temp_path = f"temp_{new_filename}"
             with open(temp_path, 'wb+') as destination:
                 for chunk in cv_file.chunks():
                     destination.write(chunk)
             
             try:
-                # Upload to S3
                 url = upload_to_s3(temp_path, new_filename)
                 data['cv_file_url'] = url
                 
-                # Clean up temp file
                 os.remove(temp_path)
             except Exception as e:
                 if os.path.exists(temp_path):
