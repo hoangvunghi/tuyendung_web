@@ -10,7 +10,10 @@ class CvSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cv
         fields = '__all__'
-
+class CvPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cv
+        fields = ['cv_file_url', 'status', 'name', 'email', 'phone_number', 'description']
 class CvStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cv

@@ -4,14 +4,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, I
 from rest_framework.response import Response
 from rest_framework import status
 from .models import UserInfo, Cv
-from .serializers import UserInfoSerializer, CvSerializer
-from base.permissions import IsProfileOwner, IsCvOwner, CanManageCv, AdminAccessPermission
+from .serializers import CvPostSerializer, UserInfoSerializer, CvSerializer
+from base.permissions import IsEnterpriseOwner, IsProfileOwner, IsCvOwner, CanManageCv, AdminAccessPermission
 from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.utils import create_permission_class_with_admin_override
 from base.aws_utils import get_content_type, upload_to_s3
 import os
+from django.core.cache import cache
+from django.utils.http import urlencode
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -628,13 +630,43 @@ def delete_cv(request, pk):
 
 # profiles/views.py
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated,AdminAccessPermission])
 def get_user_cvs(request):
     cvs = Cv.objects.filter(user=request.user)
     paginator = CustomPagination()
     paginated_cvs = paginator.paginate_queryset(cvs, request)
     serializer = CvSerializer(paginated_cvs, many=True)
     return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsEnterpriseOwner])
+def get_post_cvs(request, pk):
+    # Tạo cache key dựa trên post ID và tham số phân trang
+    params = {
+        'post_id': str(pk),
+        'page': request.query_params.get('page', '1'),
+        'page_size': request.query_params.get('page_size', '10'),
+        'sort_by': request.query_params.get('sort_by', '-created_at'),
+    }
+    cache_key = f'post_{pk}_cvs_{urlencode(params)}'
+    
+ 
+    cached_response = cache.get(cache_key)
+    if cached_response is not None:
+        return Response(cached_response)
+    
+
+    cvs = Cv.objects.filter(post=pk).order_by('-created_at')
+    paginator = CustomPagination()
+    paginated_cvs = paginator.paginate_queryset(cvs, request)
+    serializer = CvPostSerializer(paginated_cvs, many=True)
+
+    response_data = paginator.get_paginated_response(serializer.data).data
+    cache.set(cache_key, response_data, timeout=300)
+    
+    return Response(response_data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, AdminAccessPermission])
