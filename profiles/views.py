@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, I
 from rest_framework.response import Response
 from rest_framework import status
 from .models import UserInfo, Cv
-from .serializers import CvPostSerializer, UserInfoSerializer, CvSerializer
+from .serializers import CvPostSerializer, UserInfoSerializer, CvSerializer, CvStatusSerializer
 from base.permissions import IsEnterpriseOwner, IsProfileOwner, IsCvOwner, CanManageCv, AdminAccessPermission
 from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
@@ -14,6 +14,7 @@ from base.aws_utils import get_content_type, upload_to_s3
 import os
 from django.core.cache import cache
 from django.utils.http import urlencode
+from base.services import NotificationService
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -565,32 +566,38 @@ def update_cv(request, pk):
     security=[{'Bearer': []}]
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated, AdminOrCanManageCv])
+@permission_classes([IsAuthenticated])
 def update_cv_status(request, pk):
-    cv = get_object_or_404(Cv, id=pk)
-    old_status = cv.status
-    
-    # Validate status
-    status_choices = ['pending', 'approved', 'rejected']
-    if 'status' not in request.data or request.data['status'] not in status_choices:
+    """Cập nhật trạng thái CV"""
+    cv = get_object_or_404(Cv, pk=pk)
+    if cv.post.enterprise != request.user.enterprise:
         return Response({
-            'message': 'Invalid status',
-            'status': status.HTTP_400_BAD_REQUEST,
-            'errors': {'status': f'Status must be one of {", ".join(status_choices)}'}
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    cv.status = request.data['status']
-    cv.save()
-    
-    # Notify user about status change
-    # No notification implementation in this example
-    
-    serializer = CvSerializer(cv)
+            'message': 'You are not authorized to update this CV',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    serializer = CvStatusSerializer(cv, data=request.data, partial=True)
+    if serializer.is_valid():
+        old_status = cv.status
+        serializer.save()
+        
+        # Gửi thông báo đến user
+        if old_status != cv.status:
+            NotificationService.create_cv_status_notification(
+                user=cv.user,
+                cv=cv,
+                status=cv.status
+            )
+        
+        return Response({
+            'message': 'Cập nhật trạng thái CV thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
     return Response({
-        'message': 'CV status updated successfully',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    })
+        'message': 'Cập nhật trạng thái CV thất bại',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 @swagger_auto_schema(
     method='delete',
@@ -677,18 +684,6 @@ def mark_cv(request, pk):
     cv.save()
     return Response({
         'message': 'CV marked successfully',
-        'status': status.HTTP_200_OK
-    }, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
-def view_cv(request, pk):
-    """Xem CV"""
-    cv = get_object_or_404(Cv, pk=pk)
-    cv.is_viewed = True
-    cv.save()
-    return Response({
-        'message': 'CV viewed successfully',
         'status': status.HTTP_200_OK
     }, status=status.HTTP_200_OK)
 
@@ -783,12 +778,13 @@ def mark_cv(request, pk):
 @permission_classes([IsAuthenticated])
 def view_cv(request, pk):
     cv = get_object_or_404(Cv, id=pk)
-    
-    # Record view logic would be here
-    # Create CvView object or update view count
-    
-    # NotificationService.notify_cv_viewed(cv)
-    
+    if cv.post.enterprise != request.user.enterprise:
+        return Response({
+            'message': 'You are not authorized to view this CV',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    cv.is_viewed = True
+    cv.save()
     serializer = CvSerializer(cv)
     return Response({
         'message': 'CV view recorded successfully',
