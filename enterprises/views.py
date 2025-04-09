@@ -10,7 +10,7 @@ from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, C
 from .serializers import (
     EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
     FieldSerializer, PositionSerializer, CriteriaSerializer,
-    PostUpdateSerializer
+    PostUpdateSerializer, PostEnterpriseForEmployerSerializer
 )
 from profiles.models import Cv
 from profiles.serializers import CvSerializer, CvStatusSerializer
@@ -627,7 +627,7 @@ def get_post_for_enterprise(request):
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
     
-    serializer = PostEnterpriseSerializer(paginated_posts, many=True)
+    serializer = PostEnterpriseForEmployerSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 
