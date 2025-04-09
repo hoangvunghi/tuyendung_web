@@ -1,14 +1,30 @@
 import os
+import sys
+from pathlib import Path
+
+# Thêm đường dẫn project vào PYTHONPATH
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
+# Cấu hình Django settings
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tuyendung.settings')
+import django
+django.setup()
+
+from tuyendung.settings import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME, AWS_REGION
 from dotenv import load_dotenv
+
+load_dotenv()
 import boto3
 from botocore.exceptions import NoCredentialsError
-import time
-from tuyendung.settings import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME, AWS_S3_URL, AWS_REGION
 
-AWS_ACCESS_KEY = AWS_ACCESS_KEY_ID
-AWS_SECRET_KEY = AWS_SECRET_ACCESS_KEY
-BUCKET_NAME = AWS_STORAGE_BUCKET_NAME
-REGION_NAME = AWS_REGION
+
+AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
+REGION_NAME = os.getenv('AWS_REGION')
+
+print(AWS_ACCESS_KEY, AWS_SECRET_KEY, BUCKET_NAME, REGION_NAME)
 
 def get_content_type(file_path):
     extension = os.path.splitext(file_path)[1].lower()
