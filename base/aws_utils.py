@@ -24,7 +24,6 @@ AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
 REGION_NAME = os.getenv('AWS_REGION')
 
-print(AWS_ACCESS_KEY, AWS_SECRET_KEY, BUCKET_NAME, REGION_NAME)
 
 def get_content_type(file_path):
     extension = os.path.splitext(file_path)[1].lower()

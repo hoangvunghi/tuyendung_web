@@ -403,8 +403,8 @@ def create_cv(request):
         data = request.data.copy()
         data['user'] = request.user.id
         
-        if 'cv_file' in request.FILES:
-            cv_file = request.FILES['cv_file']
+        if 'cv' in request.FILES:
+            cv_file = request.FILES['cv']
             username = request.user.username
             
             file_extension = os.path.splitext(cv_file.name)[1]
