@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, Count
 from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
 from .serializers import (
     EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
@@ -615,13 +615,18 @@ def get_post_for_enterprise(request):
     if not enterprise:
         return Response({
             'message': 'Bạn không phải là nhà tuyển dụng',
-                'status': status.HTTP_403_FORBIDDEN
+            'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
+    
     posts = PostEntity.objects.filter(enterprise=enterprise)
+    posts = posts.annotate(
+        total_cvs=Count('cvs', distinct=True)
+    )
     posts = posts.order_by('-created_at')
-    # phân trang
+    
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
+    
     serializer = PostEnterpriseSerializer(paginated_posts, many=True)
     return paginator.get_paginated_response(serializer.data)
 

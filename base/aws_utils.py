@@ -17,6 +17,10 @@ from dotenv import load_dotenv
 load_dotenv()
 import boto3
 from botocore.exceptions import NoCredentialsError
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
 
 
 AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
@@ -68,3 +72,45 @@ def upload_to_s3(file_path, object_name=None):
         return "❌ Lỗi credential AWS."
     except Exception as e:
         return f"❌ Lỗi: {e}"
+
+# lấy toàn bộ url ảnh trong bucket
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_images_from_bucket(request):
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_KEY,
+            region_name=REGION_NAME
+        )
+        
+        # Lấy tất cả objects trong bucket
+        response = s3_client.list_objects_v2(
+            Bucket=BUCKET_NAME
+        )
+        
+        urls = []
+        if 'Contents' in response:
+            for obj in response['Contents']:
+                # Tạo URL public cho mỗi object
+                url = f"https://{BUCKET_NAME}.s3.{REGION_NAME}.amazonaws.com/{obj['Key']}"
+                urls.append({
+                    'key': obj['Key'],
+                    'url': url,
+                    'size': obj['Size'],
+                    'last_modified': obj['LastModified'].isoformat()
+                })
+        
+        return Response({
+            'message': 'URLs retrieved successfully',
+            'status': status.HTTP_200_OK,
+            'data': urls
+        })
+        
+    except Exception as e:
+        return Response({
+            'message': f'Error retrieving URLs: {str(e)}',
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
