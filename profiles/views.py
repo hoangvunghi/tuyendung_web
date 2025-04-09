@@ -429,11 +429,22 @@ def create_cv(request):
         serializer = CvSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'message': 'CV created successfully',
+                'status': status.HTTP_201_CREATED,
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'message': 'Failed to create CV',
+            'status': status.HTTP_400_BAD_REQUEST,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
         
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            'message': str(e),
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     methods=['put'],
@@ -490,13 +501,26 @@ def update_cv(request, pk):
         serializer = CvSerializer(cv, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({
+                'message': 'CV updated successfully',
+                'status': status.HTTP_200_OK,
+                'data': serializer.data
+            })
+        return Response({
+            'message': 'Failed to update CV',
+            'status': status.HTTP_400_BAD_REQUEST,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
     except Cv.DoesNotExist:
-        return Response({'error': 'CV not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'message': 'CV not found',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            'message': str(e),
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     method='put',
