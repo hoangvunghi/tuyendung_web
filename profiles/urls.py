@@ -10,6 +10,8 @@ urlpatterns = [
     path('cv/<int:pk>/', views.get_cv_detail, name='get-cv-detail'),
     path('cv/<int:pk>/update/', views.update_cv, name='update-cv'),
     path('cv/<int:pk>/delete/', views.delete_cv, name='delete-cv'),
+    # get_cvs_by_status
+    path('cv/status/', views.get_cvs_by_status, name='get-cvs-by-status'),
     
     # CV Actions
     path('cv/<int:pk>/status/', views.update_cv_status, name='update-cv-status'),

@@ -791,3 +791,70 @@ def view_cv(request, pk):
         'status': status.HTTP_200_OK,
         'data': serializer.data
     })
+
+
+# api lấy danh sách các CV theo trạng thái trả toàn bộ thông tin chia trạng liệt kê 3 trangj thái pending 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách CV theo trạng thái của doanh nghiệp",
+    manual_parameters=[
+        openapi.Parameter(
+            'status', 
+            openapi.IN_QUERY, 
+            description="Trạng thái CV (pending, approved, rejected)", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'is_marked', 
+            openapi.IN_QUERY, 
+            description="Đánh dấu CV (true, false)", 
+            type=openapi.TYPE_BOOLEAN,
+        )
+    ],
+    responses={
+        200: openapi.Response(
+            description="Danh sách CV theo trạng thái",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, AdminAccessPermission])
+def get_cvs_by_status(request):
+    """Lấy danh sách CV theo trạng thái của doanh nghiệp"""
+    # Kiểm tra quyền truy cập
+    if not request.user.is_enterprise:
+        return Response({
+            'message': 'Bạn không có quyền xem danh sách CV',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    is_marked = request.query_params.get('is_marked', None)
+    if is_marked:
+        cvs = Cv.objects.filter(post__enterprise_id=request.user.enterprise.id, is_marked=is_marked)
+    else:
+        cvs = Cv.objects.filter(post__enterprise_id=request.user.enterprise.id)
+    
+    status = request.query_params.get('status', None)
+    if status:
+        cvs = cvs.filter(status=status)
+
+    paginator = CustomPagination()
+    paginated_cvs = paginator.paginate_queryset(cvs, request)
+    serializer = CvSerializer(paginated_cvs, many=True)
+
+    
+    return Response({
+        'message': 'Lấy danh sách CV thành công',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    })
