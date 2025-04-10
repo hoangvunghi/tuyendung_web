@@ -709,7 +709,7 @@ def google_oauth2_login_callback(request):
             user = UserAccount.objects.create_user(
                 email=userinfo.get('email'),
                 username=userinfo.get('email'),  # Sử dụng email làm username
-                password=None,  # Password sẽ không được sử dụng với OAuth
+                password="11111121213131",  # Password sẽ không được sử dụng với OAuth
                 google_id=userinfo.get('id')  # Lưu Google ID
             )
             
@@ -772,18 +772,19 @@ def social_auth_token(request):
         
         # Tạo JWT token
         refresh = RefreshToken.for_user(user)
-        print(refresh)
-        print(refresh.access_token)
-        # Thêm thông tin vào token
-        refresh['email'] = user.email
         role = "admin" if user.is_superuser else getattr(user, 'role', 'user')
-        refresh['role'] = role
         
-        # Redirect đến frontend với token trong URL
-        frontend_url = settings.FRONTEND_URL
-        redirect_url = f"{frontend_url}?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}"
-        
-        return redirect(redirect_url)
+        # Trả về dữ liệu dưới dạng JSON thay vì redirect
+        return Response({
+            'message': 'Đăng nhập thành công',
+            'status': status.HTTP_200_OK,
+            'data': {
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+                'role': role,
+                'email': user.email
+            }
+        }, status=status.HTTP_200_OK)
     
     except (MissingBackend, AuthTokenError) as e:
         return Response({
