@@ -23,6 +23,7 @@ from django.shortcuts import render, redirect
 from social_django.utils import psa, load_strategy, load_backend
 from social_core.exceptions import MissingBackend, AuthTokenError
 import requests
+from django.utils.http import urlencode
 
 UserAccount = get_user_model()
 
@@ -560,34 +561,6 @@ def reset_password_view(request, token):
                      "status": status.HTTP_200_OK},
                     status=status.HTTP_200_OK)
 
-@swagger_auto_schema(
-    method='get',
-    operation_description="Test login với Google OAuth2 sử dụng social-auth-app-django",
-    responses={
-        200: openapi.Response(
-            description="Trang test login với Google OAuth2",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
-                }
-            )
-        )
-    }
-)
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def test_google_login(request):
-    """
-    View để test login với Google OAuth2 sử dụng social-auth-app-django
-    """
-    client_id = settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-    context = {
-        'client_id': client_id
-    }
-    return render(request, 'accounts/test_google_login.html', context)
-
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def complete_google_oauth2(request):
@@ -887,4 +860,36 @@ def complete_google_profile(request):
             'role': role
         }
     }, status=status.HTTP_200_OK)
+
+@permission_classes([AllowAny])
+def social_auth_complete_redirect(request):
+    """
+    Lấy token từ session và redirect về frontend.
+    """
+    access_token = request.session.get('access_token')
+    refresh_token = request.session.get('refresh_token')
+    role = request.session.get('user_role')
+    email = request.session.get('user_email')
+
+    # Xóa token khỏi session sau khi lấy
+    request.session.pop('access_token', None)
+    request.session.pop('refresh_token', None)
+    request.session.pop('user_role', None)
+    request.session.pop('user_email', None)
+
+    if not access_token:
+        # Xử lý lỗi nếu không tìm thấy token (có thể redirect về trang lỗi FE)
+        frontend_login_error_url = f"{settings.FRONTEND_BASE_URL}/login?error=social_auth_failed"
+        return redirect(frontend_login_error_url)
+    
+    # Redirect về frontend kèm theo token
+    query_params = urlencode({
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'role': role,
+        'email': email,
+    })
+    frontend_complete_url = f"{settings.FRONTEND_BASE_URL}/auth/social/complete?{query_params}"
+    
+    return redirect(frontend_complete_url)
 
