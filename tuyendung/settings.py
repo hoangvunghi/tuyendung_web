@@ -67,8 +67,8 @@ SITE_ID = 1
 
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
-    'social_core.backends.google.GoogleOAuth2',  # Backend cho Google Login
-    'django.contrib.auth.backends.ModelBackend',  # Backend cho local login
+    'social_core.backends.google.GoogleOAuth2', 
+    'django.contrib.auth.backends.ModelBackend',  
 ]
 
 # Google OAuth2 settings
@@ -230,8 +230,8 @@ REST_FRAMEWORK = {
 
 # Simple JWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=100),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,

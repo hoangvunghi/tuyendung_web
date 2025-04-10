@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     login, register, token_refresh, forgot_password_view, 
-    reset_password_view, test_google_login, social_auth_token
+    reset_password_view, test_google_login, social_auth_token,
+    complete_google_profile
 )
 from . import views
 
@@ -15,4 +16,5 @@ urlpatterns = [
     path('resend-activation/', views.resend_activation_email, name='resend_activation'),
     path('test-google-login/', test_google_login, name='test-google-login'),
     path('social-token/', social_auth_token, name='social-auth-token'),
+    path('complete-google-profile/', complete_google_profile, name='complete-google-profile'),
 ]

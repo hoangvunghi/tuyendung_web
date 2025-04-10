@@ -22,13 +22,10 @@ from django.utils import timezone
 from django.shortcuts import render, redirect
 from social_django.utils import psa, load_strategy, load_backend
 from social_core.exceptions import MissingBackend, AuthTokenError
-import logging
 import requests
 
 UserAccount = get_user_model()
 
-# Logger
-logger = logging.getLogger(__name__)
 
 def register_function(request, is_recruiter=False):
     data = request.data.copy()
@@ -598,13 +595,11 @@ def complete_google_oauth2(request):
     Xử lý callback từ Google OAuth2 khi sử dụng social-auth-app-django.
     Endpoint này được gọi bởi social-auth-app-django sau khi xác thực Google.
     """
-    logger.info("complete_google_oauth2 được gọi")
     
     # Lấy code từ query params (nếu là GET) hoặc từ request body (nếu là POST)
     code = request.GET.get('code') if request.method == 'GET' else request.data.get('code')
     
     if not code:
-        logger.error("Không tìm thấy code trong request")
         return Response({
             'message': 'Không tìm thấy code trong request',
             'status': status.HTTP_400_BAD_REQUEST
@@ -623,14 +618,12 @@ def complete_google_oauth2(request):
         user = authenticate(request, backend)
         
         if not user:
-            logger.error("Xác thực Google thất bại")
             return Response({
                 'message': 'Xác thực Google thất bại',
                 'status': status.HTTP_401_UNAUTHORIZED
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         if not user.is_active:
-            logger.error(f"Tài khoản {user.email} chưa được kích hoạt")
             return Response({
                 'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
                 'status': status.HTTP_401_UNAUTHORIZED
@@ -641,10 +634,6 @@ def complete_google_oauth2(request):
         refresh["is_active"] = user.is_active
         role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
         refresh["role"] = role
-        
-        # Log thông tin đăng nhập thành công
-        logger.info(f"Đăng nhập thành công với Google cho user: {user.email}, role: {role}")
-        
         # Trả về tokens
         return Response({
             'message': 'Đăng nhập với Google thành công',
@@ -658,7 +647,6 @@ def complete_google_oauth2(request):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        logger.exception(f"Lỗi khi xử lý Google OAuth: {str(e)}")
         return Response({
             'message': f'Lỗi khi xử lý Google OAuth: {str(e)}',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -668,71 +656,61 @@ def complete_google_oauth2(request):
 @permission_classes([AllowAny])
 def google_oauth2_login_callback(request):
     """
-    Xử lý callback từ Google OAuth2 khi sử dụng allauth hoặc custom flow.
-    Endpoint này được gọi trực tiếp từ Google sau khi người dùng xác thực.
+    Xử lý callback từ Google OAuth2
     """
-    logger.info("google_oauth2_login_callback được gọi")
-    
-    # Lấy code từ query params (nếu là GET) hoặc từ request body (nếu là POST)
-    code = request.GET.get('code') if request.method == 'GET' else request.data.get('code')
-    
-    if not code:
-        logger.error("Không tìm thấy code trong request")
-        return Response({
-            'message': 'Không tìm thấy code trong request',
-            'status': status.HTTP_400_BAD_REQUEST
-        }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        # Trao đổi code lấy access token từ Google
+        # Lấy code từ request
+        code = request.GET.get('code')
+        
+        if not code:
+            return Response({
+                'message': 'Không tìm thấy code xác thực',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Lấy access token từ Google
         token_url = 'https://oauth2.googleapis.com/token'
-        data = {
+        token_data = {
             'code': code,
             'client_id': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY,
             'client_secret': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET,
-            'redirect_uri': request.build_absolute_uri('/accounts/google-oauth2/login/callback/'),
+            'redirect_uri': f"{settings.BACKEND_URL}/api/social-token/",
             'grant_type': 'authorization_code'
         }
-        
-        token_response = requests.post(token_url, data=data)
+        token_response = requests.post(token_url, data=token_data)
         
         if token_response.status_code != 200:
-            logger.error(f"Lỗi khi trao đổi code: {token_response.text}")
             return Response({
-                'message': 'Lỗi khi trao đổi code lấy token từ Google',
+                'message': 'Lỗi khi xác thực với Google',
                 'status': status.HTTP_400_BAD_REQUEST
             }, status=status.HTTP_400_BAD_REQUEST)
-            
-        token_data = token_response.json()
-        google_access_token = token_data.get('access_token')
+        
+        access_token = token_response.json().get('access_token')
         
         # Lấy thông tin người dùng từ Google
-        userinfo_url = 'https://www.googleapis.com/oauth2/v3/userinfo'
-        userinfo_response = requests.get(
-            userinfo_url,
-            headers={'Authorization': f'Bearer {google_access_token}'}
-        )
+        userinfo_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        userinfo_response = requests.get(userinfo_url, headers=headers)
         
         if userinfo_response.status_code != 200:
-            logger.error(f"Lỗi khi lấy thông tin người dùng: {userinfo_response.text}")
             return Response({
                 'message': 'Lỗi khi lấy thông tin người dùng từ Google',
                 'status': status.HTTP_400_BAD_REQUEST
             }, status=status.HTTP_400_BAD_REQUEST)
-            
+        
         userinfo = userinfo_response.json()
         
-        # Tìm người dùng trong hệ thống hoặc tạo mới
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
+        # Tìm hoặc tạo người dùng
         try:
-            user = User.objects.get(email=userinfo.get('email'))
+            user = UserAccount.objects.get(email=userinfo.get('email'))
         except ObjectDoesNotExist:
             # Tạo người dùng mới nếu chưa tồn tại
-            user = User.objects.create_user(
+            user = UserAccount.objects.create_user(
                 email=userinfo.get('email'),
-                password=None  # Password sẽ không được sử dụng với OAuth
+                username=userinfo.get('email'),  # Sử dụng email làm username
+                password=None,  # Password sẽ không được sử dụng với OAuth
+                google_id=userinfo.get('id')  # Lưu Google ID
             )
             
             # Cập nhật thông tin người dùng
@@ -754,34 +732,14 @@ def google_oauth2_login_callback(request):
         role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
         refresh["role"] = role
         
-        # Log thông tin đăng nhập thành công
-        logger.info(f"Đăng nhập thành công với Google cho user: {user.email}, role: {role}")
-        
-        # Trả về tokens
-        response_data = {
-            'message': 'Đăng nhập với Google thành công',
-            'status': status.HTTP_200_OK,
-            'data': {
-                "is_active": user.is_active,
-                "role": role,
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        }
-        
-        # Nếu là GET request, chuyển hướng đến frontend với token trong URL
-        if request.method == 'GET':
-            frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else '/'
-            redirect_url = f"{frontend_url}?token={str(refresh.access_token)}&refresh={str(refresh)}&role={role}"
-            return redirect(redirect_url)
-        
-        # Nếu là POST request, trả về response JSON
-        return Response(response_data, status=status.HTTP_200_OK)
+        # Tạo URL redirect với thông tin token và user
+        frontend_url = settings.FRONTEND_URL
+        redirect_url = f"{frontend_url}?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}&role={role}&email={user.email}"
+        return redirect(redirect_url)
         
     except Exception as e:
-        logger.exception(f"Lỗi khi xử lý Google OAuth: {str(e)}")
         return Response({
-            'message': f'Lỗi khi xử lý Google OAuth: {str(e)}',
+            'message': 'Lỗi trong quá trình xử lý',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -814,7 +772,8 @@ def social_auth_token(request):
         
         # Tạo JWT token
         refresh = RefreshToken.for_user(user)
-        
+        print(refresh)
+        print(refresh.access_token)
         # Thêm thông tin vào token
         refresh['email'] = user.email
         role = "admin" if user.is_superuser else getattr(user, 'role', 'user')
@@ -827,15 +786,104 @@ def social_auth_token(request):
         return redirect(redirect_url)
     
     except (MissingBackend, AuthTokenError) as e:
-        logger.error(f"Lỗi xác thực social: {str(e)}")
         return Response({
             'message': f'Lỗi xác thực: {str(e)}',
             'status': status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        logger.exception(f"Lỗi không xác định: {str(e)}")
         return Response({
             'message': f'Lỗi: {str(e)}',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Bổ sung thông tin cho người dùng sau khi đăng nhập Google",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['fullname', 'gender', 'role'],
+        properties={
+            'fullname': openapi.Schema(type=openapi.TYPE_STRING, description="Họ và tên"),
+            'gender': openapi.Schema(type=openapi.TYPE_STRING, description="Giới tính"),
+            'role': openapi.Schema(type=openapi.TYPE_STRING, description="Vai trò (candidate hoặc employer)"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Thông tin đã được cập nhật thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Dữ liệu không hợp lệ",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    }
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_google_profile(request):
+    user = request.user
+    
+    # Kiểm tra xem user có phải đăng nhập bằng Google không
+    if not user.google_id:
+        return Response({
+            'message': 'Tài khoản này không phải đăng nhập bằng Google',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Kiểm tra xem user đã có thông tin chưa
+    try:
+        user_info = UserInfo.objects.get(user=user)
+        return Response({
+            'message': 'Tài khoản đã có đầy đủ thông tin',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except UserInfo.DoesNotExist:
+        pass
+    
+    # Xử lý dữ liệu
+    fullname = request.data.get('fullname')
+    gender = request.data.get('gender')
+    role = request.data.get('role')
+    
+    if not all([fullname, gender, role]):
+        return Response({
+            'message': 'Vui lòng điền đầy đủ thông tin',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Tạo thông tin người dùng
+    UserInfo.objects.create(
+        user=user,
+        fullname=fullname,
+        gender=gender
+    )
+    
+    # Gán vai trò
+    _role, created = Role.objects.get_or_create(name=role)
+    UserRole.objects.create(user=user, role=_role)
+    
+    return Response({
+        'message': 'Cập nhật thông tin thành công',
+        'status': status.HTTP_200_OK,
+        'data': {
+            'fullname': fullname,
+            'gender': gender,
+            'role': role
+        }
+    }, status=status.HTTP_200_OK)
 
