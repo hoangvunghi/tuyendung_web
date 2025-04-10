@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     login, register, token_refresh, forgot_password_view, 
     reset_password_view, social_auth_token,
-    complete_google_profile
+    complete_google_profile, SetUserRoleView
 )
 from . import views
 
@@ -17,4 +17,5 @@ urlpatterns = [
     path('social-token/', social_auth_token, name='social-auth-token'),
     path('complete-google-profile/', complete_google_profile, name='complete-google-profile'),
     path('auth/social/complete', views.social_auth_complete_redirect, name='social_auth_complete_redirect'),
+    path('set-role/', SetUserRoleView.as_view(), name='set_user_role'),
 ]

@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
+from rest_framework.permissions import IsAuthenticated
+import logging
 from .serializers import UserSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
 from django.core.mail import send_mail
 from django.conf import settings
@@ -24,6 +26,9 @@ from social_django.utils import psa, load_strategy, load_backend
 from social_core.exceptions import MissingBackend, AuthTokenError
 import requests
 from django.utils.http import urlencode
+from django.views import View
+from django.urls import reverse
+from rest_framework.views import APIView
 
 UserAccount = get_user_model()
 
@@ -892,4 +897,57 @@ def social_auth_complete_redirect(request):
     frontend_complete_url = f"{settings.FRONTEND_BASE_URL}/auth/social/complete?{query_params}"
     
     return redirect(frontend_complete_url)
+
+class FinalizeGoogleAuthView(View):
+    def get(self, request, *args, **kwargs):
+        # Lấy dữ liệu từ session (được lưu bởi pipeline)
+        access_token = request.session.pop('access_token', None)
+        refresh_token = request.session.pop('refresh_token', None)
+        role = request.session.pop('user_role', None)
+        email = request.session.pop('user_email', None)
+        is_active = request.session.get('is_active', True)
+        is_banned = request.session.get('is_banned', False)
+
+        frontend_callback_url = 'http://localhost:5173/auth/google/callback' # URL callback của frontend
+
+        if access_token and refresh_token and role:
+            query_params = urlencode({
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'role': role,
+                'email': email or '',
+                'is_active': str(is_active).lower(),
+                'is_banned': str(is_banned).lower()
+            })
+            # Redirect về frontend với token trong query params
+            return redirect(f'{frontend_callback_url}?{query_params}')
+        else:
+            # Xử lý lỗi nếu không có token
+            error_params = urlencode({'error': 'authentication_failed'})
+            return redirect(f'{frontend_callback_url}?{error_params}')
+
+class SetUserRoleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        role_name = request.data.get('role')
+        user = request.user
+
+        if role_name not in ['employer', 'candidate']:
+            return Response({'detail': 'Vai trò không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.get_role(): # Kiểm tra xem đã có role chưa
+             return Response({'detail': 'Người dùng đã có vai trò.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            role = Role.objects.get(name=role_name)
+            UserRole.objects.create(user=user, role=role)
+            logger.info(f"Role '{role_name}' set for user {user.email}")
+            return Response({'detail': f'Vai trò {role_name} đã được gán.'}, status=status.HTTP_200_OK)
+        except Role.DoesNotExist:
+            logger.error(f"Role '{role_name}' does not exist in database.")
+            return Response({'detail': 'Vai trò không tồn tại.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+             logger.error(f"Error setting role for user {user.email}: {str(e)}", exc_info=True)
+             return Response({'detail': 'Lỗi hệ thống khi gán vai trò.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

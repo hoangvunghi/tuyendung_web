@@ -11,11 +11,11 @@ from base.admin import BaseAdminClass
 class UserAccountAdmin(BaseAdminClass):
     list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned')
     list_filter = ('is_active', 'is_staff', 'is_banned')
-    search_fields = ('username', 'email')
+    search_fields = ('email',)
     list_per_page = 10
     list_max_show_all = 100
     list_editable = ('is_active', 'is_staff', 'is_banned')
-    list_display_links = ('username', 'email')
+    list_display_links = ('email',)
 
     compressed_fields = True  
     warn_unsaved_form = True 
@@ -33,8 +33,8 @@ class UserAccountAdmin(BaseAdminClass):
 @admin.register(UserRole)
 class UserRoleAdmin(BaseAdminClass):
     list_display = ('username', 'rolename')
-    list_filter = ('user__username', 'role__name')  
-    search_fields = ('username', 'rolename')
+    list_filter = ('user__email', 'role__name')  
+    search_fields = ('user__email', 'role__name')
     list_per_page = 10
     list_max_show_all = 100
     list_display_links = ('username', 'rolename')

@@ -89,17 +89,12 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
-    'social_core.pipeline.social_auth.social_user',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-    'accounts.pipeline.create_user_profile', 
+    'accounts.pipeline.create_user_profile',      # Pipeline tạo/cập nhật user
+    'accounts.pipeline.get_token_for_frontend',  # Thêm lại pipeline tạo token
 )
 
 # Social Auth settings
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:5173'  # Frontend URL
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'  # URL của view callback
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:5173/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
@@ -300,3 +295,32 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
 AWS_REGION = os.getenv('AWS_REGION')
+
+# Basic Logging Configuration (for development)
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO', # Hiển thị log từ mức INFO trở lên
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['console'],
+                'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+                'propagate': False,
+            },
+            # Thêm logger cho app accounts nếu muốn tinh chỉnh riêng
+            'accounts': { 
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+        },
+    }
