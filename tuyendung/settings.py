@@ -72,8 +72,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Google OAuth2 settings
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_KEY')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_SECRET')
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env('GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('GOOGLE_OAUTH2_SECRET')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
@@ -85,9 +85,14 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
 }
 
 # Social Auth settings
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:5173'  # Frontend URL
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:5173/login-error'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'http://localhost:8000'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:8000/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
+
+# Đảm bảo URL chính xác
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # False cho localhost
+SOCIAL_AUTH_SANITIZE_REDIRECTS = False
+SOCIAL_AUTH_ALLOWED_REDIRECT_HOSTS = ['localhost', '127.0.0.1']
 
 # Đường dẫn API
 API_URL_PREFIX = '/api'  # Prefix cho tất cả các API endpoints
