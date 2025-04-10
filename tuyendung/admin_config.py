@@ -122,173 +122,173 @@ UNFOLD = {
     ],
     
     # Cấu hình sidebar
-    "SIDEBAR": {
-        "show_search": False,  # Search in applications and models names
-        "show_all_applications": False,  # Dropdown with all applications and models
-        "navigation": [
-            {
-                "title": _("Tài khoản"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Dashboard"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
-                        "link": reverse_lazy("admin:index"),
-                        # "badge": "sample_app.badge_callback",
-                        "permission": lambda request: request.user.is_superuser,
-                    },
-                    {
-                        "title": _("Tài khoản"),
-                        "icon": "person",
-                        "link": reverse_lazy("admin:accounts_useraccount_changelist"),
-                    },
-                    {
-                        "title": _("Vai trò"),
-                        "icon": "admin_panel_settings",
-                        "link": reverse_lazy("admin:accounts_role_changelist"),
-                    },
-                    {
-                        "title": _("Vai trò người dùng"),
-                        "icon": "supervisor_account",
-                        "link": reverse_lazy("admin:accounts_userrole_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": _("Doanh nghiệp"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Doanh nghiệp"),
-                        "icon": "business",
-                        "link": reverse_lazy("admin:enterprises_enterpriseentity_changelist"),
-                    },
-                    {
-                        "title": _("Lĩnh vực"),
-                        "icon": "category",
-                        "link": reverse_lazy("admin:enterprises_fieldentity_changelist"),
-                    },
-                    {
-                        "title": _("Vị trí"),
-                        "icon": "category",
-                        "link": reverse_lazy("admin:enterprises_positionentity_changelist"),
-                    },
-                    {
-                        "title": _("Bài viết"),
-                        "icon": "article",
-                        "link": reverse_lazy("admin:enterprises_postentity_changelist"),
-                    },
-                    {
-                        "title": _("Tiêu chí"),
-                        "icon": "checklist",
-                        "link": reverse_lazy("admin:enterprises_criteriaentity_changelist"),
-                    },
-                ]
-            },
-            {
-                "title": _("Chat"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Tin nhắn"),
-                        "icon": "chat",
-                        "link": reverse_lazy("admin:chat_message_changelist"),
-                    },
-                ]
-            },
-            {
-                "title": _("Phỏng vấn"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Phỏng vấn"),
-                        "icon": "event_note",
-                        "link": reverse_lazy("admin:interviews_interview_changelist"),
-                    },
-                ]
-            },
-            # Notification
-            {
-                "title": _("Thông báo"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Thông báo"),
-                        "icon": "notifications",
-                        "link": reverse_lazy("admin:notifications_notification_changelist"),
-                    },
-                ]
-            },
-            # Profile
-            {
-                "title": _("Hồ sơ"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Hồ sơ"),
-                        "icon": "account_box",
-                        "link": reverse_lazy("admin:profiles_userinfo_changelist"),
-                    },
-                    {
-                        "title": _("CV"),
-                        "icon": "description",
-                        "link": reverse_lazy("admin:profiles_cv_changelist"),
-                    },
-                    {
-                        "title": _("CV đã xem"),
-                        "icon": "visibility",
-                        "link": reverse_lazy("admin:profiles_cvview_changelist"),
-                    },
-                    {
-                        "title": _("CV đã đánh dấu"),
-                        "icon": "bookmark",
-                        "link": reverse_lazy("admin:profiles_cvmark_changelist"),
-                    },
-                ],
-            },
-            # services
-            {
-                "title": _("Dịch vụ"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Loại dịch vụ"),
-                        "icon": "design_services",
-                        "link": reverse_lazy("admin:services_typeservice_changelist"),
-                    },
-                    {
-                        "title": _("Gói dịch vụ"),
-                        "icon": "widgets",
-                        "link": reverse_lazy("admin:services_packageentity_changelist"),
-                    },
-                    {
-                        "title": _("Gói đăng ký"),
-                        "icon": "subscriptions",
-                        "link": reverse_lazy("admin:services_packagecampaign_changelist"),
-                    },
-                ],
-            },
-            # transactions
-            {
-                "title": _("Giao dịch"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
-                    {
-                        "title": _("Lịch sử giao dịch"),
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:transactions_historymoney_changelist"),
-                    },
-                ],
-            },
+    # "SIDEBAR": {
+    #     "show_search": False,  # Search in applications and models names
+    #     "show_all_applications": False,  # Dropdown with all applications and models
+    #     "navigation": [
+    #         {
+    #             "title": _("Tài khoản"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Dashboard"),
+    #                     "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+    #                     "link": reverse_lazy("admin:index"),
+    #                     # "badge": "sample_app.badge_callback",
+    #                     "permission": lambda request: request.user.is_superuser,
+    #                 },
+    #                 {
+    #                     "title": _("Tài khoản"),
+    #                     "icon": "person",
+    #                     "link": reverse_lazy("admin:accounts_useraccount_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Vai trò"),
+    #                     "icon": "admin_panel_settings",
+    #                     "link": reverse_lazy("admin:accounts_role_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Vai trò người dùng"),
+    #                     "icon": "supervisor_account",
+    #                     "link": reverse_lazy("admin:accounts_userrole_changelist"),
+    #                 },
+    #             ],
+    #         },
+    #         {
+    #             "title": _("Doanh nghiệp"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Doanh nghiệp"),
+    #                     "icon": "business",
+    #                     "link": reverse_lazy("admin:enterprises_enterpriseentity_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Lĩnh vực"),
+    #                     "icon": "category",
+    #                     "link": reverse_lazy("admin:enterprises_fieldentity_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Vị trí"),
+    #                     "icon": "category",
+    #                     "link": reverse_lazy("admin:enterprises_positionentity_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Bài viết"),
+    #                     "icon": "article",
+    #                     "link": reverse_lazy("admin:enterprises_postentity_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Tiêu chí"),
+    #                     "icon": "checklist",
+    #                     "link": reverse_lazy("admin:enterprises_criteriaentity_changelist"),
+    #                 },
+    #             ]
+    #         },
+    #         {
+    #             "title": _("Chat"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Tin nhắn"),
+    #                     "icon": "chat",
+    #                     "link": reverse_lazy("admin:chat_message_changelist"),
+    #                 },
+    #             ]
+    #         },
+    #         {
+    #             "title": _("Phỏng vấn"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Phỏng vấn"),
+    #                     "icon": "event_note",
+    #                     "link": reverse_lazy("admin:interviews_interview_changelist"),
+    #                 },
+    #             ]
+    #         },
+    #         # Notification
+    #         {
+    #             "title": _("Thông báo"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Thông báo"),
+    #                     "icon": "notifications",
+    #                     "link": reverse_lazy("admin:notifications_notification_changelist"),
+    #                 },
+    #             ]
+    #         },
+    #         # Profile
+    #         {
+    #             "title": _("Hồ sơ"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Hồ sơ"),
+    #                     "icon": "account_box",
+    #                     "link": reverse_lazy("admin:profiles_userinfo_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("CV"),
+    #                     "icon": "description",
+    #                     "link": reverse_lazy("admin:profiles_cv_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("CV đã xem"),
+    #                     "icon": "visibility",
+    #                     "link": reverse_lazy("admin:profiles_cvview_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("CV đã đánh dấu"),
+    #                     "icon": "bookmark",
+    #                     "link": reverse_lazy("admin:profiles_cvmark_changelist"),
+    #                 },
+    #             ],
+    #         },
+    #         # services
+    #         {
+    #             "title": _("Dịch vụ"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Loại dịch vụ"),
+    #                     "icon": "design_services",
+    #                     "link": reverse_lazy("admin:services_typeservice_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Gói dịch vụ"),
+    #                     "icon": "widgets",
+    #                     "link": reverse_lazy("admin:services_packageentity_changelist"),
+    #                 },
+    #                 {
+    #                     "title": _("Gói đăng ký"),
+    #                     "icon": "subscriptions",
+    #                     "link": reverse_lazy("admin:services_packagecampaign_changelist"),
+    #                 },
+    #             ],
+    #         },
+    #         # transactions
+    #         {
+    #             "title": _("Giao dịch"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Lịch sử giao dịch"),
+    #                     "icon": "payments",
+    #                     "link": reverse_lazy("admin:transactions_historymoney_changelist"),
+    #                 },
+    #             ],
+    #         },
             
-        ],
-    },
+    #     ],
+    # },
 }

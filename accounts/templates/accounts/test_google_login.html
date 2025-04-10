@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login với Google</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .google-btn {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: left;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .token-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            text-align: left;
+            display: none;
+        }
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            background-color: #f5f5f5;
+            text-align: left;
+        }
+        .info-box {
+            background-color: #e2f0fb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Login với Google</h1>
+        
+        <div class="info-box">
+            <p><strong>Cấu hình hiện tại:</strong></p>
+            <p>Client ID: <code>{{ client_id }}</code></p>
+            <p>Domain: <code id="currentDomain"></code></p>
+        </div>
+        
+        <div class="login-box">
+            <a href="{% url 'social:begin' 'google-oauth2' %}" class="google-btn">
+                <img src="https://www.google.com/favicon.ico" alt="Google">
+                Đăng nhập với Google
+            </a>
+        </div>
+        
+        <div class="result">
+            <h3>Lưu ý quan trọng:</h3>
+            <ol>
+                <li>Đảm bảo đã cài đặt <code>social-auth-app-django</code>: <code>pip install social-auth-app-django</code></li>
+                <li>Đảm bảo đã cấu hình <code>SOCIAL_AUTH_GOOGLE_OAUTH2_KEY</code> và <code>SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET</code> trong settings.py</li>
+                <li>Đảm bảo đã thêm <code>'social_core.backends.google.GoogleOAuth2'</code> vào <code>AUTHENTICATION_BACKENDS</code></li>
+                <li>Đảm bảo đã thêm <code>path('api/auth/', include('social_django.urls', namespace='social'))</code> vào urls.py</li>
+            </ol>
+            
+            <h3>Redirect URIs cần cấu hình trong Google Cloud Console:</h3>
+            <ul>
+                <li>http://localhost:8000/api/auth/complete/google-oauth2/</li>
+                <li>http://127.0.0.1:8000/api/auth/complete/google-oauth2/</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Hiển thị domain hiện tại
+        document.getElementById('currentDomain').textContent = window.location.origin;
+        
+        // Kiểm tra xem có được redirect về với token không
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('access_token')) {
+            const accessToken = urlParams.get('access_token');
+            const refreshToken = urlParams.get('refresh_token');
+            
+            // Hiển thị token và lưu vào localStorage
+            document.body.innerHTML += `
+                <div style="margin-top: 30px; padding: 15px; background-color: #d4edda; color: #155724; border-radius: 4px;">
+                    <h3>Đăng nhập thành công!</h3>
+                    <p>Access Token: ${accessToken.substring(0, 20)}...</p>
+                    ${refreshToken ? `<p>Refresh Token: ${refreshToken.substring(0, 20)}...</p>` : ''}
+                </div>
+            `;
+            
+            // Lưu token vào localStorage
+            localStorage.setItem('access_token', accessToken);
+            if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken);
+            }
+            
+            // Xóa token khỏi URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    </script>
+</body>
+</html>
