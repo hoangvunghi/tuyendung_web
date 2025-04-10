@@ -70,12 +70,9 @@
         <h1>Test Login với Google</h1>
         
         <div class="info-box">
-            <h3>Thông tin cấu hình hiện tại:</h3>
-            <ul>
-                <li><strong>Client ID:</strong> {{ client_id }}</li>
-                <li><strong>Redirect URL:</strong> http://127.0.0.1:8000/api/auth/complete/google-oauth2/</li>
-                <li><strong>Domain hiện tại:</strong> <span id="current-domain"></span></li>
-            </ul>
+            <p><strong>Cấu hình hiện tại:</strong></p>
+            <p>Client ID: <code>{{ client_id }}</code></p>
+            <p>Domain: <code id="currentDomain"></code></p>
         </div>
         
         <div class="login-box">
@@ -104,7 +101,7 @@
     
     <script>
         // Hiển thị domain hiện tại
-        document.getElementById('current-domain').textContent = window.location.origin;
+        document.getElementById('currentDomain').textContent = window.location.origin;
         
         // Kiểm tra xem có được redirect về với token không
         const urlParams = new URLSearchParams(window.location.search);

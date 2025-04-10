@@ -32,11 +32,8 @@ urlpatterns = [
         path('', include('accounts.urls')),
         path('', include('services.urls')),
         path('', include('transactions.urls')),
+        path('auth/', include('social_django.urls', namespace='social')),  # Social auth URLs
     ])),
-    path('api/base/', include('base.urls')),
-    
-    # Social Auth URLs
-    path('api/auth/', include('social_django.urls', namespace='social')),
     
     # Documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
