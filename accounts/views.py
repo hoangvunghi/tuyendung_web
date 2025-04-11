@@ -39,7 +39,7 @@ def register_function(request, is_recruiter=False):
     serializer = UserSerializer(data=data)
     if serializer.is_valid():
         user = serializer.save()
-        if is_recruiter:
+        if not is_recruiter:
             _role, created = Role.objects.get_or_create(name='candidate')
             role = "candidate"
         else:
@@ -125,7 +125,7 @@ def register_function(request, is_recruiter=False):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    is_recruiter = request.data.get('is_recruiter', False)
+    is_recruiter = request.data.get('role') == 'employer'
     return register_function(request, is_recruiter)
 
 @swagger_auto_schema(
