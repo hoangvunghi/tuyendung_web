@@ -926,28 +926,28 @@ class FinalizeGoogleAuthView(View):
             error_params = urlencode({'error': 'authentication_failed'})
             return redirect(f'{frontend_callback_url}?{error_params}')
 
-class SetUserRoleView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        role_name = request.data.get('role')
-        user = request.user
-
-        if role_name not in ['employer', 'candidate']:
-            return Response({'detail': 'Vai trò không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if user.get_role(): # Kiểm tra xem đã có role chưa
-             return Response({'detail': 'Người dùng đã có vai trò.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            role = Role.objects.get(name=role_name)
-            UserRole.objects.create(user=user, role=role)
-            logger.info(f"Role '{role_name}' set for user {user.email}")
-            return Response({'detail': f'Vai trò {role_name} đã được gán.'}, status=status.HTTP_200_OK)
-        except Role.DoesNotExist:
-            logger.error(f"Role '{role_name}' does not exist in database.")
-            return Response({'detail': 'Vai trò không tồn tại.'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-             logger.error(f"Error setting role for user {user.email}: {str(e)}", exc_info=True)
-             return Response({'detail': 'Lỗi hệ thống khi gán vai trò.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+# set role for user 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_role_for_user(request):
+    user = request.user
+    if user.get_role() == 'none':
+        role = request.data.get('role')
+        UserRole.objects.create(user=user, role=role)
+        return Response({
+            'message': 'Cập nhật vai trò thành công',
+            'data': {
+                'role': role,
+                'user': user.id
+            },
+            'status': status.HTTP_200_OK
+        })
+    else:
+        return Response({
+            'message': 'Người dùng đã có vai trò',
+            'data': {
+                'role': user.get_role(),
+                'user': user.id
+            },
+            'status': status.HTTP_400_BAD_REQUEST
+        })

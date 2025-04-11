@@ -54,19 +54,10 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                     balance=0.00,
                     cv_attachments_url=None
                 )
-            
-            # Tạo hoặc lấy các role
-            candidate_role, _ = Role.objects.get_or_create(name='candidate')
-            employer_role, _ = Role.objects.get_or_create(name='employer')
-            
-            # Gán role dựa trên email domain
-            if email.endswith('gmail.com'):
-                if not UserRole.objects.filter(user=user, role=candidate_role).exists():
-                    UserRole.objects.create(user=user, role=candidate_role)
-            else:
-                if not UserRole.objects.filter(user=user, role=employer_role).exists():
-                    UserRole.objects.create(user=user, role=employer_role)
-            
+            none_role = Role.objects.get(name='none')
+            # nếu mà user không có role thì tạo role none
+            if not UserRole.objects.filter(user=user).exists():
+                UserRole.objects.create(user=user, role=none_role)
             # Tạo token
             refresh = RefreshToken.for_user(user)
             role = user.get_role()
