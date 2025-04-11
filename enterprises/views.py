@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -587,7 +588,7 @@ def delete_enterprise(request):
 @permission_classes([AllowAny])
 def get_posts(request):
     sort = request.query_params.get('sort', '-created_at')
-    posts = PostEntity.objects.filter(is_active=True)
+    posts = PostEntity.objects.filter(is_active=True, deadline__gt=datetime.now())
     if (sort == '-salary_max'):
         posts = posts.order_by('-salary_max')
     elif (sort == '-salary_min'):
@@ -684,7 +685,7 @@ def get_post_of_user(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_all_posts(request):
-    posts = PostEntity.objects.filter(is_active=True)
+    posts = PostEntity.objects.filter(is_active=True, deadline__gt=datetime.now())
     
     # Phân trang
     paginator = CustomPagination()
@@ -1281,7 +1282,7 @@ def search_posts(request):
         return Response(cached_response)
     
     # Nếu không có trong cache, thực hiện tìm kiếm
-    posts = PostEntity.objects.select_related('position', 'enterprise', 'field').filter(is_active=True)
+    posts = PostEntity.objects.select_related('position', 'enterprise', 'field').filter(is_active=True,deadline__gte=datetime.now())
     
     # Tạo Q objects cho việc tìm kiếm
     search_conditions = Q()
