@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import models
 from accounts.models import UserAccount
 import re
@@ -103,6 +104,10 @@ class PositionEntity(models.Model):
         verbose_name = 'Vị trí'
         verbose_name_plural = 'Vị trí'
 
+class ModelManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True, deadline__gt=datetime.now())
+
 class PostEntity(models.Model):
     title = models.CharField(max_length=255, db_index=True)
     deadline = models.DateField(null=True, blank=True)
@@ -126,7 +131,7 @@ class PostEntity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     modified_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=False, db_index=True)
-    
+    objects = ModelManager()
     def __str__(self):
         return self.title
 
