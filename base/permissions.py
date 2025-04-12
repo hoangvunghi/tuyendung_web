@@ -66,12 +66,6 @@ class IsPostOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
         return obj.enterprise.user == request.user
 
-class IsCampaignOwner(BasePermission):
-    """
-    Kiểm tra xem user có quyền với chiến dịch không
-    """
-    def has_object_permission(self, request, view, obj):
-        return obj.enterprise.user == request.user
 
 class IsFieldManager(BasePermission):
     """

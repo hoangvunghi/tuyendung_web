@@ -399,6 +399,8 @@ def get_cv_detail(request, pk):
         400: 'Bad Request'
     }
 )
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_cv(request):
@@ -570,7 +572,7 @@ def update_cv(request, pk):
 def update_cv_status(request, pk):
     """Cập nhật trạng thái CV"""
     cv = get_object_or_404(Cv, pk=pk)
-    if cv.post.enterprise != request.user.enterprise:
+    if cv.post.enterprise != request.user.enterprises.first():
         return Response({
             'message': 'You are not authorized to update this CV',
             'status': status.HTTP_403_FORBIDDEN
@@ -633,6 +635,41 @@ def delete_cv(request, pk):
     return Response({
         'message': 'CV deleted successfully',
         'status': status.HTTP_200_OK
+    })
+
+@swagger_auto_schema(
+    method='put',
+    operation_description="Cập nhật ghi chú CV",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'note': openapi.Schema(type=openapi.TYPE_STRING, description="Ghi chú CV")
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="CV note updated successfully",
+        ),
+        404: openapi.Response(
+            description="CV not found",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'detail': openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_cv_note(request, pk):
+    cv = get_object_or_404(Cv, id=pk)
+    cv.note = request.data.get('note')
+    cv.save()
+    return Response({
+        'message': 'CV note updated successfully',
     })
 
 # profiles/views.py
