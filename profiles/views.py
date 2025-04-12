@@ -14,7 +14,7 @@ from base.aws_utils import get_content_type, upload_to_s3
 import os
 from django.core.cache import cache
 from django.utils.http import urlencode
-from base.services import NotificationService
+# from base.services import NotificationService
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -582,13 +582,13 @@ def update_cv_status(request, pk):
         old_status = cv.status
         serializer.save()
         
-        # Gửi thông báo đến user
-        if old_status != cv.status:
-            NotificationService.create_cv_status_notification(
-                user=cv.user,
-                cv=cv,
-                status=cv.status
-            )
+        # # Gửi thông báo đến user
+        # if old_status != cv.status:
+        #     NotificationService.create_cv_status_notification(
+        #         user=cv.user,
+        #         cv=cv,
+        #         status=cv.status
+        #     )
         
         return Response({
             'message': 'Cập nhật trạng thái CV thành công',

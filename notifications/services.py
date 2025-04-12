@@ -3,11 +3,12 @@ from .models import Notification
 
 class NotificationService:
     @staticmethod
-    def create_notification(recipient, notification_type, title, message, related_object):
+    def create_notification(recipient, notification_type, title, link, message, related_object):
         return Notification.objects.create(
             recipient=recipient,
             notification_type=notification_type,
             title=title,
+            link=link,
             message=message,
             content_object=related_object
         )
@@ -18,7 +19,8 @@ class NotificationService:
             recipient=cv.user,
             notification_type='cv_viewed',
             title='CV của bạn đã được xem',
-            message=f'CV của bạn đã được {cv.post.enterprise.company_name} xem',
+            link=f'/job/{cv.post.id}',
+            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được xem',
             related_object=cv
         )
 
@@ -28,6 +30,7 @@ class NotificationService:
             recipient=cv.user,
             notification_type='cv_status_changed',
             title='Trạng thái CV đã thay đổi',
-            message=f'CV của bạn đã được chuyển từ {old_status} sang {new_status}',
+            link=f'/job/{cv.post.id}',
+            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được chuyển sang trạng thái {new_status}',
             related_object=cv
         )

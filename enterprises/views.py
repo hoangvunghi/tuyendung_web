@@ -1516,8 +1516,8 @@ def get_enterprise_stats(request, pk):
 def view_cv(request, cv_id):
     cv = get_object_or_404(Cv, id=cv_id)
     
-    # Tạo notification khi CV được xem
-    NotificationService.notify_cv_viewed(cv)
+    # # Tạo notification khi CV được xem
+    # NotificationService.notify_cv_viewed(cv)
     
     serializer = CvSerializer(cv)
     return Response({
@@ -1588,12 +1588,8 @@ def update_cv_status(request, cv_id):
     if serializer.is_valid():
         cv = serializer.save()
         
-        # Tạo notification khi status thay đổi
-        NotificationService.notify_cv_status_changed(
-            cv, 
-            old_status, 
-            cv.status
-        )
+        # Không gọi notify_cv_status_changed ở đây vì đã được gọi từ profiles/views.py
+        # Tránh tạo ra 2 thông báo
         
         return Response({
             'message': 'CV status updated successfully',

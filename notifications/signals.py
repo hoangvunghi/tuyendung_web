@@ -20,6 +20,7 @@ def handle_cv_changes(sender, instance, created, **kwargs):
             recipient=instance.post.enterprise.user,
             notification_type='cv_received',
             title='Có CV mới',
+            link=f'/employer/posts/{instance.post.id}',
             message=f'Bạn nhận được CV mới cho vị trí {instance.post.title}',
             related_object=instance
         )
@@ -32,7 +33,8 @@ def handle_cv_changes(sender, instance, created, **kwargs):
             recipient=instance.user,
             notification_type='cv_status_changed',
             title='Trạng thái CV đã thay đổi',
-            message=f'CV của bạn đã được chuyển từ {old_status} sang {instance.status}',
+            link=f'/job/{instance.post.id}',
+            message=f'CV của bạn tới vị trí {instance.post.title} của công ty {instance.post.enterprise.company_name} đã được chuyển từ {old_status} sang {instance.status}',
             related_object=instance
         )
 
@@ -52,6 +54,7 @@ def handle_cv_view(sender, instance, created, **kwargs):
             recipient=instance.cv.user,
             notification_type='cv_viewed',
             title='CV của bạn đã được xem',
+            link=f'/job/{instance.cv.post.id}',
             message=f'CV của bạn đã được {instance.viewer.enterprise.company_name} xem',
             related_object=instance.cv
         )
@@ -65,6 +68,7 @@ def handle_cv_mark(sender, instance, created, **kwargs):
             recipient=instance.cv.user,
             notification_type='cv_marked',
             title='CV của bạn đã được đánh dấu',
+            link=f'/job/{instance.cv.post.id}',
             message=f'CV của bạn đã được {instance.marker.enterprise.company_name} đánh dấu {instance.mark_type}',
             related_object=instance.cv
         )
@@ -78,6 +82,7 @@ def handle_interview_invitation(sender, instance, created, **kwargs):
             recipient=instance.candidate,
             notification_type='interview_invited',
             title='Lời mời phỏng vấn',
+            link=f'/job/{instance.post.id}',
             message=f'Bạn nhận được lời mời phỏng vấn từ {instance.enterprise.company_name}',
             related_object=instance
         )
@@ -91,6 +96,7 @@ def handle_new_message(sender, instance, created, **kwargs):
             recipient=instance.recipient,
             notification_type='message_received',
             title='Tin nhắn mới',
+            link=f'/job/{instance.post.id}',
             message=f'Bạn có tin nhắn mới từ {instance.sender.get_full_name()}',
             related_object=instance
         )
@@ -107,6 +113,7 @@ def send_notification_to_websocket(notification):
                 "type": notification.notification_type,
                 "title": notification.title,
                 "message": notification.message,
+                "link": notification.link,
                 "is_read": notification.is_read,
                 "created_at": notification.created_at.isoformat(),
                 "related_object": {

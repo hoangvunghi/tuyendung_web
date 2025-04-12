@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.permissions import AdminAccessPermission
 from base.utils import create_permission_class_with_admin_override
+from django.shortcuts import render
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrNotificationOwner = create_permission_class_with_admin_override(IsAuthenticated)
@@ -194,3 +195,7 @@ def get_unread_count(request):
         is_read=False
     ).count()
     return Response({'unread_count': count})
+
+def websocket_test(request):
+    """View để hiển thị trang test WebSocket"""
+    return render(request, 'websocket_test.html')

@@ -18,6 +18,7 @@ class Notification(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    link = models.CharField(max_length=10000, default='')
     
     # Để lưu reference tới object gây ra notification (CV, Post, etc)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)

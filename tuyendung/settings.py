@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'social_django',  # Dùng cho Google Login
     'corsheaders',
     'django_filters',
+    'channels_redis',
+    # 'daphne',
 ]
 
 # Site ID
@@ -120,10 +122,7 @@ FRONTEND_URL = 'http://localhost:8000'
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
 
@@ -173,6 +172,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'tuyendung.wsgi.application'
+ASGI_APPLICATION = 'tuyendung.asgi.application'
 
 # Database
 DATABASES = {
@@ -301,9 +301,20 @@ if DEBUG:
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+            'simple': {
+                'format': '{levelname} {message}',
+                'style': '{',
+            },
+        },
         'handlers': {
             'console': {
                 'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
             },
         },
         'root': {
@@ -318,6 +329,22 @@ if DEBUG:
             },
             # Thêm logger cho app accounts nếu muốn tinh chỉnh riêng
             'accounts': { 
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            # Thêm các logger khác
+            'channels': {
+                'handlers': ['console'],
+                'level': 'DEBUG',  # Set to DEBUG for detailed logs
+                'propagate': True,
+            },
+            'notifications': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'daphne': {
                 'handlers': ['console'],
                 'level': 'INFO',
                 'propagate': True,

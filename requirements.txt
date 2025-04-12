@@ -1,4 +1,7 @@
 asgiref==3.8.1
+attrs==25.3.0
+autobahn==24.4.2
+Automat==24.8.1
 boto3==1.37.29
 botocore==1.37.29
 cachetools==5.5.2
@@ -8,7 +11,9 @@ channels==4.2.0
 channels_redis==4.2.1
 charset-normalizer==3.4.1
 cloudinary==1.43.0
+constantly==23.10.4
 cryptography==44.0.2
+daphne==4.1.2
 defusedxml==0.7.1
 dj-rest-auth==7.0.1
 Django==5.1.6
@@ -27,7 +32,9 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
 googleapis-common-protos==1.69.2
 httplib2==0.22.0
+hyperlink==21.0.0
 idna==3.10
+incremental==24.7.2
 inflection==0.5.1
 jmespath==1.0.1
 msgpack==1.1.0
@@ -42,6 +49,7 @@ pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.22
 PyJWT==2.9.0
+pyOpenSSL==25.0.0
 pyparsing==3.2.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
@@ -53,10 +61,16 @@ requests==2.32.3
 requests-oauthlib==2.0.0
 rsa==4.9
 s3transfer==0.11.4
+service-identity==24.2.0
+setuptools==78.1.0
 six==1.17.0
 social-auth-app-django==5.4.3
 social-auth-core==4.5.6
 sqlparse==0.5.3
+Twisted==24.11.0
+txaio==23.1.1
+typing_extensions==4.13.2
 tzdata==2025.1
 uritemplate==4.1.1
 urllib3==1.26.20
+zope.interface==7.2

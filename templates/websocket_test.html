@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .msg {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .error { background-color: #ffecec; color: #ff5252; }
+        .success { background-color: #e7f7e7; color: #4CAF50; }
+        .info { background-color: #e8f4fd; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket Test</h1>
+        <div class="controls">
+            <label for="wsUrl">WebSocket URL:</label>
+            <select id="wsUrl">
+                <option value="ws://localhost:8000/ws/notifications/">ws://localhost:8000/ws/notifications/</option>
+                <option value="ws://localhost:8000/api/ws/notifications/">ws://localhost:8000/api/ws/notifications/</option>
+                <option value="ws://127.0.0.1:8000/ws/notifications/">ws://127.0.0.1:8000/ws/notifications/</option>
+                <option value="ws://127.0.0.1:8000/api/ws/notifications/">ws://127.0.0.1:8000/api/ws/notifications/</option>
+            </select>
+            <button id="connect">Kết nối</button>
+            <button id="disconnect" disabled>Ngắt kết nối</button>
+        </div>
+        
+        <div>
+            <label for="token">JWT Token:</label>
+            <input type="text" id="token" style="width: 100%; margin-bottom: 10px;" 
+                   placeholder="Nhập JWT token của bạn" value="">
+            <button id="authenticate">Xác thực</button>
+        </div>
+        
+        <h3>Nhật ký kết nối</h3>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        const connectBtn = document.getElementById('connect');
+        const disconnectBtn = document.getElementById('disconnect');
+        const authenticateBtn = document.getElementById('authenticate');
+        const wsUrlSelect = document.getElementById('wsUrl');
+        const tokenInput = document.getElementById('token');
+        const logDiv = document.getElementById('log');
+        
+        // Lấy token từ localStorage nếu có
+        if (localStorage.getItem('token')) {
+            tokenInput.value = localStorage.getItem('token');
+        }
+        
+        function logMessage(message, type = 'info') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${type}`;
+            msgDiv.innerText = `${new Date().toLocaleTimeString()}: ${message}`;
+            logDiv.appendChild(msgDiv);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        connectBtn.addEventListener('click', () => {
+            try {
+                const wsUrl = wsUrlSelect.value;
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = (event) => {
+                    logMessage('Kết nối WebSocket thành công!', 'success');
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    authenticateBtn.disabled = false;
+                };
+                
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    logMessage(`Nhận tin nhắn: ${JSON.stringify(data)}`, 'info');
+                    
+                    // Nếu nhận được yêu cầu xác thực, tự động gửi token
+                    if (data.type === 'auth_required' && tokenInput.value) {
+                        authenticateBtn.click();
+                    }
+                };
+                
+                socket.onclose = (event) => {
+                    logMessage(`Kết nối đã đóng: Mã ${event.code}, Lý do: ${event.reason || 'Không có'}`, 'error');
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    authenticateBtn.disabled = true;
+                };
+                
+                socket.onerror = (error) => {
+                    logMessage('Lỗi WebSocket!', 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                logMessage('Đang kết nối WebSocket...', 'info');
+            } catch (err) {
+                logMessage(`Lỗi khi tạo kết nối: ${err.message}`, 'error');
+            }
+        });
+        
+        disconnectBtn.addEventListener('click', () => {
+            if (socket) {
+                socket.close(1000, 'Người dùng đóng kết nối');
+                logMessage('Đã đóng kết nối WebSocket', 'info');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                authenticateBtn.disabled = true;
+            }
+        });
+        
+        authenticateBtn.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const token = tokenInput.value;
+                if (token) {
+                    const authMessage = {
+                        type: 'authenticate',
+                        token: token
+                    };
+                    socket.send(JSON.stringify(authMessage));
+                    logMessage('Đã gửi yêu cầu xác thực', 'info');
+                } else {
+                    logMessage('Vui lòng nhập JWT token', 'error');
+                }
+            } else {
+                logMessage('WebSocket chưa kết nối', 'error');
+            }
+        });
+    </script>
+</body>
+</html> 
