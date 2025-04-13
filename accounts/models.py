@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+
 class UserAccountManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
         if not email:
@@ -58,6 +59,19 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
             except:
                 return None
         return None
+
+    def get_full_name(self):
+        # Lazy import để tránh circular import
+        from profiles.models import UserInfo
+        
+        try:
+            user_info = UserInfo.objects.filter(user=self).first()
+            if user_info and user_info.fullname:
+                return user_info.fullname
+            return self.username  # Trả về username nếu không có fullname
+        except Exception as e:
+            # Xử lý ngoại lệ, trả về username
+            return self.username
 
     class Meta:
         verbose_name = 'Tài khoản'

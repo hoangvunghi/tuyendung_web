@@ -93,7 +93,7 @@ from rest_framework.permissions import OR
     security=[{'Bearer': []}]
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def get_messages(request):
     """Lấy tin nhắn của cuộc trò chuyện"""
     conversation_with = request.query_params.get('user_id')
@@ -151,7 +151,7 @@ def get_messages(request):
     security=[{'Bearer': []}]
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def send_message(request):
     serializer = MessageSerializer(data=request.data)
     if serializer.is_valid():
@@ -221,7 +221,7 @@ def send_message(request):
     security=[{'Bearer': []}]
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def get_unread_messages(request):
     """Lấy tin nhắn chưa đọc"""
     messages = Message.objects.filter(recipient=request.user, is_read=False)
@@ -258,7 +258,7 @@ def get_unread_messages(request):
     security=[{'Bearer': []}]
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def mark_message_read(request, pk):
     """Đánh dấu tin nhắn đã đọc"""
     try:
@@ -303,7 +303,7 @@ def mark_message_read(request, pk):
     security=[{'Bearer': []}]
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def get_conversations(request):
     """Lấy danh sách cuộc trò chuyện"""
     conversations = Message.objects.filter(

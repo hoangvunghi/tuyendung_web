@@ -57,7 +57,11 @@ class IsCvOwner(BasePermission):
     Kiểm tra xem user có phải là người tạo CV không
     """
     def has_object_permission(self, request, view, obj):
-        return obj.post.enterprise.user == request.user
+        from profiles.models import CV  # Import model CV
+        # Chỉ kiểm tra thuộc tính post khi đối tượng là CV
+        if hasattr(obj, 'post') and hasattr(obj.post, 'enterprise'):
+            return obj.post.enterprise.user == request.user
+        return False
 
 class IsPostOwner(BasePermission):
     """
@@ -94,10 +98,12 @@ class CanManageCv(BasePermission):
     """
     def has_object_permission(self, request, view, obj):
         # Người nộp CV
-        if obj.user == request.user:
+        if hasattr(obj, 'user') and obj.user == request.user:
             return True
-        # Người đăng bài
-        return obj.post.campaign.enterprise.user == request.user
+        # Người đăng bài - kiểm tra xem có thuộc tính post không
+        if hasattr(obj, 'post') and hasattr(obj.post, 'campaign') and hasattr(obj.post.campaign, 'enterprise'):
+            return obj.post.campaign.enterprise.user == request.user
+        return False
     
 class AdminAccessPermission(BasePermission):
     """

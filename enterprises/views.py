@@ -1803,6 +1803,7 @@ def get_post_detail(request, pk):
         data = serializer.data
         # Thêm thông tin ảnh của doanh nghiệp
         data['enterprise_logo'] = post.enterprise.logo_url
+        data['user_id'] = post.enterprise.user.id
         return Response({
             'message': 'Post details retrieved successfully',
             'status': status.HTTP_200_OK,

@@ -1,7 +1,11 @@
 from django.db import models
-from accounts.models import UserAccount
+from django.contrib.auth import get_user_model
 from enterprises.models import PostEntity
 from model_utils import FieldTracker
+
+# Lấy model User từ settings
+UserAccount = get_user_model()
+
 class UserInfo(models.Model):
     user = models.OneToOneField(UserAccount, on_delete=models.CASCADE, related_name='profile')
     fullname = models.CharField(max_length=255)

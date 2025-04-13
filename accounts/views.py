@@ -951,3 +951,80 @@ def set_role_for_user(request):
             },
             'status': status.HTTP_400_BAD_REQUEST
         })
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy thông tin người dùng theo ID",
+    responses={
+        200: openapi.Response(
+            description="Lấy thông tin người dùng thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'username': openapi.Schema(type=openapi.TYPE_STRING),
+                            'email': openapi.Schema(type=openapi.TYPE_STRING),
+                            'fullname': openapi.Schema(type=openapi.TYPE_STRING),
+                            'avatar': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                            'role': openapi.Schema(type=openapi.TYPE_STRING),
+                        }
+                    )
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Không tìm thấy người dùng",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_info(request, user_id):
+    """Lấy thông tin người dùng theo ID"""
+    try:
+        user = UserAccount.objects.get(id=user_id)
+        
+        # Lấy profile nếu có
+        profile = None
+        try:
+            from profiles.models import UserInfo
+            profile = UserInfo.objects.filter(user=user).first()
+        except Exception as e:
+            print(f"Lỗi khi lấy profile: {e}")
+        
+        # Lấy vai trò
+        role = user.get_role()
+        
+        # Chuẩn bị dữ liệu
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'fullname': user.get_full_name() or user.username,
+            'avatar': profile.avatar_url if profile and hasattr(profile, 'avatar_url') else None,
+            'role': role
+        }
+        
+        return Response({
+            'message': 'User info retrieved successfully',
+            'status': status.HTTP_200_OK,
+            'data': data
+        })
+    except UserAccount.DoesNotExist:
+        return Response({
+            'message': 'User not found',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)

@@ -92,35 +92,95 @@ def handle_interview_invitation(sender, instance, created, **kwargs):
 def handle_new_message(sender, instance, created, **kwargs):
     """Xử lý khi có tin nhắn mới"""
     if created:
-        NotificationService.create_notification(
+        # Log dữ liệu để debug
+        print(f"Tin nhắn mới được tạo: ID={instance.id}, sender={instance.sender.id}, recipient={instance.recipient.id}")
+        
+        # Lấy tên người gửi an toàn
+        try:
+            sender_name = instance.sender.get_full_name() or f"Người dùng #{instance.sender.id}"
+        except Exception as e:
+            sender_name = f"Người dùng #{instance.sender.id}"
+            print(f"Lỗi khi lấy tên người gửi: {e}")
+
+        # Tạo notification
+        notification = NotificationService.create_notification(
             recipient=instance.recipient,
             notification_type='message_received',
             title='Tin nhắn mới',
-            link=f'/job/{instance.post.id}',
-            message=f'Bạn có tin nhắn mới từ {instance.sender.get_full_name()}',
+            link=f'/messages?user={instance.sender.id}',
+            message=f'Bạn có tin nhắn mới từ {sender_name}',
             related_object=instance
         )
+        
+        # Gửi tin nhắn trực tiếp qua WebSocket để đảm bảo realtime
+        try:
+            channel_layer = get_channel_layer()
+            print(f"Gửi tin nhắn qua websocket cho user_{instance.recipient.id}")
+            
+            # Định dạng thời gian để đảm bảo đúng format ISO
+            created_at_iso = instance.created_at.isoformat() if instance.created_at else None
+            
+            message_data = {
+                "type": "new_message",
+                "message_id": instance.id,  # Đảm bảo là integer, không phải string
+                "sender_id": instance.sender.id,
+                "recipient_id": instance.recipient.id,
+                "content": instance.content,
+                "is_read": instance.is_read,
+                "created_at": created_at_iso,
+                "sender_name": sender_name
+            }
+            
+            print(f"Dữ liệu tin nhắn WebSocket: {message_data}")
+            
+            async_to_sync(channel_layer.group_send)(
+                f"user_{instance.recipient.id}",
+                {
+                    "type": "notify",
+                    "data": message_data
+                }
+            )
+            print(f"Đã gửi tin nhắn qua websocket thành công")
+        except Exception as e:
+            print(f"Lỗi khi gửi tin nhắn qua websocket: {e}")
 
 def send_notification_to_websocket(notification):
     """Gửi notification qua WebSocket"""
     channel_layer = get_channel_layer()
+    
+    # Dữ liệu cơ bản của thông báo
+    data = {
+        "id": notification.id,
+        "type": notification.notification_type,
+        "title": notification.title,
+        "message": notification.message,
+        "link": notification.link,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at.isoformat(),
+        "related_object": {
+            "type": notification.content_type.model,
+            "id": notification.object_id
+        }
+    }
+    
+    # Nếu là thông báo tin nhắn mới, thêm thông tin chi tiết
+    if notification.notification_type == 'message_received' and notification.content_object:
+        message = notification.content_object
+        data.update({
+            "type": "new_message",
+            "message_id": message.id,
+            "sender_id": message.sender.id,
+            "recipient_id": message.recipient.id,
+            "content": message.content,
+            "is_read": message.is_read,
+            "sender_name": message.sender.get_full_name() or message.sender.username
+        })
+    
     async_to_sync(channel_layer.group_send)(
         f"user_{notification.recipient.id}",
         {
             "type": "notify",
-            "data": {
-                "id": notification.id,
-                "type": notification.notification_type,
-                "title": notification.title,
-                "message": notification.message,
-                "link": notification.link,
-                "is_read": notification.is_read,
-                "created_at": notification.created_at.isoformat(),
-                "related_object": {
-                    "type": notification.content_type.model,
-                    "id": notification.object_id
-                }
-            }
+            "data": data
         }
     )
 
