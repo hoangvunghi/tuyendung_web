@@ -34,7 +34,7 @@ def handle_cv_changes(sender, instance, created, **kwargs):
             notification_type='cv_status_changed',
             title='Trạng thái CV đã thay đổi',
             link=f'/job/{instance.post.id}',
-            message=f'CV của bạn tới vị trí {instance.post.title} của công ty {instance.post.enterprise.company_name} đã được chuyển từ {old_status} sang {instance.status}',
+            message=f'CV của bạn tới vị trí {instance.post.title} của công ty {instance.post.enterprise.company_name} đã được chuyển từ {NotificationService.translate_status(old_status)} sang {NotificationService.translate_status(instance.status)}',
             related_object=instance
         )
 
@@ -130,3 +130,11 @@ def notification_created(sender, instance, created, **kwargs):
     """Gửi notification qua WebSocket khi được tạo"""
     if created:
         send_notification_to_websocket(instance)
+
+def translate_status(status):
+    if status == 'pending':
+        return 'chờ duyệt'
+    elif status == 'approved':
+        return 'đã duyệt'
+    elif status == 'rejected':
+        return 'bị từ chối'

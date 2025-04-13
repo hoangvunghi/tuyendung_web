@@ -674,8 +674,9 @@ def update_cv_note(request, pk):
 
 # profiles/views.py
 @api_view(['GET'])
-@permission_classes([IsAuthenticated,AdminAccessPermission])
+@permission_classes([IsAuthenticated])
 def get_user_cvs(request):
+    print(request.user)
     cvs = Cv.objects.filter(user=request.user)
     paginator = CustomPagination()
     paginated_cvs = paginator.paginate_queryset(cvs, request)

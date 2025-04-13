@@ -199,3 +199,10 @@ def get_unread_count(request):
 def websocket_test(request):
     """View để hiển thị trang test WebSocket"""
     return render(request, 'websocket_test.html')
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_all_as_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return Response({'message': 'Đã đánh dấu tất cả là đã đọc'})
+

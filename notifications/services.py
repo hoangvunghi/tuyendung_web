@@ -31,6 +31,14 @@ class NotificationService:
             notification_type='cv_status_changed',
             title='Trạng thái CV đã thay đổi',
             link=f'/job/{cv.post.id}',
-            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được chuyển sang trạng thái {new_status}',
+            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được chuyển sang trạng thái {NotificationService.translate_status(new_status)}',
             related_object=cv
         )
+    
+    def translate_status(status):
+        if status == 'pending':
+            return 'Chờ duyệt'
+        elif status == 'approved':
+            return 'Đã duyệt'
+        elif status == 'rejected':
+            return 'Đã từ chối'
