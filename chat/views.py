@@ -37,6 +37,13 @@ from rest_framework.permissions import OR
             type=openapi.TYPE_INTEGER,
             required=False
         ),
+        openapi.Parameter(
+            'order', 
+            openapi.IN_QUERY, 
+            description="Thứ tự sắp xếp tin nhắn: 'asc' (cũ đến mới) hoặc 'desc' (mới đến cũ)", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
     ],
     responses={
         200: openapi.Response(
@@ -97,6 +104,7 @@ from rest_framework.permissions import OR
 def get_messages(request):
     """Lấy tin nhắn của cuộc trò chuyện"""
     conversation_with = request.query_params.get('user_id')
+    
     if not conversation_with:
         return Response({
             'message': 'user_id parameter is required',
