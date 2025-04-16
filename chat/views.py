@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, Max, Subquery, OuterRef
 from rest_framework import status
 from .models import Message
 from .serializers import MessageSerializer
@@ -11,6 +11,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.permissions import AdminAccessPermission
 from rest_framework.permissions import OR
+from django.db.models.functions import Greatest
 
 @swagger_auto_schema(
     method='get',
@@ -322,3 +323,73 @@ def get_conversations(request):
         'status': status.HTTP_200_OK,
         'data': conversations
     })
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy tin nhắn mới nhất của mỗi cuộc trò chuyện",
+    responses={
+        200: openapi.Response(
+            description="Lấy tin nhắn mới nhất thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'sender': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'recipient': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'content': openapi.Schema(type=openapi.TYPE_STRING),
+                                'is_read': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        )
+                    )
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_latest_messages(request):
+    """Lấy tin nhắn mới nhất cho mỗi cuộc trò chuyện"""
+    user_id = request.user.id
+    
+    # Tìm tin nhắn mới nhất cho mỗi cuộc trò chuyện
+    latest_messages = []
+    
+    # Lấy danh sách các cuộc trò chuyện từ tin nhắn
+    conversations = Message.objects.filter(
+        Q(sender=user_id) | Q(recipient=user_id)
+    ).values(
+        'sender', 'recipient'
+    ).annotate(
+        latest_id=Max('id')
+    ).order_by('-latest_id')
+    
+    # Lấy tin nhắn mới nhất từ mỗi cuộc trò chuyện
+    for conv in conversations:
+        other_user = conv['recipient'] if conv['sender'] == user_id else conv['sender']
+        
+        # Truy vấn tin nhắn mới nhất giữa người dùng hiện tại và other_user
+        latest_message = Message.objects.filter(
+            Q(sender=user_id, recipient=other_user) | 
+            Q(sender=other_user, recipient=user_id)
+        ).order_by('-created_at').first()
+        
+        if latest_message and latest_message not in latest_messages:
+            latest_messages.append(latest_message)
+    
+    serializer = MessageSerializer(latest_messages, many=True)
+    
+    return Response({
+        'message': 'Latest messages retrieved successfully',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
