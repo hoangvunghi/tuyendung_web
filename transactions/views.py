@@ -1,16 +1,20 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import HistoryMoney
-from .serializers import HistoryMoneySerializer
+from .models import HistoryMoney, VnPayTransaction
+from .serializers import HistoryMoneySerializer, VnPayTransactionSerializer
 from base.permissions import IsTransactionOwner, IsAdminUser, AdminAccessPermission
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from base.pagination import CustomPagination
 from base.utils import create_permission_class_with_admin_override
+from .vnpay_service import VnPayService
+from accounts.models import UserAccount
+from django.http import HttpResponseRedirect
+from django.conf import settings
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrTransactionOwner = create_permission_class_with_admin_override(IsTransactionOwner)
@@ -325,3 +329,98 @@ def get_all_history_money(request):
     paginated_history = paginator.paginate_queryset(history, request)
     serializer = HistoryMoneySerializer(paginated_history, many=True)
     return paginator.get_paginated_response(serializer.data)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Tạo URL thanh toán VNPay",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['amount'],
+        properties={
+            'amount': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số tiền thanh toán (VND)"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'payment_url': openapi.Schema(type=openapi.TYPE_STRING),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_vnpay_payment(request):
+    """
+    Tạo URL thanh toán VNPay
+    """
+    amount = request.data.get('amount')
+    
+    if not amount or int(amount) <= 0:
+        return Response({
+            'message': 'Số tiền không hợp lệ',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Tạo URL thanh toán VNPay
+        payment_url = VnPayService.create_payment_url(request, amount, request.user.id)
+        
+        return Response({
+            'message': 'Tạo URL thanh toán thành công',
+            'status': status.HTTP_200_OK,
+            'data': {
+                'payment_url': payment_url
+            }
+        })
+    except Exception as e:
+        return Response({
+            'message': str(e),
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def vnpay_payment_return(request):
+    """
+    Xử lý kết quả trả về từ VNPay
+    """
+    # Xử lý kết quả trả về từ VNPay
+    is_success, user_id = VnPayService.process_return_url(request)
+    
+    # Tùy chỉnh URL chuyển hướng
+    if is_success:
+        # Cập nhật trạng thái premium của người dùng
+        try:
+            user = UserAccount.objects.get(id=user_id)
+            user.is_premium = True
+            user.save()
+            
+            # Chuyển hướng đến URL thành công cố định
+            return HttpResponseRedirect(redirect_to='http://localhost:5173/payment-success')
+        except UserAccount.DoesNotExist:
+            pass
+    
+    # Nếu không thành công hoặc có lỗi
+    return HttpResponseRedirect(redirect_to='http://localhost:5173/payment-failed')

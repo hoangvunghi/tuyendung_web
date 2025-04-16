@@ -15,6 +15,7 @@ import os
 from django.core.cache import cache
 from django.utils.http import urlencode
 # from base.services import NotificationService
+from transactions.vnpay_service import VnPayService
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -137,6 +138,8 @@ def create_user_info(request):
                             'fullname': openapi.Schema(type=openapi.TYPE_STRING),
                             'gender': openapi.Schema(type=openapi.TYPE_STRING),
                             'balance': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'email': openapi.Schema(type=openapi.TYPE_STRING),
+                            'is_premium': openapi.Schema(type=openapi.TYPE_BOOLEAN),
                             'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                             'updated_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                         }
@@ -162,8 +165,10 @@ def get_profile(request):
     profile = get_object_or_404(UserInfo, user=request.user)
     serializer = UserInfoSerializer(profile)
     email = request.user.email
+    is_premium = request.user.is_premium
     data = serializer.data.copy()  
-    data['email'] = email   
+    data['email'] = email
+    data['is_premium'] = is_premium
     return Response({
         'message': 'Profile retrieved successfully',
         'status': status.HTTP_200_OK,
@@ -896,3 +901,165 @@ def get_cvs_by_status(request):
         'status': status.HTTP_200_OK,
         'data': serializer.data
     })
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy thông tin các gói premium",
+    responses={
+        200: openapi.Response(
+            description="Premium packages retrieved successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'user_is_premium': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'packages': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'price': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'features': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+                                }
+                            ))
+                        }
+                    )
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_premium_packages(request):
+    # Kiểm tra trạng thái premium của người dùng
+    user_is_premium = request.user.is_premium
+    
+    # Danh sách gói premium cố định
+    packages = [
+        {
+            'id': 1,
+            'name': 'Gói Premium Tháng',
+            'price': 99000,  # 99.000 VND
+            'description': 'Gói premium 1 tháng với đầy đủ tính năng',
+            'features': [
+                'Tìm kiếm nâng cao',
+                'Mở khóa đầy đủ thông tin liên hệ',
+                'Ưu tiên hiển thị hồ sơ',
+                'Hỗ trợ 24/7'
+            ]
+        },
+        {
+            'id': 2,
+            'name': 'Gói Premium Năm',
+            'price': 999000,  # 999.000 VND
+            'description': 'Gói premium 1 năm với đầy đủ tính năng, tiết kiệm hơn',
+            'features': [
+                'Tất cả tính năng của gói tháng',
+                'Tiết kiệm 16% so với đăng ký hàng tháng',
+                'Không bị gián đoạn dịch vụ',
+                'Ưu tiên hỗ trợ kỹ thuật'
+            ]
+        }
+    ]
+    
+    return Response({
+        'message': 'Premium packages retrieved successfully',
+        'status': status.HTTP_200_OK,
+        'data': {
+            'user_is_premium': user_is_premium,
+            'packages': packages
+        }
+    })
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Mua gói premium",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['package_id'],
+        properties={
+            'package_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của gói premium"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Payment URL created successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'payment_url': openapi.Schema(type=openapi.TYPE_STRING),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Bad request",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def purchase_premium(request):
+    # Kiểm tra xem người dùng đã là premium chưa
+    if request.user.is_premium:
+        return Response({
+            'message': 'Tài khoản của bạn đã là premium',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Lấy ID gói premium từ request
+    package_id = request.data.get('package_id')
+    
+    # Danh sách gói premium cố định
+    packages = {
+        1: {'name': 'Gói Premium Tháng', 'price': 99000},
+        2: {'name': 'Gói Premium Năm', 'price': 999000}
+    }
+    
+    # Kiểm tra ID gói premium hợp lệ
+    if not package_id or int(package_id) not in packages:
+        return Response({
+            'message': 'Gói premium không hợp lệ',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    package_id = int(package_id)
+    package = packages[package_id]
+    
+    try:
+        # Tạo URL thanh toán VNPay
+        payment_url = VnPayService.create_payment_url(request, package['price'], request.user.id)
+        
+        return Response({
+            'message': 'Tạo URL thanh toán thành công',
+            'status': status.HTTP_200_OK,
+            'data': {
+                'payment_url': payment_url
+            }
+        })
+    except Exception as e:
+        return Response({
+            'message': str(e),
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)

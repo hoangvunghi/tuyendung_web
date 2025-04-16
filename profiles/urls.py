@@ -22,4 +22,8 @@ urlpatterns = [
     path('profile/', views.get_profile, name='get-profile'),
     path('profile/update/', views.update_profile, name='update-profile'),
     path('create-user-info/', views.create_user_info, name='create-user-info'),
+    
+    # Premium
+    path('premium/packages/', views.get_premium_packages, name='premium-packages'),
+    path('premium/purchase/', views.purchase_premium, name='purchase-premium'),
 ]

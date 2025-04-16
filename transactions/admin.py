@@ -14,3 +14,18 @@ class HistoryMoneyAdmin(BaseAdminClass):
     list_filter = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
     search_fields = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
     list_display_links = ('user', 'amount', 'balance_after', 'is_add_money', 'created_at', 'modified_at')
+
+@admin.register(VnPayTransaction)
+class VnPayTransactionAdmin(BaseAdminClass):
+    list_display = ('user', 'amount', 'transaction_status', 'txn_ref', 'created_at')
+    list_filter = ('transaction_status', 'created_at')
+    search_fields = ('user__username', 'user__email', 'txn_ref', 'transaction_no')
+    readonly_fields = ('created_at', 'modified_at', 'transaction_no', 'transaction_status', 'txn_ref')
+    ordering = ('-created_at',)
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+    
+    def has_delete_permission(self, request, obj=None):
+        return False

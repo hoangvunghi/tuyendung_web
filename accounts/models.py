@@ -32,6 +32,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     modified_at = models.DateTimeField(auto_now=True)
     activation_token = models.CharField(max_length=255, blank=True, null=True)
     activation_token_expiry = models.DateTimeField(null=True, blank=True)  
+    is_premium = models.BooleanField(default=False)
     objects = UserAccountManager()
 
     USERNAME_FIELD = 'username'
