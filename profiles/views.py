@@ -946,7 +946,7 @@ def get_premium_packages(request):
         {
             'id': 1,
             'name': 'Gói Premium Tháng',
-            'price': 99000,  # 99.000 VND
+            'price': 99000,  
             'description': 'Gói premium 1 tháng với đầy đủ tính năng',
             'features': [
                 'Tìm kiếm nâng cao',
@@ -958,7 +958,7 @@ def get_premium_packages(request):
         {
             'id': 2,
             'name': 'Gói Premium Năm',
-            'price': 999000,  # 999.000 VND
+            'price': 999000,  
             'description': 'Gói premium 1 năm với đầy đủ tính năng, tiết kiệm hơn',
             'features': [
                 'Tất cả tính năng của gói tháng',
@@ -1048,14 +1048,24 @@ def purchase_premium(request):
     package = packages[package_id]
     
     try:
-        # Tạo URL thanh toán VNPay
-        payment_url = VnPayService.create_payment_url(request, package['price'], request.user.id)
+        # Tạo URL thanh toán VNPay và truyền thêm package_id
+        payment_url = VnPayService.create_payment_url(
+            request, 
+            package['price'], 
+            request.user.id,
+            package_id
+        )
         
         return Response({
             'message': 'Tạo URL thanh toán thành công',
             'status': status.HTTP_200_OK,
             'data': {
-                'payment_url': payment_url
+                'payment_url': payment_url,
+                'package': {
+                    'id': package_id,
+                    'name': package['name'],
+                    'price': package['price']
+                }
             }
         })
     except Exception as e:

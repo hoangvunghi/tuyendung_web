@@ -10,7 +10,7 @@ from accounts.models import UserAccount
 
 class VnPayService:
     @staticmethod
-    def create_payment_url(request, amount, user_id):
+    def create_payment_url(request, amount, user_id, package_id=None):
         """
         Tạo URL thanh toán VNPay cho người dùng
         
@@ -18,6 +18,7 @@ class VnPayService:
             request: HttpRequest object
             amount: Số tiền thanh toán (VND)
             user_id: ID của người dùng
+            package_id: ID của gói premium (nếu có)
         
         Returns:
             URL thanh toán VNPay
@@ -30,7 +31,11 @@ class VnPayService:
         
         # Tạo thông tin giao dịch
         vnp_TxnRef = VnPayConfig.get_random_number(8)  # Mã giao dịch, cần đảm bảo unique
-        vnp_OrderInfo = f"premium_{user_id}"  # Mô tả đơn hàng
+        # Thêm thông tin gói premium vào OrderInfo
+        if package_id:
+            vnp_OrderInfo = f"premium_{user_id}_{package_id}"  # Mô tả đơn hàng với ID gói
+        else:
+            vnp_OrderInfo = f"premium_{user_id}"  # Mô tả đơn hàng
         vnp_OrderType = "billpayment"
         vnp_Amount = int(amount) * 100  # VNPay yêu cầu số tiền * 100
         vnp_Locale = 'vn'
@@ -87,12 +92,12 @@ class VnPayService:
             request: HttpRequest object
         
         Returns:
-            Tuple (is_success, user_id)
+            Tuple (is_success, user_id, package_id)
         """
         # Lấy các tham số từ request
         input_data = request.GET
         if not input_data:
-            return False, None
+            return False, None, None
         
         # Tạo danh sách tham số để kiểm tra
         vnp_Params = {}
@@ -103,7 +108,7 @@ class VnPayService:
         # Kiểm tra chữ ký
         vnp_SecureHash = vnp_Params.pop('vnp_SecureHash', None)
         if not vnp_SecureHash:
-            return False, None
+            return False, None, None
         
         # Sắp xếp params theo key
         sorted_params = sorted(vnp_Params.items())
@@ -114,7 +119,7 @@ class VnPayService:
         
         # So sánh chữ ký
         if secure_hash != vnp_SecureHash:
-            return False, None
+            return False, None, None
         
         # Lấy thông tin giao dịch
         vnp_ResponseCode = vnp_Params.get('vnp_ResponseCode')
@@ -124,13 +129,13 @@ class VnPayService:
         
         # Kiểm tra mã giao dịch
         if not vnp_TxnRef:
-            return False, None
+            return False, None, None
         
         # Tìm giao dịch trong database
         try:
             transaction = VnPayTransaction.objects.get(txn_ref=vnp_TxnRef)
         except VnPayTransaction.DoesNotExist:
-            return False, None
+            return False, None, None
         
         # Cập nhật thông tin giao dịch
         transaction.transaction_no = vnp_TransactionNo
@@ -139,13 +144,14 @@ class VnPayService:
         
         # Kiểm tra kết quả giao dịch
         if vnp_ResponseCode == '00':
-            # Lấy user_id từ OrderInfo
+            # Lấy user_id và package_id từ OrderInfo
             try:
                 order_parts = vnp_OrderInfo.split('_')
                 if len(order_parts) >= 2 and order_parts[0] == 'premium':
                     user_id = int(order_parts[1])
-                    return True, user_id
+                    package_id = int(order_parts[2]) if len(order_parts) >= 3 else 1  # Mặc định gói 1 nếu không có
+                    return True, user_id, package_id
             except (ValueError, IndexError):
                 pass
         
-        return False, None 
+        return False, None, None 

@@ -15,7 +15,8 @@ from .vnpay_service import VnPayService
 from accounts.models import UserAccount
 from django.http import HttpResponseRedirect
 from django.conf import settings
-
+from django.utils import timezone
+from datetime import timedelta
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrTransactionOwner = create_permission_class_with_admin_override(IsTransactionOwner)
 
@@ -407,18 +408,28 @@ def vnpay_payment_return(request):
     Xử lý kết quả trả về từ VNPay
     """
     # Xử lý kết quả trả về từ VNPay
-    is_success, user_id = VnPayService.process_return_url(request)
+    is_success, user_id, package_id = VnPayService.process_return_url(request)
     
-    # Tùy chỉnh URL chuyển hướng
     if is_success:
-        # Cập nhật trạng thái premium của người dùng
         try:
             user = UserAccount.objects.get(id=user_id)
             user.is_premium = True
+            
+            # Xác định thời hạn premium dựa vào gói đã mua
+            if package_id == 2:  # Gói năm
+                user.premium_expiry = timezone.now() + timedelta(days=365)
+            else:  # Gói tháng hoặc mặc định
+                user.premium_expiry = timezone.now() + timedelta(days=30)
+            
             user.save()
             
-            # Chuyển hướng đến URL thành công cố định
-            return HttpResponseRedirect(redirect_to='http://localhost:5173/payment-success')
+            # Lấy tên gói
+            package_name = "Gói Premium Năm" if package_id == 2 else "Gói Premium Tháng"
+            
+            # Chuyển hướng đến URL thành công với thông tin gói
+            return HttpResponseRedirect(
+                redirect_to=f'http://localhost:5173/payment-success?package={package_id}&name={package_name}'
+            )
         except UserAccount.DoesNotExist:
             pass
     
