@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.utils import timezone
 
 class UserAccountManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
@@ -74,6 +75,33 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         except Exception as e:
             # Xử lý ngoại lệ, trả về username
             return self.username
+
+    def get_premium_package_name(self):
+        """
+        Lấy tên gói Premium hiện tại của người dùng từ lịch sử Premium
+        """
+        if not self.is_premium:
+            return None
+            
+        try:
+            # Import ở đây để tránh circular import
+            from transactions.models import PremiumHistory
+            
+            # Lấy lịch sử Premium gần nhất và đang hoạt động
+            premium_history = PremiumHistory.objects.filter(
+                user=self,
+                is_active=True,
+                is_cancelled=False,
+                end_date__gt=timezone.now()
+            ).order_by('-created_at').first()
+            
+            if premium_history:
+                return premium_history.package_name
+                
+            return "Premium"  # Mặc định nếu không tìm thấy
+        except Exception as e:
+            print(f"Error getting premium package name: {str(e)}")
+            return "Premium"  # Mặc định nếu có lỗi
 
     class Meta:
         verbose_name = 'Tài khoản'

@@ -18,6 +18,7 @@ urlpatterns = [
     path('cv/<int:pk>/mark/', views.mark_cv, name='mark-cv'),
     path('cv/mark-as-viewed/<int:pk>/', views.view_cv, name='view-cv'),
     path('cv/<int:pk>/note/', views.update_cv_note, name='update-cv-note'),
+    
     # profile
     path('profile/', views.get_profile, name='get-profile'),
     path('profile/update/', views.update_profile, name='update-profile'),
@@ -26,4 +27,5 @@ urlpatterns = [
     # Premium
     path('premium/packages/', views.get_premium_packages, name='premium-packages'),
     path('premium/purchase/', views.purchase_premium, name='purchase-premium'),
+    path('premium/return/', views.process_return_premium, name='process-return-premium'),
 ]

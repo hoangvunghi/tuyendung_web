@@ -29,3 +29,17 @@ class VnPayTransactionAdmin(BaseAdminClass):
     
     def has_delete_permission(self, request, obj=None):
         return False
+
+@admin.register(PremiumPackage)
+class PremiumPackageAdmin(BaseAdminClass):
+    list_display = ('name', 'price', 'duration_days', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(PremiumHistory)
+class PremiumHistoryAdmin(BaseAdminClass):
+    list_display = ('user', 'package', 'start_date', 'end_date', 'is_active', 'is_cancelled')
+    list_filter = ('is_active', 'is_cancelled')

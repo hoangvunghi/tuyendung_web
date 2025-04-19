@@ -16,6 +16,12 @@ from django.core.cache import cache
 from django.utils.http import urlencode
 # from base.services import NotificationService
 from transactions.vnpay_service import VnPayService
+from django.utils import timezone
+from datetime import timedelta
+from django.urls import reverse
+from django.contrib import messages
+from django.conf import settings
+from accounts.models import UserAccount
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -171,6 +177,7 @@ def get_profile(request):
     data['is_premium'] = is_premium
     if is_premium:
         data['premium_expiry'] = request.user.premium_expiry
+        data['name_display'] = request.user.get_premium_package_name()
     return Response({
         'message': 'Profile retrieved successfully',
         'status': status.HTTP_200_OK,
@@ -919,6 +926,7 @@ def get_cvs_by_status(request):
                         type=openapi.TYPE_OBJECT,
                         properties={
                             'user_is_premium': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'premium_expiry': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                             'packages': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(
                                 type=openapi.TYPE_OBJECT,
                                 properties={
@@ -927,8 +935,10 @@ def get_cvs_by_status(request):
                                     'price': openapi.Schema(type=openapi.TYPE_INTEGER),
                                     'description': openapi.Schema(type=openapi.TYPE_STRING),
                                     'features': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+                                    'duration_days': openapi.Schema(type=openapi.TYPE_INTEGER),
                                 }
-                            ))
+                            )),
+                            'premium_history': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
                         }
                     )
                 }
@@ -942,41 +952,86 @@ def get_cvs_by_status(request):
 def get_premium_packages(request):
     # Kiểm tra trạng thái premium của người dùng
     user_is_premium = request.user.is_premium
+    premium_expiry = request.user.premium_expiry
     
-    # Danh sách gói premium cố định
-    packages = [
-        {
-            'id': 1,
-            'name': 'Gói Premium Tháng',
-            'price': 99000,  
-            'description': 'Gói premium 1 tháng với đầy đủ tính năng',
-            'features': [
-                'Tìm kiếm nâng cao',
-                'Mở khóa đầy đủ thông tin liên hệ',
-                'Ưu tiên hiển thị hồ sơ',
-                'Hỗ trợ 24/7'
-            ]
-        },
-        {
-            'id': 2,
-            'name': 'Gói Premium Năm',
-            'price': 999000,  
-            'description': 'Gói premium 1 năm với đầy đủ tính năng, tiết kiệm hơn',
-            'features': [
-                'Tất cả tính năng của gói tháng',
-                'Tiết kiệm 16% so với đăng ký hàng tháng',
-                'Không bị gián đoạn dịch vụ',
-                'Ưu tiên hỗ trợ kỹ thuật'
-            ]
-        }
-    ]
+    # Import các model cần thiết
+    from transactions.models import PremiumPackage, PremiumHistory
+    
+    # Lấy các gói Premium từ database
+    packages = PremiumPackage.objects.filter(is_active=True).order_by('price')
+    packages_data = []
+    
+    for package in packages:
+        # Chuyển đổi JSONField features thành list
+        features_list = package.features if isinstance(package.features, list) else []
+        
+        packages_data.append({
+            'id': package.id,
+            'name': package.name,
+            'price': int(package.price),  # Chuyển Decimal sang int để JSON serializable
+            'description': package.description,
+            'features': features_list,
+            'duration_days': package.duration_days
+        })
+    
+    # Nếu không có gói nào trong database, dùng gói mặc định
+    if not packages_data:
+        packages_data = [
+            {
+                'id': 1,
+                'name': 'Gói Premium Tháng',
+                'price': 99000,  
+                'description': 'Gói premium 1 tháng với đầy đủ tính năng',
+                'features': [
+                    'Tìm kiếm nâng cao',
+                    'Mở khóa đầy đủ thông tin liên hệ',
+                    'Ưu tiên hiển thị hồ sơ',
+                    'Hỗ trợ 24/7'
+                ],
+                'duration_days': 30
+            },
+            {
+                'id': 2,
+                'name': 'Gói Premium Năm',
+                'price': 999000,  
+                'description': 'Gói premium 1 năm với đầy đủ tính năng, tiết kiệm hơn',
+                'features': [
+                    'Tất cả tính năng của gói tháng',
+                    'Tiết kiệm 16% so với đăng ký hàng tháng',
+                    'Không bị gián đoạn dịch vụ',
+                    'Ưu tiên hỗ trợ kỹ thuật'
+                ],
+                'duration_days': 365
+            }
+        ]
+    
+    # Lấy lịch sử Premium của người dùng
+    premium_history = []
+    try:
+        history_items = PremiumHistory.objects.filter(user=request.user).order_by('-created_at')[:5]  # 5 gói gần nhất
+        
+        for item in history_items:
+            premium_history.append({
+                'id': item.id,
+                'package_name': item.package_name,
+                'package_price': int(item.package_price),
+                'start_date': item.start_date.strftime('%d/%m/%Y'),
+                'end_date': item.end_date.strftime('%d/%m/%Y'),
+                'is_active': item.is_active,
+                'is_cancelled': item.is_cancelled,
+                'cancelled_date': item.cancelled_date.strftime('%d/%m/%Y') if item.cancelled_date else None,
+            })
+    except Exception as e:
+        print(f"Error fetching premium history: {str(e)}")
     
     return Response({
         'message': 'Premium packages retrieved successfully',
         'status': status.HTTP_200_OK,
         'data': {
             'user_is_premium': user_is_premium,
-            'packages': packages
+            'premium_expiry': premium_expiry.strftime('%d/%m/%Y %H:%M:%S') if premium_expiry else None,
+            'packages': packages_data,
+            'premium_history': premium_history
         }
     })
 
@@ -1033,29 +1088,34 @@ def purchase_premium(request):
     # Lấy ID gói premium từ request
     package_id = request.data.get('package_id')
     
-    # Danh sách gói premium cố định
-    packages = {
-        1: {'name': 'Gói Premium Tháng', 'price': 99000},
-        2: {'name': 'Gói Premium Năm', 'price': 999000}
-    }
-    
-    # Kiểm tra ID gói premium hợp lệ
-    if not package_id or int(package_id) not in packages:
+    if not package_id:
         return Response({
-            'message': 'Gói premium không hợp lệ',
+            'message': 'Vui lòng chọn gói Premium',
             'status': status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    package_id = int(package_id)
-    package = packages[package_id]
+    # Import model PremiumPackage
+    from transactions.models import PremiumPackage
     
     try:
+        # Chuyển đổi package_id sang số nguyên
+        package_id = int(package_id)
+        
+        # Tìm gói Premium trong database
+        try:
+            package = PremiumPackage.objects.get(id=package_id, is_active=True)
+        except PremiumPackage.DoesNotExist:
+            return Response({
+                'message': 'Gói Premium không tồn tại hoặc không hoạt động',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Tạo URL thanh toán VNPay và truyền thêm package_id
         payment_url = VnPayService.create_payment_url(
             request, 
-            package['price'], 
+            int(package.price), 
             request.user.id,
-            package_id
+            package.id
         )
         
         return Response({
@@ -1064,14 +1124,110 @@ def purchase_premium(request):
             'data': {
                 'payment_url': payment_url,
                 'package': {
-                    'id': package_id,
-                    'name': package['name'],
-                    'price': package['price']
+                    'id': package.id,
+                    'name': package.name,
+                    'price': int(package.price)
                 }
             }
         })
-    except Exception as e:
+    except ValueError:
         return Response({
-            'message': str(e),
+            'message': 'ID gói Premium không hợp lệ',
             'status': status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'message': f'Lỗi khi tạo URL thanh toán: {str(e)}',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def process_return_premium(request):
+    """
+    Xử lý kết quả từ VNPay sau khi thanh toán Premium
+    """
+    from transactions.models import PremiumPackage, PremiumHistory
+    from datetime import datetime, timedelta
+    from django.utils import timezone
+    
+    # Xử lý kết quả từ VNPay
+    is_success, user_id, package_id = VnPayService.process_return_url(request)
+    
+    # Tham số để redirect về client
+    redirect_status = 'success' if is_success else 'failed'
+    redirect_url = f"{settings.FRONTEND_URL}/premium?status={redirect_status}"
+    
+    if is_success and user_id and package_id:
+        try:
+            # Lấy thông tin người dùng
+            user = UserAccount.objects.get(id=user_id)
+            
+            # Lấy thông tin gói Premium từ database
+            package = None
+            try:
+                package = PremiumPackage.objects.get(id=package_id)
+                package_name = package.name
+                package_price = package.price
+                duration_days = package.duration_days
+            except PremiumPackage.DoesNotExist:
+                # Nếu không tìm thấy, dùng thông tin mặc định
+                premium_packages = {
+                    1: {'name': 'Gói Premium Tháng', 'price': 99000, 'duration_days': 30},
+                    2: {'name': 'Gói Premium Năm', 'price': 999000, 'duration_days': 365}
+                }
+                if package_id in premium_packages:
+                    package_info = premium_packages[package_id]
+                    package_name = package_info['name']
+                    package_price = package_info['price']
+                    duration_days = package_info['duration_days']
+                else:
+                    # Nếu không có package_id trong danh sách mặc định, dùng gói tháng
+                    package_name = 'Gói Premium Tháng'
+                    package_price = 99000
+                    duration_days = 30
+            
+            # Tính ngày bắt đầu và kết thúc
+            start_date = timezone.now()
+            end_date = start_date + timedelta(days=duration_days)
+            
+            # Cập nhật thông tin premium cho người dùng
+            user.is_premium = True
+            user.premium_expiry = end_date
+            user.save()
+            
+            # Tìm giao dịch VnPay
+            from transactions.models import VnPayTransaction
+            try:
+                # Lấy giao dịch gần nhất của người dùng
+                transaction = VnPayTransaction.objects.filter(
+                    user=user,
+                    transaction_status='00'  # Trạng thái thành công
+                ).order_by('-created_at').first()
+                
+                # Lưu lịch sử premium
+                PremiumHistory.objects.create(
+                    user=user,
+                    package=package,  # Có thể None nếu không tìm thấy trong database
+                    transaction=transaction,
+                    package_name=package_name,
+                    package_price=package_price,
+                    start_date=start_date,
+                    end_date=end_date,
+                    is_active=True
+                )
+            except Exception as e:
+                print(f"Error creating premium history: {str(e)}")
+                # Vẫn tiếp tục xử lý nếu có lỗi
+            
+            return redirect(redirect_url)
+            
+        except UserAccount.DoesNotExist:
+            # Người dùng không tồn tại
+            return redirect(redirect_url)
+        except Exception as e:
+            # Lỗi khác
+            print(f"Error processing premium payment: {str(e)}")
+            return redirect(redirect_url)
+    
+    return redirect(redirect_url)

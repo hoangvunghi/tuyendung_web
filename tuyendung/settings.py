@@ -118,7 +118,7 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_UNIQUE_EMAIL = True
 
 # URL Frontend cho redirect sau khi login
-FRONTEND_URL = 'http://localhost:8000'
+FRONTEND_URL = 'http://localhost:5173'
 
 CHANNEL_LAYERS = {
     'default': {

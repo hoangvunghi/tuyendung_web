@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Gói Premium Tháng",
+    "name_display": "Monthly Premium",
+    "description": "Gói Premium hàng tháng với đầy đủ tính năng cao cấp",
+    "price": 99000,
+    "duration_days": 30,
+    "features": [
+      "Ưu tiên hiển thị hồ sơ khi nhà tuyển dụng tìm kiếm",
+      "Xem trước thông tin nhà tuyển dụng",
+      "Thông báo việc làm phù hợp qua email",
+      "Hỗ trợ 24/7",
+      "Tải không giới hạn mẫu CV cao cấp"
+    ],
+    "is_active": true
+  },
+  {
+    "name": "Gói Premium Quý",
+    "name_display": "Quarterly Premium",
+    "description": "Gói Premium 3 tháng với nhiều ưu đãi hấp dẫn",
+    "price": 269000,
+    "duration_days": 90,
+    "features": [
+      "Ưu tiên hiển thị hồ sơ khi nhà tuyển dụng tìm kiếm",
+      "Xem trước thông tin nhà tuyển dụng",
+      "Thông báo việc làm phù hợp qua email",
+      "Hỗ trợ 24/7",
+      "Tải không giới hạn mẫu CV cao cấp",
+      "Nhận xét và đánh giá CV từ chuyên gia",
+      "Tiết kiệm 10% so với gói tháng"
+    ],
+    "is_active": true
+  },
+  {
+    "name": "Gói Premium Năm",
+    "name_display": "Yearly Premium",
+    "description": "Gói Premium 1 năm với đầy đủ tính năng và nhiều ưu đãi lớn",
+    "price": 999000,
+    "duration_days": 365,
+    "features": [
+      "Ưu tiên hiển thị hồ sơ khi nhà tuyển dụng tìm kiếm",
+      "Xem trước thông tin nhà tuyển dụng",
+      "Thông báo việc làm phù hợp qua email",
+      "Hỗ trợ 24/7",
+      "Tải không giới hạn mẫu CV cao cấp",
+      "Nhận xét và đánh giá CV từ chuyên gia",
+      "Hướng dẫn cá nhân hóa cho cuộc phỏng vấn",
+      "Tư vấn nghề nghiệp 1-1 với chuyên gia",
+      "Tiết kiệm 16% so với gói tháng"
+    ],
+    "is_active": true
+  },
+  {
+    "name": "Gói Sinh Viên",
+    "name_display": "Student Premium",
+    "description": "Gói Premium đặc biệt dành cho sinh viên mới ra trường",
+    "price": 79000,
+    "duration_days": 30,
+    "features": [
+      "Ưu tiên hiển thị hồ sơ khi nhà tuyển dụng tìm kiếm",
+      "Thông báo việc làm entry-level phù hợp",
+      "Hỗ trợ tạo CV chuyên nghiệp",
+      "Tư vấn định hướng nghề nghiệp"
+    ],
+    "is_active": true
+  },
+  {
+    "name": "Gói Chuyên Gia",
+    "name_display": "Expert Premium",
+    "description": "Gói cao cấp nhất với đầy đủ tính năng và ưu đãi hấp dẫn",
+    "price": 1499000,
+    "duration_days": 365,
+    "features": [
+      "Ưu tiên cao nhất khi hiển thị hồ sơ trong tìm kiếm",
+      "Xem không giới hạn thông tin nhà tuyển dụng",
+      "Thông báo việc làm phù hợp theo thời gian thực",
+      "Hỗ trợ VIP 24/7",
+      "Tải không giới hạn mọi mẫu CV và tài liệu",
+      "Nhận xét và đánh giá CV chuyên sâu từ chuyên gia cấp cao",
+      "Luyện tập phỏng vấn với phản hồi chi tiết",
+      "Tư vấn nghề nghiệp trọn gói với chuyên gia đầu ngành",
+      "Tiếp cận độc quyền với các cơ hội việc làm cao cấp"
+    ],
+    "is_active": true
+  }
+] 

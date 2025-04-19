@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import HistoryMoney, VnPayTransaction
+from .models import HistoryMoney, PremiumHistory, VnPayTransaction
 from .serializers import HistoryMoneySerializer, VnPayTransactionSerializer
 from base.permissions import IsTransactionOwner, IsAdminUser, AdminAccessPermission
 from drf_yasg.utils import swagger_auto_schema
@@ -17,6 +17,7 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+import urllib.parse
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrTransactionOwner = create_permission_class_with_admin_override(IsTransactionOwner)
 
@@ -423,26 +424,56 @@ def vnpay_payment_return(request):
     
     if is_success:
         try:
+            # Import model PremiumPackage
+            from transactions.models import PremiumPackage
+            
             user = UserAccount.objects.get(id=user_id)
             user.is_premium = True
             
-            # Xác định thời hạn premium dựa vào gói đã mua
-            if package_id == 2:  # Gói năm
-                user.premium_expiry = timezone.now() + timedelta(days=365)
-            else:  # Gói tháng hoặc mặc định
-                user.premium_expiry = timezone.now() + timedelta(days=30)
+            # Lấy thông tin gói từ database
+            try:
+                package = PremiumPackage.objects.get(id=package_id)
+                package_name = package.name
+                duration_days = package.duration_days
+                package_price = package.price
+                name_display = package.name_display
+            except PremiumPackage.DoesNotExist:
+                # Nếu không tìm thấy, dùng giá trị mặc định
+                duration_days = 30
+                package_name = "Gói Premium Tháng"
+                if package_id == 2:
+                    duration_days = 365
+                    package_name = "Gói Premium Năm"
             
+            # Xác định thời hạn premium dựa vào gói đã mua
+            user.premium_expiry = timezone.now() + timedelta(days=duration_days)
             user.save()
             
-            # Lấy tên gói
-            package_name = "Gói Premium Năm" if package_id == 2 else "Gói Premium Tháng"
-            
+            # Đặt giá mặc định cho package_price nếu không tìm thấy package
+            package_price = 99000
+            if package:
+                package_price = package.price
+            elif package_id == 2:
+                package_price = 999000
+            package_name = package.name
+            name_display = package.name_display
+            package_price = package.price
+            # cập nhật lịch sử 
+            PremiumHistory.objects.create(
+                user=user,
+                package=package,
+                package_name=package_name,
+                package_price=package_price,
+                start_date=timezone.now(),
+                end_date=user.premium_expiry,
+                is_active=True
+            )
             # Chuyển hướng đến URL thành công với thông tin gói
             return HttpResponseRedirect(
-                redirect_to=f'http://localhost:5173/payment-success?package={package_id}&name={package_name}'
+                redirect_to=f'{settings.FRONTEND_URL}/payment-success?package={package_id}&name={urllib.parse.quote(package_name)}'
             )
         except UserAccount.DoesNotExist:
             pass
     
     # Nếu không thành công hoặc có lỗi
-    return HttpResponseRedirect(redirect_to='http://localhost:5173/payment-failed')
+    return HttpResponseRedirect(redirect_to=f'{settings.FRONTEND_URL}/payment-failed')

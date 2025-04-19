@@ -1072,10 +1072,26 @@ def delete_premium(request):
                 'status': status.HTTP_400_BAD_REQUEST
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Import model PremiumHistory
+        from transactions.models import PremiumHistory
+        
+        # Lấy lịch sử Premium đang hoạt động
+        active_history = PremiumHistory.objects.filter(
+            user=user,
+            is_active=True
+        ).order_by('-created_at').first()
+        
         # Hủy trạng thái Premium
         user.is_premium = False
         user.premium_expiry = None
         user.save()
+        
+        # Cập nhật lịch sử Premium nếu có
+        if active_history:
+            active_history.is_active = False
+            active_history.is_cancelled = True
+            active_history.cancelled_date = timezone.now()
+            active_history.save()
         
         return Response({
             'message': 'Đã hủy gói Premium thành công',

@@ -2,6 +2,8 @@ import json
 import os
 import django
 import sys
+from django.utils import timezone
+from datetime import timedelta
 
 # Thêm đường dẫn của project vào sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,6 +15,7 @@ django.setup()
 from enterprises.models import FieldEntity, PositionEntity, EnterpriseEntity,PostEntity
 from accounts.models import UserAccount, Role, UserRole
 from profiles.models import UserInfo
+from transactions.models import PremiumPackage
 # from posts.models import PostEntity
 
 def import_fields_from_json(file_path):
@@ -250,17 +253,71 @@ def import_posts_from_json(file_path):
 
     return results
 
+def import_premium_packages_from_json(file_path):
+    """
+    Nhập các gói Premium từ file JSON
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        total = 0
+        success = 0
+        failed = 0
+        errors = []
+        
+        for item in data:
+            total += 1
+            try:
+                # Tạo hoặc cập nhật gói Premium
+                package, created = PremiumPackage.objects.update_or_create(
+                    name=item['name'],
+                    defaults={
+                        'description': item['description'],
+                        'price': item['price'],
+                        'duration_days': item['duration_days'],
+                        'features': item['features'],
+                        'is_active': item.get('is_active', True),
+                        'name_display': item.get('name_display', '')
+                    }
+                )
+                success += 1
+            except Exception as e:
+                failed += 1
+                errors.append(f"Lỗi khi import gói Premium {item.get('name', '')}: {str(e)}")
+        
+        return {
+            'total': total,
+            'success': success,
+            'failed': failed,
+            'errors': errors
+        }
+    except FileNotFoundError:
+        return {
+            'total': 0,
+            'success': 0,
+            'failed': 0,
+            'errors': ['File not found']
+        }
+    except json.JSONDecodeError:
+        return {
+            'total': 0,
+            'success': 0,
+            'failed': 0,
+            'errors': ['Invalid JSON format']
+        }
+
 if __name__ == '__main__':
-    # Import fields
-    fields_result = import_fields_from_json('data/fields.json')
-    print("\nImport Fields Result:")
-    print(f"Total: {fields_result['total']}")
-    print(f"Success: {fields_result['success']}")
-    print(f"Failed: {fields_result['failed']}")
-    if fields_result['errors']:
-        print("Errors:")
-        for error in fields_result['errors']:
-            print(f"- {error}")
+    # # Import fields
+    # fields_result = import_fields_from_json('data/fields.json')
+    # print("\nImport Fields Result:")
+    # print(f"Total: {fields_result['total']}")
+    # print(f"Success: {fields_result['success']}")
+    # print(f"Failed: {fields_result['failed']}")
+    # if fields_result['errors']:
+    #     print("Errors:")
+    #     for error in fields_result['errors']:
+    #         print(f"- {error}")
 
     # # Import positions
     # positions_result = import_positions_from_json('data/positions.json')
@@ -274,15 +331,15 @@ if __name__ == '__main__':
     #         print(f"- {error}")
 
     # Import enterprises and recruiters
-    enterprises_result = import_enterprises_from_json('data/enterprises.json')
-    print("\nImport Enterprises and Recruiters Result:")
-    print(f"Total: {enterprises_result['total']}")
-    print(f"Success: {enterprises_result['success']}")
-    print(f"Failed: {enterprises_result['failed']}")
-    if enterprises_result['errors']:
-        print("Errors:")
-        for error in enterprises_result['errors']:
-            print(f"- {error}")
+    # enterprises_result = import_enterprises_from_json('data/enterprises.json')
+    # print("\nImport Enterprises and Recruiters Result:")
+    # print(f"Total: {enterprises_result['total']}")
+    # print(f"Success: {enterprises_result['success']}")
+    # print(f"Failed: {enterprises_result['failed']}")
+    # if enterprises_result['errors']:
+    #     print("Errors:")
+    #     for error in enterprises_result['errors']:
+    #         print(f"- {error}")
 
     # # Import posts
     # posts_result = import_posts_from_json('data/posts.json')
@@ -293,4 +350,15 @@ if __name__ == '__main__':
     # if posts_result['errors']:
     #     print("Errors:")
     #     for error in posts_result['errors']:
-    #         print(f"- {error}") 
+    #         print(f"- {error}")
+    
+    # Import premium packages
+    premium_packages_result = import_premium_packages_from_json('data/premium_packages.json')
+    print("\nImport Premium Packages Result:")
+    print(f"Total: {premium_packages_result['total']}")
+    print(f"Success: {premium_packages_result['success']}")
+    print(f"Failed: {premium_packages_result['failed']}")
+    if premium_packages_result['errors']:
+        print("Errors:")
+        for error in premium_packages_result['errors']:
+            print(f"- {error}") 
