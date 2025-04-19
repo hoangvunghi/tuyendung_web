@@ -9,13 +9,13 @@ from base.admin import BaseAdminClass
 
 @admin.register(UserAccount)
 class UserAccountAdmin(BaseAdminClass):
-    list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned')
+    list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned','is_premium','premium_expiry')
     list_filter = ('is_active', 'is_staff', 'is_banned')
-    search_fields = ('email',)
+    search_fields = ('username',)
     list_per_page = 10
     list_max_show_all = 100
-    list_editable = ('is_active', 'is_staff', 'is_banned')
-    list_display_links = ('email',)
+    list_editable = ('is_active', 'is_staff', 'is_banned','is_premium','premium_expiry')
+    list_display_links = ('username',)
 
     compressed_fields = True  
     warn_unsaved_form = True 

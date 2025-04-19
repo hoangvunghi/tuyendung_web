@@ -1028,3 +1028,62 @@ def get_user_info(request, user_id):
             'message': 'User not found',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Hủy trạng thái Premium của người dùng (tự động hoặc thủ công)",
+    responses={
+        200: openapi.Response(
+            description="Hủy Premium thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Lỗi khi hủy Premium",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_premium(request):
+    """
+    API để hủy trạng thái Premium của người dùng (tự động hoặc thủ công)
+    """
+    try:
+        user = request.user
+        
+        # Kiểm tra người dùng có phải Premium không
+        if not user.is_premium:
+            return Response({
+                'message': 'Người dùng không có gói Premium để hủy',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Hủy trạng thái Premium
+        user.is_premium = False
+        user.premium_expiry = None
+        user.save()
+        
+        return Response({
+            'message': 'Đã hủy gói Premium thành công',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'message': f'Lỗi khi hủy Premium: {str(e)}',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)

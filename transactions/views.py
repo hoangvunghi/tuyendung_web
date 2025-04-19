@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
@@ -402,7 +402,18 @@ def create_vnpay_payment(request):
             'status': status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Xử lý kết quả trả về từ VNPay",
+    responses={
+        302: openapi.Response(
+            description="Redirect to frontend success/failure page",
+        )
+    },
+    security=[]  # Không yêu cầu xác thực
+)
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def vnpay_payment_return(request):
     """
     Xử lý kết quả trả về từ VNPay

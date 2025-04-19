@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     login, register, token_refresh, forgot_password_view, 
     reset_password_view, social_auth_token,
-    complete_google_profile, set_role_for_user, get_user_info
+    complete_google_profile, set_role_for_user, get_user_info,
+    delete_premium
 )
 from . import views
 
@@ -19,4 +20,5 @@ urlpatterns = [
     path('auth/social/complete', views.social_auth_complete_redirect, name='social_auth_complete_redirect'),
     path('set-role/', set_role_for_user, name='set_user_role'),
     path('users/<int:user_id>/info/', get_user_info, name='get_user_info'),
+    path('delete-premium/', delete_premium, name='delete_premium'),
 ]

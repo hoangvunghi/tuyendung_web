@@ -169,6 +169,8 @@ def get_profile(request):
     data = serializer.data.copy()  
     data['email'] = email
     data['is_premium'] = is_premium
+    if is_premium:
+        data['premium_expiry'] = request.user.premium_expiry
     return Response({
         'message': 'Profile retrieved successfully',
         'status': status.HTTP_200_OK,
