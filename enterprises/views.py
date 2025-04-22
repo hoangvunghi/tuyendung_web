@@ -776,6 +776,19 @@ def create_post(request):
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
     # Thêm enterprise vào data
+    if not request.user.can_post_job():
+        # Lấy thông tin về giới hạn đăng bài
+        premium_package = request.user.get_premium_package()
+        max_posts = 3  # Giới hạn mặc định
+        if premium_package:
+            max_posts = premium_package.max_job_posts
+        
+        return Response({
+            'code': 403,
+            'message': f'Đã đạt giới hạn đăng bài ({request.user.post_count}/{max_posts}). Vui lòng nâng cấp gói Premium để đăng thêm.',
+            'current_posts': request.user.post_count,
+            'max_posts': max_posts
+        }, status=status.HTTP_403_FORBIDDEN)
     data = request.data.copy()
     data['enterprise'] = enterprise.id
     
@@ -1798,12 +1811,47 @@ def delete_post(request, pk):
 def get_post_detail(request, pk):
     """Chi tiết bài đăng"""
     try:
+        from django.db.models import Count
+        from profiles.models import Cv
+        
         post = PostEntity.objects.select_related('enterprise').get(pk=pk)
         serializer = PostSerializer(post)
         data = serializer.data
+        
         # Thêm thông tin ảnh của doanh nghiệp
         data['enterprise_logo'] = post.enterprise.logo_url
         data['user_id'] = post.enterprise.user.id
+        
+        # Tính tổng số ứng viên đã ứng tuyển
+        total_applicants = Cv.objects.filter(post=post).count()
+        
+        # Kiểm tra nếu người dùng đã đăng nhập
+        if request.user.is_authenticated:
+            # Nếu là chủ doanh nghiệp hoặc có quyền xem số lượng ứng viên
+            if (post.enterprise.user == request.user) or (request.user.is_premium and request.user.can_view_job_applications()):
+                data['total_applicants'] = total_applicants
+                data['can_view_applicants'] = True
+            else:
+                data['can_view_applicants'] = False
+                # Nếu là người dùng không có quyền, ẩn số lượng ứng viên
+                if total_applicants > 0:
+                    data['has_applicants'] = True
+                else:
+                    data['has_applicants'] = False
+        else:
+            # Người dùng chưa đăng nhập
+            data['can_view_applicants'] = False
+            if total_applicants > 0:
+                data['has_applicants'] = True
+            else:
+                data['has_applicants'] = False
+                
+        # Kiểm tra quyền chat
+        if request.user.is_authenticated and not request.user.is_employer():
+            data['can_chat_with_employer'] = request.user.can_chat_with_employers()
+        else:
+            data['can_chat_with_employer'] = False
+        
         return Response({
             'message': 'Post details retrieved successfully',
             'status': status.HTTP_200_OK,

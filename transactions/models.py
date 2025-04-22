@@ -38,13 +38,23 @@ class PremiumPackage(models.Model):
     name = models.CharField(max_length=100)  
     description = models.TextField()
     name_display = models.CharField(max_length=100, null=True, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Giá gói Premium
-    duration_days = models.IntegerField()  # Thời hạn gói (tính bằng ngày)
+    price = models.DecimalField(max_digits=10, decimal_places=2)  
+    duration_days = models.IntegerField()  
     features = models.JSONField(default=list)  # Các tính năng của gói
     is_active = models.BooleanField(default=True)  # Trạng thái hoạt động của gói
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     
+    # Các thuộc tính giới hạn cho tài khoản doanh nghiệp
+    max_job_posts = models.IntegerField(default=3, help_text="Số lượng bài đăng tuyển dụng tối đa")
+    max_cv_views_per_day = models.IntegerField(default=10, help_text="Số lượng CV có thể xem mỗi ngày")
+    can_feature_posts = models.BooleanField(default=False, help_text="Cho phép đăng bài nổi bật")
+    
+    # Các thuộc tính giới hạn cho tài khoản ứng viên
+    can_chat_with_employers = models.BooleanField(default=False, help_text="Cho phép chat với nhà tuyển dụng")
+    priority_in_search = models.IntegerField(default=0, help_text="Độ ưu tiên khi hiển thị trong tìm kiếm (0=thấp, 10=cao)")
+    daily_job_application_limit = models.IntegerField(default=5, help_text="Số lượng đơn ứng tuyển có thể gửi mỗi ngày")
+    can_view_job_applications = models.BooleanField(default=False, help_text="Cho phép xem số người ứng tuyển của bài viết")
     def __str__(self):
         return f"{self.name} - {self.price}"
     

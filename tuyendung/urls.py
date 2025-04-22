@@ -40,7 +40,7 @@ urlpatterns = [
         path('', include('notifications.urls')),
         path('', include('interviews.urls')),
         path('', include('chat.urls')),
-        path('', include('services.urls')),
+        # path('', include('services.urls')),
         path('auth/', include('social_django.urls', namespace='social')),  # Social auth URLs
     ])),
     

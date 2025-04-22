@@ -178,6 +178,28 @@ def get_profile(request):
     if is_premium:
         data['premium_expiry'] = request.user.premium_expiry
         data['name_display'] = request.user.get_premium_package_name()
+        
+        # Thêm thông tin về quyền hạn premium
+        premium_package = request.user.get_premium_package()
+        if premium_package:
+            if request.user.is_employer():
+                data['premium_permissions'] = {
+                    'max_job_posts': premium_package.max_job_posts,
+                    'max_cv_views_per_day': premium_package.max_cv_views_per_day,
+                    'can_feature_posts': premium_package.can_feature_posts,
+                    'can_view_submitted_cvs': premium_package.can_view_submitted_cvs,  # Khả năng xem số CV đã nộp
+                    'can_chat_with_candidates': premium_package.can_chat_with_employers,  # Khả năng nhắn tin với ứng viên
+                    'remaining_job_posts': max(0, premium_package.max_job_posts - request.user.post_count),
+                    'remaining_cv_views': max(0, premium_package.max_cv_views_per_day - request.user.cv_views_today)
+                }
+            else:
+                data['premium_permissions'] = {
+                    'priority_in_search': premium_package.priority_in_search,
+                    'daily_job_application_limit': premium_package.daily_job_application_limit,
+                    'can_view_job_applications': premium_package.can_view_job_applications,
+                    'can_chat_with_employers': premium_package.can_chat_with_employers,  # Khả năng nhắn tin với nhà tuyển dụng
+                    'remaining_applications': max(0, premium_package.daily_job_application_limit - request.user.job_applications_today)
+                }
     return Response({
         'message': 'Profile retrieved successfully',
         'status': status.HTTP_200_OK,
@@ -387,6 +409,41 @@ def get_my_cvs(request):
 @permission_classes([IsAuthenticated, AdminOrCanManageCv])
 def get_cv_detail(request, pk):
     cv = get_object_or_404(Cv, id=pk)
+    
+    # Kiểm tra nếu là nhà tuyển dụng và không phải chủ CV
+    if request.user.is_employer() and cv.user != request.user:
+        # Kiểm tra giới hạn xem CV
+        if not request.user.can_view_cv():
+            return Response({
+                'message': 'Bạn đã đạt giới hạn số lượng CV có thể xem trong ngày',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Ẩn thông tin liên hệ cho người dùng không premium hoặc không có quyền xem
+        package = request.user.get_premium_package()
+        if not package or not package.can_view_candidate_contacts:
+            serializer = CvSerializer(cv)
+            data = serializer.data.copy()
+            # Ẩn thông tin liên hệ
+            data['email'] = "***ẩn***"
+            data['phone_number'] = "***ẩn***"
+            
+            # Tăng số lượng CV đã xem trong ngày
+            request.user.cv_views_today += 1
+            request.user.last_cv_view_date = timezone.now().date()
+            request.user.save(update_fields=['cv_views_today', 'last_cv_view_date'])
+            
+            return Response({
+                'message': 'CV detail retrieved successfully (contacts hidden)',
+                'status': status.HTTP_200_OK,
+                'data': data
+            })
+        
+        # Tăng số lượng CV đã xem trong ngày
+        request.user.cv_views_today += 1
+        request.user.last_cv_view_date = timezone.now().date()
+        request.user.save(update_fields=['cv_views_today', 'last_cv_view_date'])
+    
     serializer = CvSerializer(cv)
     return Response({
         'message': 'CV detail retrieved successfully',
@@ -419,6 +476,13 @@ def get_cv_detail(request, pk):
 @permission_classes([IsAuthenticated])
 def create_cv(request):
     try:
+        # Kiểm tra giới hạn ứng tuyển
+        if not request.user.can_apply_job():
+            return Response({
+                'message': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         data = request.data.copy()
         data['user'] = request.user.id
         
@@ -448,6 +512,12 @@ def create_cv(request):
         serializer = CvSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
+            
+            # Cập nhật số lần ứng tuyển trong ngày
+            request.user.job_applications_today += 1
+            request.user.last_application_date = timezone.now().date()
+            request.user.save(update_fields=['job_applications_today', 'last_application_date'])
+            
             return Response({
                 'message': 'CV created successfully',
                 'status': status.HTTP_201_CREATED,
@@ -936,6 +1006,8 @@ def get_cvs_by_status(request):
                                     'description': openapi.Schema(type=openapi.TYPE_STRING),
                                     'features': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
                                     'duration_days': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'employer_features': openapi.Schema(type=openapi.TYPE_OBJECT),
+                                    'candidate_features': openapi.Schema(type=openapi.TYPE_OBJECT)
                                 }
                             )),
                             'premium_history': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
@@ -971,7 +1043,21 @@ def get_premium_packages(request):
             'price': int(package.price),  # Chuyển Decimal sang int để JSON serializable
             'description': package.description,
             'features': features_list,
-            'duration_days': package.duration_days
+            'duration_days': package.duration_days,
+            # Thêm các thông tin về quyền hạn premium
+            'employer_features': {
+                'max_job_posts': package.max_job_posts,
+                'max_cv_views_per_day': package.max_cv_views_per_day,
+                'can_feature_posts': package.can_feature_posts,
+                'can_view_submitted_cvs': package.can_view_submitted_cvs,  # Khả năng xem số CV đã nộp
+                'can_chat_with_candidates': package.can_chat_with_employers  # Khả năng nhắn tin với ứng viên
+            },
+            'candidate_features': {
+                'priority_in_search': package.priority_in_search,
+                'daily_job_application_limit': package.daily_job_application_limit,
+                'can_view_job_applications': package.can_view_job_applications,
+                'can_chat_with_employers': package.can_chat_with_employers  # Khả năng nhắn tin với nhà tuyển dụng
+            }
         })
     
     # Nếu không có gói nào trong database, dùng gói mặc định
@@ -988,7 +1074,20 @@ def get_premium_packages(request):
                     'Ưu tiên hiển thị hồ sơ',
                     'Hỗ trợ 24/7'
                 ],
-                'duration_days': 30
+                'duration_days': 30,
+                'employer_features': {
+                    'max_job_posts': 10,
+                    'max_cv_views_per_day': 5,
+                    'can_feature_posts': True,
+                    'can_view_submitted_cvs': True,
+                    'can_chat_with_candidates': True
+                },
+                'candidate_features': {
+                    'priority_in_search': True,
+                    'daily_job_application_limit': 5,
+                    'can_view_job_applications': True,
+                    'can_chat_with_employers': True
+                }
             },
             {
                 'id': 2,
@@ -1001,7 +1100,20 @@ def get_premium_packages(request):
                     'Không bị gián đoạn dịch vụ',
                     'Ưu tiên hỗ trợ kỹ thuật'
                 ],
-                'duration_days': 365
+                'duration_days': 365,
+                'employer_features': {
+                    'max_job_posts': 20,
+                    'max_cv_views_per_day': 10,
+                    'can_feature_posts': True,
+                    'can_view_submitted_cvs': True,
+                    'can_chat_with_candidates': True
+                },
+                'candidate_features': {
+                    'priority_in_search': True,
+                    'daily_job_application_limit': 10,
+                    'can_view_job_applications': True,
+                    'can_chat_with_employers': True
+                }
             }
         ]
     

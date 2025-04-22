@@ -35,6 +35,14 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     activation_token_expiry = models.DateTimeField(null=True, blank=True)  
     is_premium = models.BooleanField(default=False)
     premium_expiry = models.DateTimeField(null=True, blank=True)
+    
+    # Các thuộc tính theo dõi giới hạn premium
+    post_count = models.IntegerField(default=0)  # Số bài đăng hiện tại
+    cv_views_today = models.IntegerField(default=0)  # Số CV đã xem trong ngày
+    last_cv_view_date = models.DateField(null=True, blank=True)  # Ngày cuối cùng xem CV
+    job_applications_today = models.IntegerField(default=0)  # Số đơn ứng tuyển đã gửi trong ngày
+    last_application_date = models.DateField(null=True, blank=True)  # Ngày cuối cùng gửi đơn ứng tuyển
+    
     objects = UserAccountManager()
 
     USERNAME_FIELD = 'username'
@@ -53,13 +61,11 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         return self.user_roles.filter(role__name='employer').exists()
     
     def get_enterprise(self):
-        """
-        Lấy doanh nghiệp của user nếu là employer, ngược lại trả về None
-        """
-        if self.is_employer():
+        from enterprises.models import EnterpriseEntity
+        if self.is_employer:
             try:
-                return self.enterprises.first()
-            except:
+                return EnterpriseEntity.objects.get(recruiters__id=self.id)
+            except EnterpriseEntity.DoesNotExist:
                 return None
         return None
 
@@ -102,6 +108,129 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         except Exception as e:
             print(f"Error getting premium package name: {str(e)}")
             return "Premium"  # Mặc định nếu có lỗi
+            
+    def get_premium_package(self):
+        """
+        Lấy gói Premium hiện tại của người dùng
+        """
+        from transactions.models import PremiumHistory
+        try:
+            premium_history = PremiumHistory.objects.filter(
+                user=self,
+                is_active=True,
+                expires_at__gt=timezone.now()
+            ).select_related('premium_package').order_by('-expires_at').first()
+            
+            if premium_history:
+                return premium_history.premium_package
+            return None
+        except:
+            return None
+    
+    def can_post_job(self):
+        """
+        Kiểm tra xem người dùng có thể đăng thêm công việc không
+        dựa trên giới hạn của gói Premium
+        """
+        # Admin có thể đăng bài không giới hạn
+        if self.is_superuser:
+            return True
+            
+        # Nếu không phải employer thì không được đăng bài
+        if not self.is_employer:
+            return False
+            
+        # Lấy gói Premium hiện tại
+        premium_package = self.get_premium_package()
+        
+        # Nếu không có gói Premium, sử dụng giới hạn mặc định (3 bài)
+        if not premium_package:
+            return self.post_count < 3
+            
+        # Kiểm tra giới hạn từ gói Premium
+        return self.post_count < premium_package.max_job_posts
+        
+    def can_view_cv(self):
+        """
+        Kiểm tra xem người dùng có thể xem CV không
+        """
+        if not self.is_premium or not self.is_employer():
+            return False
+            
+        package = self.get_premium_package()
+        if not package:
+            return False
+            
+        # Reset counter nếu ngày khác
+        today = timezone.now().date()
+        if self.last_cv_view_date != today:
+            self.cv_views_today = 0
+            self.last_cv_view_date = today
+            self.save(update_fields=['cv_views_today', 'last_cv_view_date'])
+            
+        return self.cv_views_today < package.max_cv_views_per_day
+        
+    def can_apply_job(self):
+        """
+        Kiểm tra xem ứng viên có thể ứng tuyển không
+        """
+        if self.is_employer():
+            return False
+            
+        # Nếu không phải premium, cho phép ứng tuyển với giới hạn thấp
+        if not self.is_premium:
+            # Reset counter nếu ngày khác
+            today = timezone.now().date()
+            if self.last_application_date != today:
+                self.job_applications_today = 0
+                self.last_application_date = today
+                self.save(update_fields=['job_applications_today', 'last_application_date'])
+                
+            # Người dùng thường chỉ được ứng tuyển 3 công việc mỗi ngày
+            return self.job_applications_today < 3
+            
+        # Người dùng premium được ứng tuyển nhiều hơn
+        package = self.get_premium_package()
+        if not package:
+            return self.job_applications_today < 3
+            
+        # Reset counter nếu ngày khác
+        today = timezone.now().date()
+        if self.last_application_date != today:
+            self.job_applications_today = 0
+            self.last_application_date = today
+            self.save(update_fields=['job_applications_today', 'last_application_date'])
+            
+        return self.job_applications_today < package.daily_job_application_limit
+        
+    def can_chat_with_employers(self):
+        """
+        Kiểm tra xem người dùng có thể chat với nhà tuyển dụng không
+        """
+        if self.is_employer():
+            return True  # Nhà tuyển dụng luôn được phép chat
+            
+        if not self.is_premium:
+            return False  # Người dùng thường không được chat
+            
+        package = self.get_premium_package()
+        if not package:
+            return False
+            
+        return package.can_chat_with_employers
+        
+    def can_view_job_applications(self):
+        """
+        Kiểm tra xem người dùng có thể xem số người đã ứng tuyển vào công việc không
+        """
+        if not self.is_premium:
+            return False
+            
+        package = self.get_premium_package()
+        if not package:
+            return False
+            
+        return package.can_view_job_applications
 
     class Meta:
         verbose_name = 'Tài khoản'

@@ -269,7 +269,7 @@ def import_premium_packages_from_json(file_path):
         for item in data:
             total += 1
             try:
-                # Tạo hoặc cập nhật gói Premium
+                # Tạo hoặc cập nhật gói Premium với tất cả các trường
                 package, created = PremiumPackage.objects.update_or_create(
                     name=item['name'],
                     defaults={
@@ -278,7 +278,18 @@ def import_premium_packages_from_json(file_path):
                         'duration_days': item['duration_days'],
                         'features': item['features'],
                         'is_active': item.get('is_active', True),
-                        'name_display': item.get('name_display', '')
+                        'name_display': item.get('name_display', ''),
+                        'max_job_posts': item.get('max_job_posts', 3),
+                        'max_cv_views_per_day': item.get('max_cv_views_per_day', 10),
+                        'can_view_candidate_contacts': item.get('can_view_candidate_contacts', False),
+                        'can_feature_posts': item.get('can_feature_posts', False),
+                        'can_access_analytics': item.get('can_access_analytics', False),
+                        'can_chat_with_employers': item.get('can_chat_with_employers', False),
+                        'priority_in_search': item.get('priority_in_search', 0),
+                        'daily_job_application_limit': item.get('daily_job_application_limit', 5),
+                        'can_view_job_applications': item.get('can_view_job_applications', False),
+                        'can_chat_with_candidates': item.get('can_chat_with_candidates', False),
+                        'can_view_submitted_cvs': item.get('can_view_submitted_cvs', False)
                     }
                 )
                 success += 1

@@ -162,6 +162,24 @@ def get_messages(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_message(request):
+    # Kiểm tra quyền nhắn tin
+    recipient_id = request.data.get('recipient')
+    
+    # Nếu người dùng là nhà tuyển dụng, kiểm tra quyền chat với ứng viên
+    if request.user.is_employer():
+        if not request.user.can_chat_with_candidates():
+            return Response({
+                'message': 'Bạn cần nâng cấp lên gói Premium để có thể nhắn tin với ứng viên',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+    # Nếu người dùng là ứng viên, kiểm tra quyền chat với nhà tuyển dụng
+    else:
+        if not request.user.can_chat_with_employers():
+            return Response({
+                'message': 'Bạn cần nâng cấp lên gói Premium để có thể nhắn tin với nhà tuyển dụng',
+                'status': status.HTTP_403_FORBIDDEN
+            }, status=status.HTTP_403_FORBIDDEN)
+    
     serializer = MessageSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(sender=request.user)

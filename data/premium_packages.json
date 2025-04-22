@@ -12,7 +12,18 @@
       "Hỗ trợ 24/7",
       "Tải không giới hạn mẫu CV cao cấp"
     ],
-    "is_active": true
+    "is_active": true,
+    "max_job_posts": 5,
+    "max_cv_views_per_day": 20,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": false,
+    "can_access_analytics": false,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 3,
+    "daily_job_application_limit": 10,
+    "can_view_job_applications": true
   },
   {
     "name": "Gói Premium Quý",
@@ -29,7 +40,18 @@
       "Nhận xét và đánh giá CV từ chuyên gia",
       "Tiết kiệm 10% so với gói tháng"
     ],
-    "is_active": true
+    "is_active": true,
+    "max_job_posts": 15,
+    "max_cv_views_per_day": 40,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": true,
+    "can_access_analytics": false,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 5,
+    "daily_job_application_limit": 20,
+    "can_view_job_applications": true
   },
   {
     "name": "Gói Premium Năm",
@@ -48,11 +70,22 @@
       "Tư vấn nghề nghiệp 1-1 với chuyên gia",
       "Tiết kiệm 16% so với gói tháng"
     ],
-    "is_active": true
+    "is_active": true,
+    "max_job_posts": 50,
+    "max_cv_views_per_day": 100,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": true,
+    "can_access_analytics": true,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 10,
+    "daily_job_application_limit": 50,
+    "can_view_job_applications": true
   },
   {
     "name": "Gói Sinh Viên",
-    "name_display": "Student Premium",
+    "name_display": "Student Package",
     "description": "Gói Premium đặc biệt dành cho sinh viên mới ra trường",
     "price": 79000,
     "duration_days": 30,
@@ -62,11 +95,22 @@
       "Hỗ trợ tạo CV chuyên nghiệp",
       "Tư vấn định hướng nghề nghiệp"
     ],
-    "is_active": true
+    "is_active": true,
+    "max_job_posts": 0,
+    "max_cv_views_per_day": 0,
+    "can_view_candidate_contacts": false,
+    "can_feature_posts": false,
+    "can_access_analytics": false,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": false,
+    "can_view_submitted_cvs": false,
+    "priority_in_search": 2,
+    "daily_job_application_limit": 8,
+    "can_view_job_applications": true
   },
   {
     "name": "Gói Chuyên Gia",
-    "name_display": "Expert Premium",
+    "name_display": "Expert Package",
     "description": "Gói cao cấp nhất với đầy đủ tính năng và ưu đãi hấp dẫn",
     "price": 1499000,
     "duration_days": 365,
@@ -81,6 +125,69 @@
       "Tư vấn nghề nghiệp trọn gói với chuyên gia đầu ngành",
       "Tiếp cận độc quyền với các cơ hội việc làm cao cấp"
     ],
-    "is_active": true
+    "is_active": true,
+    "max_job_posts": 100,
+    "max_cv_views_per_day": 200,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": true,
+    "can_access_analytics": true,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 10,
+    "daily_job_application_limit": 100,
+    "can_view_job_applications": true
+  },
+  {
+    "name": "Gói Doanh Nghiệp Starter",
+    "name_display": "Business Starter",
+    "description": "Gói dành cho các công ty start-up mới thành lập",
+    "price": 199000,
+    "duration_days": 30,
+    "features": [
+      "Đăng tối đa 10 tin tuyển dụng",
+      "Xem tối đa 30 CV mỗi ngày",
+      "Hiển thị logo công ty trong kết quả tìm kiếm",
+      "Hỗ trợ kỹ thuật cơ bản"
+    ],
+    "is_active": true,
+    "max_job_posts": 10,
+    "max_cv_views_per_day": 30,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": false,
+    "can_access_analytics": false,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 0,
+    "daily_job_application_limit": 0,
+    "can_view_job_applications": false
+  },
+  {
+    "name": "Gói Doanh Nghiệp Pro",
+    "name_display": "Business Pro",
+    "description": "Giải pháp tuyển dụng toàn diện cho doanh nghiệp vừa và nhỏ",
+    "price": 599000,
+    "duration_days": 30,
+    "features": [
+      "Đăng không giới hạn tin tuyển dụng",
+      "Xem không giới hạn CV ứng viên",
+      "Tin tuyển dụng được đẩy lên top",
+      "Phân tích dữ liệu ứng viên",
+      "Hỗ trợ kỹ thuật 24/7",
+      "Tùy chỉnh quy trình tuyển dụng"
+    ],
+    "is_active": true,
+    "max_job_posts": 999,
+    "max_cv_views_per_day": 999,
+    "can_view_candidate_contacts": true,
+    "can_feature_posts": true,
+    "can_access_analytics": true,
+    "can_chat_with_employers": true,
+    "can_chat_with_candidates": true,
+    "can_view_submitted_cvs": true,
+    "priority_in_search": 0,
+    "daily_job_application_limit": 0,
+    "can_view_job_applications": false
   }
 ] 
