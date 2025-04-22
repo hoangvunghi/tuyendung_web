@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import UserAccount
+from accounts.models import UserAccount,Role
 
 class HistoryMoney(models.Model):
     id = models.AutoField(primary_key=True)
@@ -39,6 +39,7 @@ class PremiumPackage(models.Model):
     description = models.TextField()
     name_display = models.CharField(max_length=100, null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)  
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='premium_packages')
     duration_days = models.IntegerField()  
     features = models.JSONField(default=list)  # Các tính năng của gói
     is_active = models.BooleanField(default=True)  # Trạng thái hoạt động của gói
@@ -49,6 +50,7 @@ class PremiumPackage(models.Model):
     max_job_posts = models.IntegerField(default=3, help_text="Số lượng bài đăng tuyển dụng tối đa")
     max_cv_views_per_day = models.IntegerField(default=10, help_text="Số lượng CV có thể xem mỗi ngày")
     can_feature_posts = models.BooleanField(default=False, help_text="Cho phép đăng bài nổi bật")
+    can_view_submitted_cvs = models.BooleanField(default=True, help_text="Cho phép xem số CV đã nộp vào bài đăng")
     
     # Các thuộc tính giới hạn cho tài khoản ứng viên
     can_chat_with_employers = models.BooleanField(default=False, help_text="Cho phép chat với nhà tuyển dụng")

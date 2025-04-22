@@ -32,7 +32,7 @@ class VnPayTransactionAdmin(BaseAdminClass):
 
 @admin.register(PremiumPackage)
 class PremiumPackageAdmin(BaseAdminClass):
-    list_display = ('name', 'price', 'duration_days', 'is_active')
+    list_display = ('name', 'price', 'duration_days', 'is_active','role')
     list_filter = ('is_active',)
     search_fields = ('name',)
 

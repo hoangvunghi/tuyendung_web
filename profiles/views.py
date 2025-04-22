@@ -1028,9 +1028,20 @@ def get_premium_packages(request):
     
     # Import các model cần thiết
     from transactions.models import PremiumPackage, PremiumHistory
+    from accounts.models import Role
     
-    # Lấy các gói Premium từ database
-    packages = PremiumPackage.objects.filter(is_active=True).order_by('price')
+    # Lấy role của người dùng
+    role_user = request.user.get_role()
+    
+    # Tìm đối tượng Role tương ứng
+    try:
+        role_obj = Role.objects.get(name=role_user)
+        # Lấy các gói Premium từ database với role tương ứng
+        packages = PremiumPackage.objects.filter(is_active=True, role=role_obj).order_by('price')
+    except Role.DoesNotExist:
+        # Nếu không tìm thấy role, lấy tất cả các gói Premium
+        packages = PremiumPackage.objects.filter(is_active=True).order_by('price')
+    
     packages_data = []
     
     for package in packages:
