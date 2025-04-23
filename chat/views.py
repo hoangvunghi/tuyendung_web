@@ -167,14 +167,15 @@ def send_message(request):
     
     # Nếu người dùng là nhà tuyển dụng, kiểm tra quyền chat với ứng viên
     if request.user.is_employer():
-        if not request.user.can_chat_with_candidates():
-            return Response({
-                'message': 'Bạn cần nâng cấp lên gói Premium để có thể nhắn tin với ứng viên',
-                'status': status.HTTP_403_FORBIDDEN
-            }, status=status.HTTP_403_FORBIDDEN)
-    # Nếu người dùng là ứng viên, kiểm tra quyền chat với nhà tuyển dụng
+        # if not request.user.can_chat_with_candidates():
+        #     return Response({
+        #         'message': 'Bạn cần nâng cấp lên gói Premium để có thể nhắn tin với ứng viên',
+        #         'status': status.HTTP_403_FORBIDDEN
+        #     }, status=status.HTTP_403_FORBIDDEN)
+        pass
     else:
-        if not request.user.can_chat_with_employers():
+        # if not request.user.can_chat_with_employers():
+        if not request.user.is_premium:
             return Response({
                 'message': 'Bạn cần nâng cấp lên gói Premium để có thể nhắn tin với nhà tuyển dụng',
                 'status': status.HTTP_403_FORBIDDEN

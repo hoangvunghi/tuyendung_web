@@ -1036,6 +1036,8 @@ def get_premium_packages(request):
     # Tìm đối tượng Role tương ứng
     try:
         role_obj = Role.objects.get(name=role_user)
+        print("role_obj")
+        print(role_obj)
         # Lấy các gói Premium từ database với role tương ứng
         packages = PremiumPackage.objects.filter(is_active=True, role=role_obj).order_by('price')
     except Role.DoesNotExist:
