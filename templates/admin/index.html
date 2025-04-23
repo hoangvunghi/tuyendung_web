@@ -1,0 +1,776 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    :root {
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --primary-color: rgb(168, 85, 247);
+      --info-color: rgb(59, 130, 246);
+      --success-color: rgb(34, 197, 94);
+      --warning-color: rgb(251, 191, 36); 
+      --error-color: rgb(239, 68, 68);
+      --indigo-color: rgb(99, 102, 241);
+      --orange-color: rgb(234, 88, 12);
+      --purple-color: rgb(139, 92, 246);
+    }
+    
+    .dashboard-wrapper {
+      background-color: rgba(249, 250, 251, 0.5);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+    
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .dashboard-header-icon {
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .dashboard-header-title {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-unfold-heading);
+    }
+    
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(229, 231, 235, 0.5);
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--hover-shadow);
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 100%;
+      background-color: currentColor;
+    }
+    
+    .stat-icon {
+      position: relative;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+    
+    .stat-icon::after {
+      content: '';
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: currentColor;
+      opacity: 0.2;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    
+    .stat-value {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+      line-height: 1;
+    }
+    
+    .stat-label {
+      font-size: 1rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+      font-weight: 500;
+    }
+    
+    .dashboard-charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .chart-container {
+      background-color: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      min-height: 350px;
+      position: relative;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(229, 231, 235, 0.5);
+    }
+    
+    .chart-container h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      height: calc(100% - 40px);
+    }
+    
+    .dashboard-section {
+      margin-bottom: 2rem;
+    }
+    
+    .dashboard-section-title {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+    }
+    
+    .dashboard-section-title .material-icons {
+      margin-right: 0.5rem;
+      opacity: 0.8;
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .dashboard-charts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .color-primary { color: var(--primary-color); }
+    .color-info { color: var(--info-color); }
+    .color-success { color: var(--success-color); }
+    .color-warning { color: var(--warning-color); }
+    .color-error { color: var(--error-color); }
+    .color-indigo { color: var(--indigo-color); }
+    .color-orange { color: var(--orange-color); }
+    .color-purple { color: var(--purple-color); }
+
+    .grid-2col {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .span-2 {
+      grid-column: span 2;
+    }
+
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 1.2rem;
+      color: #64748B;
+    }
+    
+    /* Thêm lớp để kiểm tra lỗi */
+    .debug-info {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+  
+  <!-- Thêm Chart.js vào block extrastyle để đảm bảo nó được tải -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+{% endblock %}
+
+{% block coltype %}full{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block nav-sidebar %}
+  {{ block.super }}
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    <div class="dashboard-wrapper">
+      <div class="dashboard-header">
+        <div class="dashboard-header-icon">
+          <span class="material-icons">dashboard</span>
+        </div>
+        <h1 class="dashboard-header-title">{% translate 'Bảng Điều Khiển Tuyển Dụng' %}</h1>
+      </div>
+      
+      <!-- Debug info -->
+      <div id="debug-container" class="debug-info"></div>
+      
+      <div class="dashboard-section">
+        <h2 class="dashboard-section-title">
+          <span class="material-icons"></span>
+          {% translate 'Thống Kê Tổng Quan' %}
+        </h2>
+        <div class="dashboard-stats" id="stats-container">
+          <!-- Dữ liệu thống kê sẽ được hiển thị ở đây -->
+          <div class="loading-spinner">Đang tải dữ liệu...</div>
+        </div>
+      </div>
+      
+      <div class="dashboard-section">
+        <h2 class="dashboard-section-title">
+          <span class="material-icons">insert_chart</span>
+          {% translate 'Biểu Đồ Hoạt Động' %}
+        </h2>
+        <div class="dashboard-charts" id="charts-container">
+          <div class="chart-container">
+            <h3>Hoạt động đăng ký trong 7 ngày qua</h3>
+            <div class="chart-wrapper">
+              <canvas id="user-activity-chart" width="400" height="280"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Hoạt động CV & Bài đăng</h3>
+            <div class="chart-wrapper">
+              <canvas id="activity-chart" width="400" height="280"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Trạng thái CV</h3>
+            <div class="chart-wrapper">
+              <canvas id="cv-status-chart" width="400" height="280"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Trạng thái Bài đăng</h3>
+            <div class="chart-wrapper">
+              <canvas id="post-status-chart" width="400" height="280"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Doanh nghiệp theo thành phố</h3>
+            <div class="chart-wrapper">
+              <canvas id="city-stats-chart" width="400" height="280"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Chuyển mã JavaScript ra khỏi block extrajs và đặt trực tiếp trong block content -->
+  <script>
+    console.log('Script đã được tải');
+    
+    // Function hiển thị thông báo debug
+    function showDebug(message) {
+      const debugContainer = document.getElementById('debug-container');
+      if (debugContainer) {
+        debugContainer.style.display = 'block';
+        debugContainer.innerHTML += `<p>${message}</p>`;
+        console.log(message);
+      }
+    }
+    
+    try {
+      // Dữ liệu mẫu để dự phòng nếu API không hoạt động
+      const fallbackData = {
+        "stats": [
+          {
+            "label": "Tổng số tài khoản",
+            "value": 108,
+            "color": "primary",
+            "icon": "person"
+          },
+          {
+            "label": "Tổng số hồ sơ",
+            "value": 106,
+            "color": "info",
+            "icon": "folder"
+          },
+          {
+            "label": "Doanh nghiệp",
+            "value": 102,
+            "color": "success",
+            "icon": "business"
+          },
+          {
+            "label": "Bài đăng",
+            "value": 72,
+            "color": "warning",
+            "icon": "article"
+          },
+          {
+            "label": "CV đã nhận",
+            "value": 21,
+            "color": "indigo",
+            "icon": "description"
+          },
+          {
+            "label": "Phỏng vấn",
+            "value": 0,
+            "color": "orange",
+            "icon": "event"
+          },
+          {
+            "label": "Doanh thu",
+            "value": "8,961,000 VNĐ",
+            "color": "error",
+            "icon": "monetization_on"
+          },
+          {
+            "label": "Người dùng Premium",
+            "value": 2,
+            "color": "purple",
+            "icon": "star"
+          }
+        ],
+        "charts": {
+          "user_activity": {
+            "labels": [
+              "17/04",
+              "18/04",
+              "19/04",
+              "20/04",
+              "21/04",
+              "22/04",
+              "23/04"
+            ],
+            "datasets": [
+              {
+                "label": "Người dùng mới",
+                "data": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1
+                ],
+                "color": "primary"
+              }
+            ],
+            "type": "bar",
+            "title": "Hoạt động đăng ký trong 7 ngày qua"
+          },
+          "activity_chart": {
+            "labels": [
+              "17/04",
+              "18/04",
+              "19/04",
+              "20/04",
+              "21/04",
+              "22/04",
+              "23/04"
+            ],
+            "datasets": [
+              {
+                "label": "CV nộp vào",
+                "data": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "color": "info"
+              },
+              {
+                "label": "Bài đăng mới",
+                "data": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "color": "orange"
+              }
+            ],
+            "type": "bar",
+            "title": "Hoạt động CV & Bài đăng"
+          },
+          "cv_status": {
+            "labels": [
+              "Chờ duyệt",
+              "Đã duyệt",
+              "Từ chối"
+            ],
+            "datasets": [
+              {
+                "data": [
+                  11,
+                  6,
+                  4
+                ],
+                "backgroundColor": [
+                  "rgba(251, 191, 36, 0.8)",
+                  "rgba(34, 197, 94, 0.8)",
+                  "rgba(239, 68, 68, 0.8)"
+                ]
+              }
+            ],
+            "type": "pie",
+            "title": "Trạng thái CV"
+          },
+          "post_status": {
+            "labels": [
+              "Đang hoạt động",
+              "Không hoạt động"
+            ],
+            "datasets": [
+              {
+                "data": [
+                  9,
+                  63
+                ],
+                "backgroundColor": [
+                  "rgba(34, 197, 94, 0.8)",
+                  "rgba(148, 163, 184, 0.8)"
+                ]
+              }
+            ],
+            "type": "pie",
+            "title": "Trạng thái Bài đăng"
+          },
+          "city_stats": {
+            "labels": [
+              "Hồ Chí Minh",
+              "Đà Nẵng",
+              "Hà Nội",
+              "Thành phố Hà Nội",
+              "Hải Phòng"
+            ],
+            "datasets": [
+              {
+                "label": "Doanh nghiệp",
+                "data": [
+                  28,
+                  21,
+                  21,
+                  4,
+                  3
+                ],
+                "color": "success"
+              }
+            ],
+            "type": "bar",
+            "title": "Doanh nghiệp theo thành phố"
+          }
+        }
+      };
+
+      // Thiết lập màu sắc và font chung cho biểu đồ
+      Chart.defaults.font.family = "'Be Vietnam Pro', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+      Chart.defaults.font.size = 13;
+      Chart.defaults.color = '#64748B';
+      
+      const colorMap = {
+        primary: { borderColor: 'rgb(168, 85, 247)', backgroundColor: 'rgba(168, 85, 247, 0.1)' },
+        info: { borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
+        success: { borderColor: 'rgb(34, 197, 94)', backgroundColor: 'rgba(34, 197, 94, 0.1)' },
+        warning: { borderColor: 'rgb(251, 191, 36)', backgroundColor: 'rgba(251, 191, 36, 0.1)' },
+        error: { borderColor: 'rgb(239, 68, 68)', backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+        indigo: { borderColor: 'rgb(99, 102, 241)', backgroundColor: 'rgba(99, 102, 241, 0.1)' },
+        orange: { borderColor: 'rgb(234, 88, 12)', backgroundColor: 'rgba(234, 88, 12, 0.1)' },
+        purple: { borderColor: 'rgb(139, 92, 246)', backgroundColor: 'rgba(139, 92, 246, 0.1)' },
+      };
+      
+      // Định dạng icon để hiển thị đẹp hơn
+      const iconMap = {
+          person: '<i class="fas fa-user"></i>', // Thay person bằng biểu tượng người dùng
+          folder: '<i class="fas fa-folder"></i>', // Thay folder bằng biểu tượng thư mục
+          business: '<i class="fas fa-building"></i>', // Thay business bằng biểu tượng tòa nhà
+          article: '<i class="fas fa-file-alt"></i>', // Thay article bằng biểu tượng tài liệu
+          description: '<i class="fas fa-file-signature"></i>', // Thay description bằng biểu tượng tài liệu có chữ
+          event: '<i class="fas fa-calendar-alt"></i>', // Thay event bằng biểu tượng lịch
+          monetization_on: '<i class="fas fa-dollar-sign"></i>', // Thay monetization_on bằng biểu tượng tiền
+          star: '<i class="fas fa-crown"></i>' // Giữ nguyên vương miện
+      };
+      
+      // Fetch dữ liệu từ API
+      async function fetchDashboardData() {
+        try {
+          
+          const response = await fetch('/api/dashboard/stats/');
+          
+          if (!response.ok) {
+            throw new Error(`Lỗi khi tải dữ liệu: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          return data;
+        } catch (error) {
+          return fallbackData;
+        }
+      }
+      
+      // Hiển thị thống kê
+      function renderStats(stats) {
+        const statsContainer = document.getElementById('stats-container');
+        if (!statsContainer) {
+          return;
+        }
+        
+        
+        statsContainer.innerHTML = ''; // Xóa nội dung hiện tại
+        
+        // Thêm các thẻ thống kê
+        stats.forEach(stat => {
+          const icon = iconMap[stat.icon] || `<i class="material-icons">${stat.icon}</i>`;
+          
+          const statCard = `
+            <a href="#" class="stat-card color-${stat.color}">
+              <div class="stat-icon">
+                ${icon}
+              </div>
+              <div class="stat-value">${stat.value}</div>
+              <div class="stat-label">${stat.label}</div>
+            </a>
+          `;
+          statsContainer.insertAdjacentHTML('beforeend', statCard);
+        });
+      }
+      
+      // Tạo biểu đồ
+      function initializeCharts(data) {
+        const charts = data.charts;
+        
+        try {
+          // Biểu đồ Hoạt động đăng ký (user_activity)
+          const userActivityCanvas = document.getElementById('user-activity-chart');
+          if (userActivityCanvas) {
+            const userActivityCtx = userActivityCanvas.getContext('2d');
+            const userActivityData = charts.user_activity;
+            
+            new Chart(userActivityCtx, {
+              type: userActivityData.type,
+              data: {
+                labels: userActivityData.labels,
+                datasets: userActivityData.datasets.map(dataset => ({
+                  label: dataset.label,
+                  data: dataset.data,
+                  borderColor: colorMap[dataset.color].borderColor,
+                  backgroundColor: colorMap[dataset.color].backgroundColor,
+                  borderWidth: 2,
+                  fill: false
+                }))
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' },
+                  title: { display: true, text: userActivityData.title }
+                },
+                scales: {
+                  y: { beginAtZero: true, grid: { drawBorder: false } },
+                  x: { grid: { display: false } }
+                }
+              }
+            });
+          }
+
+          // Biểu đồ Hoạt động CV & Bài đăng (activity_chart)
+          const activityCanvas = document.getElementById('activity-chart');
+          if (activityCanvas) {
+            const activityCtx = activityCanvas.getContext('2d');
+            const activityData = charts.activity_chart;
+            
+            new Chart(activityCtx, {
+              type: activityData.type,
+              data: {
+                labels: activityData.labels,
+                datasets: activityData.datasets.map(dataset => ({
+                  label: dataset.label,
+                  data: dataset.data,
+                  borderColor: colorMap[dataset.color].borderColor,
+                  backgroundColor: colorMap[dataset.color].backgroundColor,
+                  borderWidth: 2,
+                  fill: false
+                }))
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' },
+                  title: { display: true, text: activityData.title }
+                },
+                scales: {
+                  y: { beginAtZero: true, grid: { drawBorder: false } },
+                  x: { grid: { display: false } }
+                }
+              }
+            });
+          }
+
+          // Biểu đồ Trạng thái CV (cv_status)
+          const cvStatusCanvas = document.getElementById('cv-status-chart');
+          if (cvStatusCanvas) {
+            const cvStatusCtx = cvStatusCanvas.getContext('2d');
+            const cvStatusData = charts.cv_status;
+            
+            new Chart(cvStatusCtx, {
+              type: cvStatusData.type,
+              data: {
+                labels: cvStatusData.labels,
+                datasets: cvStatusData.datasets.map(dataset => ({
+                  data: dataset.data,
+                  backgroundColor: dataset.backgroundColor,
+                  borderColor: dataset.backgroundColor.map(color => color.replace('0.8', '1')),
+                  borderWidth: 1
+                }))
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' },
+                  title: { display: true, text: cvStatusData.title }
+                },
+                cutout: '65%'
+              }
+            });
+          }
+
+          // Biểu đồ Trạng thái Bài đăng (post_status)
+          const postStatusCanvas = document.getElementById('post-status-chart');
+          if (postStatusCanvas) {
+            const postStatusCtx = postStatusCanvas.getContext('2d');
+            const postStatusData = charts.post_status;
+            
+            new Chart(postStatusCtx, {
+              type: postStatusData.type,
+              data: {
+                labels: postStatusData.labels,
+                datasets: postStatusData.datasets.map(dataset => ({
+                  data: dataset.data,
+                  backgroundColor: dataset.backgroundColor,
+                  borderColor: dataset.backgroundColor.map(color => color.replace('0.8', '1')),
+                  borderWidth: 1
+                }))
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' },
+                  title: { display: true, text: postStatusData.title }
+                }
+              }
+            });
+          }
+
+          // Biểu đồ Doanh nghiệp theo thành phố (city_stats)
+          const cityStatsCanvas = document.getElementById('city-stats-chart');
+          if (cityStatsCanvas) {
+            const cityStatsCtx = cityStatsCanvas.getContext('2d');
+            const cityStatsData = charts.city_stats;
+            
+            new Chart(cityStatsCtx, {
+              type: cityStatsData.type,
+              data: {
+                labels: cityStatsData.labels,
+                datasets: cityStatsData.datasets.map(dataset => ({
+                  label: dataset.label,
+                  data: dataset.data,
+                  borderColor: colorMap[dataset.color].borderColor,
+                  backgroundColor: colorMap[dataset.color].backgroundColor,
+                  borderWidth: 2,
+                  fill: false
+                }))
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom' },
+                  title: { display: true, text: cityStatsData.title }
+                },
+                scales: {
+                  y: { beginAtZero: true, grid: { drawBorder: false } },
+                  x: { grid: { display: false } }
+                }
+              }
+            });
+          }
+        } catch (error) {
+        }
+      }
+      
+      // Khởi tạo dashboard
+      async function initializeDashboard() {
+        try {
+          // Fetch dữ liệu
+          const dashboardData = await fetchDashboardData();
+          
+          // Hiển thị thống kê
+          renderStats(dashboardData.stats);
+          
+          // Hiển thị biểu đồ
+          initializeCharts(dashboardData);
+          
+        } catch (error) {
+        }
+      }
+      
+      // Gọi hàm khởi tạo dashboard khi trang tải xong
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+      } else {
+        initializeDashboard();
+      }
+      
+    } catch (error) {
+    }
+  </script>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <!-- Block extrajs vẫn được giữ để tương thích với template cha -->
+{% endblock %}

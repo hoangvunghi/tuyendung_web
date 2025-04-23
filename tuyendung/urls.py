@@ -8,6 +8,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from accounts.views import FinalizeGoogleAuthView
+from . import views
 
 # Cấu hình Swagger
 schema_view = get_schema_view(
@@ -42,6 +43,7 @@ urlpatterns = [
         path('', include('chat.urls')),
         # path('', include('services.urls')),
         path('auth/', include('social_django.urls', namespace='social')),  # Social auth URLs
+        path('dashboard/stats/', views.dashboard_stats, name='dashboard_stats'),  # Dashboard API
     ])),
     
     # Route cho payment-success và payment-failed, chuyển hướng về frontend
