@@ -29,6 +29,7 @@ from django.utils.http import urlencode
 from django.views import View
 from django.urls import reverse
 from rest_framework.views import APIView
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 UserAccount = get_user_model()
 
@@ -474,28 +475,28 @@ def token_refresh(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def forgot_password_view(request):
+    print(request.data)
     serializer = ForgotPasswordSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data['email']
     try:
-        user_account = UserAccount.objects.get(Email=email)
+        user_account = UserAccount.objects.get(email=email)
     except UserAccount.DoesNotExist:
         return Response({"message": "UserAccount not found for the provided User"},
                         status=status.HTTP_404_NOT_FOUND)
     try:
-        # refresh = RefreshToken.for_user(user)
-        # # reset_token = str(refresh.access_token)
-        data={"username":user_account.username}
-        token=dumps(data, key=settings.SECURITY_PASSWORD_SALT)
-
-    except TokenError as e:
+        serializer_token = URLSafeTimedSerializer(settings.SECRET_KEY)
+        data = {"username": user_account.username}
+        token = serializer_token.dumps(data, salt=settings.SECURITY_PASSWORD_SALT)
+    except Exception as e:
+        print(e)
         return Response({"error": "Failed to generate reset token",
                          "status": status.HTTP_500_INTERNAL_SERVER_ERROR},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     email_subject = "Password Reset Request"
     email_message = f"Here's an email about forgetting the password for account: {user_account.username} \n "
-    email_message += f"Click the following link to reset your password: {settings.BACKEND_URL}/forgot/reset-password/{token}"
+    email_message += f"Click the following link to reset your password: {settings.FRONT_END_URL}/reset-password/{token}"
 
     send_mail(
         email_subject,
@@ -547,19 +548,26 @@ def forgot_password_view(request):
 def reset_password_view(request, token):
     serializer = ResetPasswordSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+
+    serializer_token = URLSafeTimedSerializer(settings.SECRET_KEY)
+
     try:
-        username = loads(token,key=settings.SECURITY_PASSWORD_SALT)["username"]
+        data = serializer_token.loads(token, salt=settings.SECURITY_PASSWORD_SALT, max_age=3600)
+        username = data["username"]
         user = UserAccount.objects.get(username=username)
-    except (TypeError, ValueError, OverflowError, UserAccount.DoesNotExist):
-        return Response({"error": "Invalid reset token",
+    except (BadSignature, SignatureExpired, UserAccount.DoesNotExist) as e:
+        print(e)
+        return Response({"error": "Invalid or expired reset token",
                          "status": status.HTTP_400_BAD_REQUEST},
                         status=status.HTTP_400_BAD_REQUEST)
+
     new_password = serializer.validated_data['password']
     if not new_password:
         raise ValidationError("New password is required")
-    hashed_password = make_password(new_password)
-    user.password = hashed_password
+
+    user.password = make_password(new_password)
     user.save()
+
     refresh = RefreshToken.for_user(user)
 
     return Response({"message": "Password reset successfully",
