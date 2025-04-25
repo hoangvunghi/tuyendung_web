@@ -33,7 +33,7 @@ def send_password_reset_email(username, email, reset_token):
     email_subject = "Yêu cầu đặt lại mật khẩu"
     email_message = f"Xin chào {username},\n\n"
     email_message += "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.\n"
-    email_message += f"Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu: {settings.BACKEND_URL}/forgot/reset-password/{reset_token}\n\n"
+    email_message += f"Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu: {settings.FRONTEND_URL}/reset-password/{reset_token}\n\n"
     email_message += "Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.\n\n"
     email_message += "Trân trọng,\nĐội ngũ quản trị"
     
