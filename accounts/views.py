@@ -53,22 +53,9 @@ def register_function(request, is_recruiter=False):
         user.activation_token_expiry = expiry_date
         user.save()
         
-        # Gửi email kích hoạt
-        email_subject = f"Kích hoạt tài khoản {role} của bạn"
-        email_message = f"Xin chào {user.username},\n\n"
-        email_message += "Cảm ơn bạn đã đăng ký tài khoản trên hệ thống của chúng tôi.\n"
-        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
-        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
-        email_message += "Sau khi kích hoạt tài khoản, bạn sẽ được hoạt động trên website.\n\n"
-        email_message += "Trân trọng,\nĐội ngũ quản trị"
-        
-        send_mail(
-            email_subject,
-            email_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
+        # Sử dụng Celery task để gửi email
+        from .tasks import send_activation_email
+        send_activation_email.delay(user.username, user.email, activation_token, expiry_date, role)
         
         return Response({
             'message': 'Đăng ký tài khoản thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
@@ -248,21 +235,9 @@ def resend_activation_email(request):
         user.activation_token_expiry = expiry_date
         user.save()
         
-        # Gửi email kích hoạt
-        email_subject = "Kích hoạt tài khoản của bạn"
-        email_message = f"Xin chào {user.username},\n\n"
-        email_message += "Bạn đã yêu cầu gửi lại email kích hoạt tài khoản.\n"
-        email_message += f"Vui lòng nhấp vào liên kết sau để kích hoạt tài khoản: {settings.BACKEND_URL}/activate/{activation_token}\n\n"
-        email_message += f"Lưu ý: Liên kết này sẽ hết hạn sau 3 ngày ({expiry_date.strftime('%d/%m/%Y %H:%M')}).\n\n"
-        email_message += "Trân trọng,\nĐội ngũ quản trị"
-        
-        send_mail(
-            email_subject,
-            email_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
+        # Sử dụng Celery task để gửi email
+        from .tasks import resend_activation_email_task
+        resend_activation_email_task.delay(user.username, user.email, activation_token, expiry_date)
         
         return Response({
             'message': 'Email kích hoạt đã được gửi lại thành công. Vui lòng kiểm tra email của bạn.',
@@ -493,17 +468,9 @@ def forgot_password_view(request):
                          "status": status.HTTP_500_INTERNAL_SERVER_ERROR},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    email_subject = "Password Reset Request"
-    email_message = f"Here's an email about forgetting the password for account: {user_account.username} \n "
-    email_message += f"Click the following link to reset your password: {settings.BACKEND_URL}/forgot/reset-password/{token}"
-
-    send_mail(
-        email_subject,
-        email_message,
-        settings.DEFAULT_FROM_EMAIL,
-        [email],
-        fail_silently=False,
-    )
+    # Sử dụng Celery task để gửi email
+    from .tasks import send_password_reset_email
+    send_password_reset_email.delay(user_account.username, email, token)
 
     return Response({"message": "Password reset email sent successfully",
                      "status": status.HTTP_200_OK},

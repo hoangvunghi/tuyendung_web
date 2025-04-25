@@ -419,6 +419,9 @@ def vnpay_payment_return(request):
     """
     Xử lý kết quả trả về từ VNPay
     """
+    # Import task gửi email
+    from accounts.tasks import send_premium_confirmation_email
+    
     # Xử lý kết quả trả về từ VNPay
     is_success, user_id, package_id = VnPayService.process_return_url(request)
     
@@ -446,7 +449,8 @@ def vnpay_payment_return(request):
                     package_name = "Gói Premium Năm"
             
             # Xác định thời hạn premium dựa vào gói đã mua
-            user.premium_expiry = timezone.now() + timedelta(days=duration_days)
+            expiry_date = timezone.now() + timedelta(days=duration_days)
+            user.premium_expiry = expiry_date
             user.save()
             
             # Đặt giá mặc định cho package_price nếu không tìm thấy package
@@ -468,6 +472,16 @@ def vnpay_payment_return(request):
                 end_date=user.premium_expiry,
                 is_active=True
             )
+            
+            # Gửi email thông báo đã kích hoạt premium bằng Celery
+            send_premium_confirmation_email.delay(
+                user.username,
+                user.email,
+                package_name,
+                expiry_date,
+                package_price
+            )
+            
             # Chuyển hướng đến URL thành công với thông tin gói
             return HttpResponseRedirect(
                 redirect_to=f'{settings.FRONTEND_URL}/payment-success?package={package_id}&name={urllib.parse.quote(package_name)}'

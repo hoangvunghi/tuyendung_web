@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.conf import settings
 from accounts.models import UserAccount
+from accounts.tasks import send_premium_confirmation_email
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrProfileOwner = create_permission_class_with_admin_override(IsProfileOwner)
@@ -1331,7 +1332,7 @@ def process_return_premium(request):
                 ).order_by('-created_at').first()
                 
                 # Lưu lịch sử premium
-                PremiumHistory.objects.create(
+                premium_history = PremiumHistory.objects.create(
                     user=user,
                     package=package,  # Có thể None nếu không tìm thấy trong database
                     transaction=transaction,
@@ -1341,6 +1342,16 @@ def process_return_premium(request):
                     end_date=end_date,
                     is_active=True
                 )
+                
+                # Gửi email thông báo đã kích hoạt premium
+                send_premium_confirmation_email.delay(
+                    user.username,
+                    user.email,
+                    package_name,
+                    end_date,
+                    package_price
+                )
+                
             except Exception as e:
                 print(f"Error creating premium history: {str(e)}")
                 # Vẫn tiếp tục xử lý nếu có lỗi
@@ -1353,6 +1364,8 @@ def process_return_premium(request):
         except Exception as e:
             # Lỗi khác
             print(f"Error processing premium payment: {str(e)}")
+            return redirect(redirect_url)
+    
             return redirect(redirect_url)
     
     return redirect(redirect_url)
