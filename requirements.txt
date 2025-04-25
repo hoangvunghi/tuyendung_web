@@ -44,6 +44,7 @@ hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
 inflection==0.5.1
+itsdangerous==2.2.0
 jmespath==1.0.1
 kombu==5.5.3
 msgpack==1.1.0
