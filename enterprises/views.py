@@ -2200,3 +2200,206 @@ def toogle_post_status(request, pk):
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Thống kê dành cho doanh nghiệp",
+    responses={
+        200: openapi.Response(
+            description="Thống kê thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'total_posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số tin tuyển dụng"),
+                            'active_posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số tin tuyển dụng đang hoạt động"),
+                            'expired_posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số tin tuyển dụng đã hết hạn"),
+                            'total_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số ứng viên đã ứng tuyển"),
+                            'pending_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đang chờ xử lý"),
+                            'approved_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đã duyệt"),
+                            'rejected_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đã từ chối"),
+                            'total_interviews': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số cuộc phỏng vấn"),
+                            'upcoming_interviews': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số cuộc phỏng vấn sắp diễn ra"),
+                            'completed_interviews': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số cuộc phỏng vấn đã hoàn thành"),
+                            'monthly_stats': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'month': openapi.Schema(type=openapi.TYPE_STRING, description="Tháng (MM/YYYY)"),
+                                        'applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên trong tháng"),
+                                        'posts': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số tin đăng trong tháng"),
+                                    }
+                                )
+                            ),
+                            'post_stats': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(
+                                    type=openapi.TYPE_OBJECT,
+                                    properties={
+                                        'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của tin tuyển dụng"),
+                                        'title': openapi.Schema(type=openapi.TYPE_STRING, description="Tiêu đề tin tuyển dụng"),
+                                        'total_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Tổng số ứng viên"),
+                                        'pending_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đang chờ xử lý"),
+                                        'approved_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đã duyệt"),
+                                        'rejected_applicants': openapi.Schema(type=openapi.TYPE_INTEGER, description="Số ứng viên đã từ chối"),
+                                    }
+                                )
+                            )
+                        }
+                    )
+                }
+            )
+        ),
+        403: openapi.Response(
+            description="Không có quyền truy cập",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def enterprise_statistics(request):
+    """
+    API thống kê dành cho doanh nghiệp
+    """
+    # Kiểm tra quyền truy cập
+    if not request.user.is_employer() and not request.user.is_superuser:
+        return Response({
+            'message': 'Bạn không có quyền truy cập',
+            'status': status.HTTP_403_FORBIDDEN
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    # Lấy doanh nghiệp của người dùng
+    enterprise = None
+    
+    if request.user.is_superuser:
+        enterprise_id = request.query_params.get('enterprise_id')
+        if enterprise_id:
+            try:
+                enterprise = EnterpriseEntity.objects.get(id=enterprise_id)
+            except EnterpriseEntity.DoesNotExist:
+                return Response({
+                    'message': 'Doanh nghiệp không tồn tại',
+                    'status': status.HTTP_404_NOT_FOUND
+                }, status=status.HTTP_404_NOT_FOUND)
+    else:
+        enterprise = request.user.enterprises.first()
+        
+    if not enterprise:
+        return Response({
+            'message': 'Bạn chưa có doanh nghiệp',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Thống kê tin tuyển dụng
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Q
+    
+    # Lấy tất cả bài đăng của doanh nghiệp
+    posts = PostEntity.objects.filter(enterprise=enterprise)
+    total_posts = posts.count()
+    active_posts = posts.filter(is_active=True, deadline__gt=timezone.now().date()).count()
+    expired_posts = total_posts - active_posts
+    
+    # Thống kê ứng viên
+    from profiles.models import Cv
+    
+    # Lấy tất cả CV ứng tuyển vào các bài đăng của doanh nghiệp
+    cvs = Cv.objects.filter(post__enterprise=enterprise)
+    total_applicants = cvs.count()
+    pending_applicants = cvs.filter(status='pending').count()
+    approved_applicants = cvs.filter(status='approved').count()
+    rejected_applicants = cvs.filter(status='rejected').count()
+    
+    # Thống kê phỏng vấn
+    from interviews.models import Interview
+    
+    interviews = Interview.objects.filter(enterprise=enterprise)
+    total_interviews = interviews.count()
+    upcoming_interviews = interviews.filter(
+        interview_date__gt=timezone.now(),
+        status__in=['pending', 'accepted']
+    ).count()
+    completed_interviews = interviews.filter(status='completed').count()
+    
+    # Thống kê theo tháng (6 tháng gần nhất)
+    end_date = timezone.now().date()
+    start_date = (end_date - timedelta(days=180))
+    
+    # Khởi tạo mảng các tháng
+    monthly_stats = []
+    current_date = start_date
+    while current_date <= end_date:
+        month_start = datetime(current_date.year, current_date.month, 1).date()
+        if current_date.month == 12:
+            month_end = datetime(current_date.year + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            month_end = datetime(current_date.year, current_date.month + 1, 1).date() - timedelta(days=1)
+        
+        # Đếm số ứng viên trong tháng
+        month_applicants = cvs.filter(created_at__date__gte=month_start, created_at__date__lte=month_end).count()
+        
+        # Đếm số tin đăng trong tháng
+        month_posts = posts.filter(created_at__date__gte=month_start, created_at__date__lte=month_end).count()
+        
+        monthly_stats.append({
+            'month': month_start.strftime('%m/%Y'),
+            'applicants': month_applicants,
+            'posts': month_posts
+        })
+        
+        # Chuyển sang tháng tiếp theo
+        if current_date.month == 12:
+            current_date = datetime(current_date.year + 1, 1, 1).date()
+        else:
+            current_date = datetime(current_date.year, current_date.month + 1, 1).date()
+    
+    # Thống kê chi tiết theo từng bài đăng (10 bài đăng gần nhất)
+    post_stats = []
+    recent_posts = posts.order_by('-created_at')[:10]
+    
+    for post in recent_posts:
+        post_cvs = Cv.objects.filter(post=post)
+        post_stats.append({
+            'id': post.id,
+            'title': post.title,
+            'total_applicants': post_cvs.count(),
+            'pending_applicants': post_cvs.filter(status='pending').count(),
+            'approved_applicants': post_cvs.filter(status='approved').count(),
+            'rejected_applicants': post_cvs.filter(status='rejected').count(),
+        })
+    
+    # Tổng hợp dữ liệu
+    data = {
+        'total_posts': total_posts,
+        'active_posts': active_posts,
+        'expired_posts': expired_posts,
+        'total_applicants': total_applicants,
+        'pending_applicants': pending_applicants,
+        'approved_applicants': approved_applicants,
+        'rejected_applicants': rejected_applicants,
+        'total_interviews': total_interviews,
+        'upcoming_interviews': upcoming_interviews,
+        'completed_interviews': completed_interviews,
+        'monthly_stats': monthly_stats,
+        'post_stats': post_stats
+    }
+    
+    return Response({
+        'message': 'Thống kê thành công',
+        'status': status.HTTP_200_OK,
+        'data': data
+    }, status=status.HTTP_200_OK)
+

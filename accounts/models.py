@@ -64,7 +64,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         from enterprises.models import EnterpriseEntity
         if self.is_employer:
             try:
-                return EnterpriseEntity.objects.get(recruiters__id=self.id)
+                return EnterpriseEntity.objects.get(user=self)
             except EnterpriseEntity.DoesNotExist:
                 return None
         return None

@@ -44,6 +44,5 @@ urlpatterns = [
     path('criteria/create/', views.create_criteria, name='create_criteria'),
     path('criteria/update/', views.update_criteria, name='update_criteria'),
     path('criteria/delete/', views.delete_criteria, name='delete_criteria'),
-
-    
+    path('statistics/', views.enterprise_statistics, name='enterprise_statistics'),
 ]
