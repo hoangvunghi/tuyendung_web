@@ -1,10 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import redirect, render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework import status
 from .models import UserInfo, Cv
-from .serializers import CvPostSerializer, UserInfoSerializer, CvSerializer, CvStatusSerializer
+from .serializers import CvPostSerializer, CvUserSerializer, UserInfoSerializer, CvSerializer, CvStatusSerializer
 from base.permissions import IsEnterpriseOwner, IsProfileOwner, IsCvOwner, CanManageCv, AdminAccessPermission
 from base.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
@@ -761,11 +761,17 @@ def update_cv_note(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_cvs(request):
-    print(request.user)
+    #Sử dụng cache để lấy danh sách các CV của người dùng
+    cache_key = f'user_cvs_{request.user.id}'
+    cached_response = cache.get(cache_key)
+    if cached_response is not None:
+        return Response(cached_response)
+    
     cvs = Cv.objects.filter(user=request.user)
     paginator = CustomPagination()
     paginated_cvs = paginator.paginate_queryset(cvs, request)
-    serializer = CvSerializer(paginated_cvs, many=True)
+    serializer = CvUserSerializer(paginated_cvs, many=True)
+    cache.set(cache_key, serializer.data, timeout=300)
     return paginator.get_paginated_response(serializer.data)
 
 

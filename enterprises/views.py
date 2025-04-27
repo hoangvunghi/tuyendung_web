@@ -1826,6 +1826,8 @@ def get_post_detail(request, pk):
         total_applicants = Cv.objects.filter(post=post).count()
         
         # Kiểm tra nếu người dùng đã đăng nhập
+        print(request.user.is_premium)
+        print(request.user.can_view_job_applications())
         if request.user.is_authenticated:
             # Nếu là chủ doanh nghiệp hoặc có quyền xem số lượng ứng viên
             if (post.enterprise.user == request.user) or (request.user.is_premium and request.user.can_view_job_applications()):
