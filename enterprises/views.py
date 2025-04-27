@@ -1853,7 +1853,13 @@ def get_post_detail(request, pk):
             data['can_chat_with_employer'] = request.user.can_chat_with_employers()
         else:
             data['can_chat_with_employer'] = False
-        
+        # lấy ngày ứng tuyển gần nhất
+        latest_application = Cv.objects.filter(post=post).order_by('-created_at').first()
+        if latest_application:
+            # format ngày tháng năm
+            data['latest_application_date'] = latest_application.created_at.strftime('%d/%m/%Y')
+        else:
+            data['latest_application_date'] = None
         return Response({
             'message': 'Post details retrieved successfully',
             'status': status.HTTP_200_OK,
