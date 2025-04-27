@@ -1830,7 +1830,7 @@ def get_post_detail(request, pk):
         print(request.user.can_view_job_applications())
         if request.user.is_authenticated:
             # Nếu là chủ doanh nghiệp hoặc có quyền xem số lượng ứng viên
-            if (post.enterprise.user == request.user) or (request.user.is_premium and request.user.can_view_job_applications()):
+            if (post.enterprise.user == request.user) or (request.user.is_premium):
                 data['total_applicants'] = total_applicants
                 data['can_view_applicants'] = True
             else:
