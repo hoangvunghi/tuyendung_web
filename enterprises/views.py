@@ -557,6 +557,42 @@ def delete_enterprise(request):
         'status': status.HTTP_200_OK
     })
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách doanh nghiệp premium",
+    manual_parameters=[
+        openapi.Parameter(
+            'page', 
+            openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,  
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', 
+            openapi.IN_QUERY, 
+            description="Số lượng doanh nghiệp trên mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+    ],  
+    responses={
+        200: openapi.Response(
+            description="Successful operation",
+            schema=openapi.Schema(type=openapi.TYPE_OBJECT)
+        )
+    }
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_enterprise_premium(request):
+    # Lấy tất cả doanh nghiệp premium
+    enterprise = EnterpriseEntity.objects.filter(user__is_premium=True)
+    paginator = CustomPagination()
+    paginated_enterprise = paginator.paginate_queryset(enterprise, request)
+    serializer = EnterpriseSerializer(paginated_enterprise, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
 # Post CRUD
 @swagger_auto_schema(
     method='get',
@@ -584,6 +620,7 @@ def delete_enterprise(request):
         )
     }
 )
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_posts(request):
@@ -609,6 +646,8 @@ def get_posts(request):
         200: openapi.Response(description="Successful operation")
     }
 )
+
+
 @api_view(['GET'])
 @permission_classes([IsEnterpriseOwner])
 def get_post_for_enterprise(request):
@@ -1347,7 +1386,6 @@ def search_posts(request):
     
     # Thực hiện sắp xếp và đánh index
     posts = posts.order_by(sort_by).distinct()
-    
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
@@ -1821,13 +1859,10 @@ def get_post_detail(request, pk):
         # Thêm thông tin ảnh của doanh nghiệp
         data['enterprise_logo'] = post.enterprise.logo_url
         data['user_id'] = post.enterprise.user.id
-        
+        data['is_enterprise_premium'] = post.enterprise.user.is_premium
         # Tính tổng số ứng viên đã ứng tuyển
         total_applicants = Cv.objects.filter(post=post).count()
         
-        # Kiểm tra nếu người dùng đã đăng nhập
-        print(request.user.is_premium)
-        print(request.user.can_view_job_applications())
         if request.user.is_authenticated:
             # Nếu là chủ doanh nghiệp hoặc có quyền xem số lượng ứng viên
             if (post.enterprise.user == request.user) or (request.user.is_premium):

@@ -12,6 +12,7 @@ urlpatterns = [
     path('enterprises/<int:pk>/delete/', views.delete_enterprise, name='delete-enterprise'),
     path('enterprises/search/', views.search_enterprises, name='search-enterprises'),
     path('enterprises/<int:pk>/stats/', views.get_enterprise_stats, name='get-enterprise-stats'),
+    path('enterprises/premium/', views.get_enterprise_premium, name='get-enterprise-premium'),
     # Post CRUD
     path('posts/', views.get_posts, name='get-posts'),
     path('post/<int:pk>/', views.get_post_detail, name='get-post-detail'),
