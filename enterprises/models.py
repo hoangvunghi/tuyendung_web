@@ -140,15 +140,16 @@ class PostEntity(models.Model):
         ]
 
 class CriteriaEntity(models.Model):
-    city = models.CharField(max_length=255)
-    experience = models.CharField(max_length=255)
-    field = models.ForeignKey(FieldEntity, on_delete=models.CASCADE, related_name='criteria')
-    position = models.ForeignKey(PositionEntity, on_delete=models.CASCADE, related_name='criteria')
-    scales = models.CharField(max_length=255)
-    type_working = models.CharField(max_length=255)
+    city = models.CharField(max_length=255,blank=True,null=True)
+    experience = models.CharField(max_length=255,blank=True,null=True)
+    field = models.ForeignKey(FieldEntity, on_delete=models.CASCADE, related_name='criteria',blank=True,null=True)
+    position = models.ForeignKey(PositionEntity, on_delete=models.CASCADE, related_name='criteria',blank=True,null=True)
+    scales = models.CharField(max_length=255,blank=True,null=True)
+    type_working = models.CharField(max_length=255,blank=True,null=True)
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='criteria')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
+    salary_min = models.IntegerField(default=0)
     
     def __str__(self):
         return f"Criteria for {self.user.username}"

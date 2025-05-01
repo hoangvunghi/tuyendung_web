@@ -23,7 +23,8 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 3,
     "daily_job_application_limit": 10,
-    "can_view_job_applications": true
+    "can_view_job_applications": true,
+    "priority_coefficient": 5
   },
   {
     "name": "Gói Premium Quý",
@@ -51,7 +52,8 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 5,
     "daily_job_application_limit": 20,
-    "can_view_job_applications": true
+    "can_view_job_applications": true,
+    "priority_coefficient": 4
   },
   {
     "name": "Gói Premium Năm",
@@ -81,7 +83,8 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 10,
     "daily_job_application_limit": 50,
-    "can_view_job_applications": true
+    "can_view_job_applications": true,
+    "priority_coefficient": 3
   },
   {
     "name": "Gói Sinh Viên",
@@ -106,7 +109,8 @@
     "can_view_submitted_cvs": false,
     "priority_in_search": 2,
     "daily_job_application_limit": 8,
-    "can_view_job_applications": true
+    "can_view_job_applications": true,
+    "priority_coefficient": 6
   },
   {
     "name": "Gói Chuyên Gia",
@@ -136,7 +140,8 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 10,
     "daily_job_application_limit": 100,
-    "can_view_job_applications": true
+    "can_view_job_applications": true,
+    "priority_coefficient": 2
   },
   {
     "name": "Gói Doanh Nghiệp Starter",
@@ -161,7 +166,8 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 0,
     "daily_job_application_limit": 0,
-    "can_view_job_applications": false
+    "can_view_job_applications": false,
+    "priority_coefficient": 1.5
   },
   {
     "name": "Gói Doanh Nghiệp Pro",
@@ -188,6 +194,7 @@
     "can_view_submitted_cvs": true,
     "priority_in_search": 0,
     "daily_job_application_limit": 0,
-    "can_view_job_applications": false
+    "can_view_job_applications": false,
+    "priority_coefficient": 1
   }
 ] 

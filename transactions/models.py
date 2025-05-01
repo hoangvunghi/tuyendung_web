@@ -45,7 +45,7 @@ class PremiumPackage(models.Model):
     is_active = models.BooleanField(default=True)  # Trạng thái hoạt động của gói
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    
+    priority_coefficient = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     # Các thuộc tính giới hạn cho tài khoản doanh nghiệp
     max_job_posts = models.IntegerField(default=3, help_text="Số lượng bài đăng tuyển dụng tối đa")
     max_cv_views_per_day = models.IntegerField(default=10, help_text="Số lượng CV có thể xem mỗi ngày")
@@ -84,3 +84,8 @@ class PremiumHistory(models.Model):
     class Meta:
         verbose_name = 'Lịch sử Premium'
         verbose_name_plural = 'Lịch sử Premium'
+        indexes = [
+            models.Index(fields=['user', 'is_active', 'is_cancelled', 'end_date'], name='premium_status_idx'),
+            models.Index(fields=['user', 'created_at'], name='premium_user_created_idx'),
+            models.Index(fields=['is_active', 'end_date'], name='premium_active_date_idx'),
+        ]
