@@ -1,7 +1,15 @@
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
+import os
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.apps import apps
+import json
 
+# Thay thế việc sử dụng reverse_lazy trực tiếp bằng một hàm trì hoãn
+def get_admin_url(viewname, *args, **kwargs):
+    """Trả về một hàm lambda để trì hoãn việc tạo URL cho đến khi cần thiết"""
+    return lambda request=None: reverse_lazy(viewname, *args, **kwargs)
 
 def get_dashboard_config(request, context):
     """Hàm trả về cấu hình dashboard."""
@@ -75,6 +83,15 @@ def get_dashboard_config(request, context):
         post_active = PostEntity.objects.filter(is_active=True).count()
         post_inactive = PostEntity.objects.filter(is_active=False).count()
         
+        # Thống kê người dùng theo loại
+        candidate_count = UserAccount.objects.filter(user_roles__role__name='candidate').count()
+        employer_count = UserAccount.objects.filter(user_roles__role__name='employer').count()
+        
+        # Thống kê việc làm theo lĩnh vực
+        job_fields = PostEntity.objects.values('field__name').annotate(count=Count('id')).order_by('-count')[:5]
+        job_field_labels = [field['field__name'] or 'Không xác định' for field in job_fields]
+        job_field_data = [field['count'] for field in job_fields]
+        
     except Exception as e:
         # Nếu có lỗi, thiết lập giá trị mặc định
         user_count = user_info_count = enterprise_count = post_count = cv_count = interview_count = 0
@@ -85,65 +102,85 @@ def get_dashboard_config(request, context):
         post_data = [2, 3, 1, 4, 2, 1, 0]
         cv_pending = cv_approved = cv_rejected = 0
         post_active = post_inactive = 0
+        candidate_count = employer_count = 0
+        job_field_labels = ["IT", "Marketing", "Kế toán", "Bán hàng", "Khác"]
+        job_field_data = [10, 8, 5, 7, 3]
 
     context.update({
         "stats": [
             {
                 "label": "Tổng số tài khoản",
                 "value": user_count,
-                "url": reverse_lazy("admin:accounts_useraccount_changelist"),
+                "url": get_admin_url("admin:accounts_useraccount_changelist"),
                 "color": "primary",
                 "icon": "person",
             },
             {
                 "label": "Tổng số hồ sơ",
                 "value": user_info_count,
-                "url": reverse_lazy("admin:profiles_userinfo_changelist"),
+                "url": get_admin_url("admin:profiles_userinfo_changelist"),
                 "color": "info",
                 "icon": "folder",
             },
             {
                 "label": "Doanh nghiệp",
                 "value": enterprise_count,
-                "url": reverse_lazy("admin:enterprises_enterpriseentity_changelist"),
+                "url": get_admin_url("admin:enterprises_enterpriseentity_changelist"),
                 "color": "success",
                 "icon": "business",
             },
             {
                 "label": "Bài đăng",
                 "value": post_count,
-                "url": reverse_lazy("admin:enterprises_postentity_changelist"),
+                "url": get_admin_url("admin:enterprises_postentity_changelist"),
                 "color": "warning", 
                 "icon": "article",
             },
             {
                 "label": "CV đã nhận",
                 "value": cv_count,
-                "url": reverse_lazy("admin:profiles_cv_changelist"),
+                "url": get_admin_url("admin:profiles_cv_changelist"),
                 "color": "indigo",
                 "icon": "description",
             }, 
             {
                 "label": "Phỏng vấn",
                 "value": interview_count,
-                "url": reverse_lazy("admin:interviews_interview_changelist"),
+                "url": get_admin_url("admin:interviews_interview_changelist"),
                 "color": "orange",
                 "icon": "event",
             },
             {
                 "label": "Doanh thu",
                 "value": f"{total_revenue:,} VNĐ",
-                "url": reverse_lazy("admin:transactions_vnpaytransaction_changelist"),
+                "url": get_admin_url("admin:transactions_vnpaytransaction_changelist"),
                 "color": "error",
                 "icon": "monetization_on",
             },
             {
                 "label": "Người dùng Premium",
                 "value": premium_users,
-                "url": reverse_lazy("admin:accounts_useraccount_changelist") + "?is_premium__exact=1", 
+                "url": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?is_premium__exact=1", 
                 "color": "purple",
                 "icon": "star",
             },
+        ],
+        "widgets": [
+            {
+                "title": "Công việc hot đang tuyển",
+                "content_template": "admin/widgets/hot_jobs.html",
+                "classes": "col-span-full xl:col-span-6 bg-white shadow rounded-lg p-4",
+            },
+            {
+                "title": "Doanh nghiệp gần đây",
+                "content_template": "admin/widgets/recent_enterprises.html",
+                "classes": "col-span-full xl:col-span-6 bg-white shadow rounded-lg p-4",
+            },
+            {
+                "title": "Người dùng Premium",
+                "content_template": "admin/widgets/premium_users.html",
+                "classes": "col-span-full xl:col-span-6 bg-white shadow rounded-lg p-4",
+            }
         ],
         "charts": [
             {
@@ -155,8 +192,8 @@ def get_dashboard_config(request, context):
                         {
                             "label": "Người dùng mới",
                             "data": user_data,
-                            "borderColor": "rgb(168, 85, 247)",
-                            "backgroundColor": "rgba(168, 85, 247, 0.1)",
+                            "borderColor": "rgb(59, 130, 246)",
+                            "backgroundColor": "rgba(59, 130, 246, 0.1)",
                             "tension": 0.3,
                         },
                     ],
@@ -183,15 +220,15 @@ def get_dashboard_config(request, context):
                         {
                             "label": "CV nộp vào",
                             "data": cv_data,
-                            "borderColor": "rgb(59, 130, 246)",
-                            "backgroundColor": "rgba(59, 130, 246, 0.1)",
+                            "borderColor": "rgb(16, 185, 129)",
+                            "backgroundColor": "rgba(16, 185, 129, 0.1)",
                             "tension": 0.3,
                         },
                         {
                             "label": "Bài đăng mới",
                             "data": post_data,
-                            "borderColor": "rgb(234, 88, 12)",
-                            "backgroundColor": "rgba(234, 88, 12, 0.1)",
+                            "borderColor": "rgb(245, 158, 11)",
+                            "backgroundColor": "rgba(245, 158, 11, 0.1)",
                             "tension": 0.3,
                         }
                     ],
@@ -276,6 +313,67 @@ def get_dashboard_config(request, context):
                         }
                     }
                 }
+            },
+            {
+                "id": "user-type-chart",
+                "type": "pie",
+                "data": {
+                    "labels": ["Ứng viên", "Nhà tuyển dụng"],
+                    "datasets": [
+                        {
+                            "data": [candidate_count, employer_count],
+                            "backgroundColor": [
+                                "rgba(59, 130, 246, 0.7)",
+                                "rgba(139, 92, 246, 0.7)"
+                            ],
+                            "borderColor": [
+                                "rgb(59, 130, 246)",
+                                "rgb(139, 92, 246)"
+                            ],
+                            "borderWidth": 1
+                        },
+                    ],
+                },
+                "options": {
+                    "responsive": True,
+                    "plugins": {
+                        "title": {
+                            "display": True,
+                            "text": "Phân loại người dùng"
+                        },
+                        "legend": {
+                            "position": "bottom"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "job-fields-chart",
+                "type": "bar",
+                "data": {
+                    "labels": job_field_labels,
+                    "datasets": [
+                        {
+                            "label": "Số lượng việc làm",
+                            "data": job_field_data,
+                            "backgroundColor": "rgba(14, 165, 233, 0.7)",
+                            "borderColor": "rgb(14, 165, 233)",
+                            "borderWidth": 1
+                        },
+                    ],
+                },
+                "options": {
+                    "responsive": True,
+                    "plugins": {
+                        "title": {
+                            "display": True,
+                            "text": "Việc làm theo lĩnh vực"
+                        },
+                        "legend": {
+                            "position": "bottom"
+                        }
+                    }
+                }
             }
         ]
     })
@@ -283,25 +381,31 @@ def get_dashboard_config(request, context):
 
 # Cấu hình cơ bản cho Unfold
 UNFOLD = {
-    "SITE_TITLE": "Hệ Thống Quản Lý Tuyển Dụng",
-    "SITE_HEADER": "Bảng Điều Khiển Tuyển Dụng",
+    "SITE_TITLE": "✨ Tuyển Dụng Admin",
+    "SITE_HEADER": "✨ Tuyển Dụng Admin",
     "SITE_SUBHEADER": "Hệ thống quản lý tuyển dụng chuyên nghiệp",
-    "SITE_URL": "/",
-    "SITE_SYMBOL": "work", 
+    "SITE_ICON": None,
+    "SITE_LOGO": lambda request: static("logo.svg"),
+    "SITE_SYMBOL": "work_history",
     "DASHBOARD_CALLBACK": get_dashboard_config,
     "SITE_DROPDOWN": [
         {
-            "icon": "diamond",
-            "title": _("My site"),
+            "icon": "home",
+            "title": _("Trang chủ"),
             "link": "http://localhost:5173",
+        },
+        {
+            "icon": "bar_chart", 
+            "title": _("Thống kê"),
+            "link": get_admin_url("admin:index"),
+        },
+        {
+            "icon": "settings",
+            "title": _("Cài đặt"),
+            "link": get_admin_url("admin:index"),
         },
     ],
     
-    "SITE_LOGO": {
-        "light": lambda request: static("logo.svg"),  # light mode
-        "dark": lambda request: static("logo.svg"),  # dark mode
-    },
-
     "SITE_FAVICONS": [
         {
             "rel": "icon",
@@ -315,247 +419,352 @@ UNFOLD = {
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
     "ENVIRONMENT": "development",
+    "ENVIRONMENT_NAME": "Môi trường phát triển",
+    "ENVIRONMENT_COLOR": "indigo",
     
     # Giao diện
-    "BORDER_RADIUS": "8px",
+    "BORDER_RADIUS": "12px",
+    "COLOR_SCHEME": {
+        "primary": {
+            "50": "236 252 253",
+            "100": "207 250 254",
+            "200": "165 243 252",
+            "300": "103 232 249",
+            "400": "45 212 235",
+            "500": "14 186 211",
+            "600": "8 145 176",
+            "700": "14 116 144",
+            "800": "21 94 118",
+            "900": "22 78 99",
+            "950": "16 55 71",
+        },
+        "secondary": {
+            "50": "246 249 255",
+            "100": "236 242 254",
+            "200": "217 227 254",
+            "300": "190 205 252",
+            "400": "156 174 246",
+            "500": "126 142 238",
+            "600": "104 113 228",
+            "700": "91 90 213",
+            "800": "76 76 175",
+            "900": "68 68 137",
+            "950": "44 41 82",
+        },
+    },
     "COLORS": {
         "primary": {
-            "50": "250 245 255",
-            "100": "243 232 255",
-            "200": "233 213 255",
-            "300": "216 180 254",
-            "400": "192 132 252",
-            "500": "168 85 247",
-            "600": "147 51 234",
-            "700": "126 34 206",
-            "800": "107 33 168",
-            "900": "88 28 135",
-            "950": "59 7 100",
+            "50": "236 252 253",
+            "100": "207 250 254",
+            "200": "165 243 252",
+            "300": "103 232 249",
+            "400": "45 212 235",
+            "500": "14 186 211",
+            "600": "8 145 176",
+            "700": "14 116 144",
+            "800": "21 94 118",
+            "900": "22 78 99",
+            "950": "16 55 71",
+        },
+        "secondary": {
+            "50": "246 249 255",
+            "100": "236 242 254",
+            "200": "217 227 254",
+            "300": "190 205 252",
+            "400": "156 174 246",
+            "500": "126 142 238",
+            "600": "104 113 228",
+            "700": "91 90 213",
+            "800": "76 76 175",
+            "900": "68 68 137",
+            "950": "44 41 82",
+        },
+        "accent": {
+            "50": "255 247 237",
+            "100": "255 237 213",
+            "200": "254 215 170",
+            "300": "253 186 116",
+            "400": "251 146 60",
+            "500": "249 115 22",
+            "600": "234 88 12",
+            "700": "194 65 12",
+            "800": "154 52 18",
+            "900": "124 45 18",
+            "950": "67 20 7",
+        },
+        "success": {
+            "50": "240 253 244",
+            "100": "220 252 231",
+            "200": "187 247 208",
+            "300": "134 239 172",
+            "400": "74 222 128",
+            "500": "34 197 94",
+            "600": "22 163 74",
+            "700": "21 128 61",
+            "800": "22 101 52",
+            "900": "20 83 45",
+            "950": "5 46 22",
+        },
+        "danger": {
+            "50": "254 242 242",
+            "100": "254 226 226",
+            "200": "254 202 202",
+            "300": "252 165 165",
+            "400": "248 113 113",
+            "500": "239 68 68",
+            "600": "220 38 38",
+            "700": "185 28 28",
+            "800": "153 27 27",
+            "900": "127 29 29",
+            "950": "69 10 10",
+        },
+        "warning": {
+            "50": "255 251 235",
+            "100": "254 243 199",
+            "200": "253 230 138",
+            "300": "252 211 77",
+            "400": "251 191 36",
+            "500": "245 158 11",
+            "600": "217 119 6",
+            "700": "180 83 9",
+            "800": "146 64 14",
+            "900": "120 53 15",
+            "950": "69 26 3",
+        },
+        "info": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
         },
     },
     
     # Tùy chỉnh CSS và JS
     "STYLES": [
-        "https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap",
+        "https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap",
         lambda request: static("css/custom.css"),
     ],
     
     # Cấu hình sidebar
     "SIDEBAR": {
-        "show_search": False,  # Search in applications and models names
-        "show_all_applications": False,  # Dropdown with all applications and models
+        "show_search": True,
+        "show_all_applications": True,
         "navigation": [
             {
                 "title": _("Bảng điều khiển"),
-                "separator": True,  # Top border
-                "collapsible": False,  # Không thu gọn được
+                "separator": True,
+                "collapsible": False,
                 "items": [
                     {
-                        "title": _("Bảng điều khiển"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
-                        "link": reverse_lazy("admin:index"),
-                        # "badge": "sample_app.badge_callback",
+                        "title": _("Tổng quan"),
+                        "icon": "dashboard",
+                        "link": get_admin_url("admin:index"),
                         "permission": lambda request: request.user.is_superuser,
                     },
                 ],
             },
             {
-                "title": _("Tài khoản"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Quản lý tài khoản"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "manage_accounts",
                 "items": [
                     {
-                        "title": _("Tài khoản"),
+                        "title": _("Tài khoản người dùng"),
                         "icon": "person",
-                        "link": reverse_lazy("admin:accounts_useraccount_changelist"),
+                        "link": get_admin_url("admin:accounts_useraccount_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.count(),
+                            "attrs": {"class": "bg-blue-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
+                    },
+                    {
+                        "title": _("Tài khoản premium"),
+                        "icon": "workspace_premium",
+                        "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?is_premium__exact=1",
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.filter(is_premium=True).count(),
+                            "attrs": {"class": "bg-purple-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
                     },
                     {
                         "title": _("Vai trò"),
                         "icon": "admin_panel_settings",
-                        "link": reverse_lazy("admin:accounts_role_changelist"),
+                        "link": get_admin_url("admin:accounts_role_changelist"),
                     },
                     {
                         "title": _("Vai trò người dùng"),
                         "icon": "supervisor_account",
-                        "link": reverse_lazy("admin:accounts_userrole_changelist"),
+                        "link": get_admin_url("admin:accounts_userrole_changelist"),
                     },
                 ],
             },
             {
-                "title": _("Doanh nghiệp"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Quản lý doanh nghiệp"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "business_center",
                 "items": [
                     {
                         "title": _("Doanh nghiệp"),
                         "icon": "business",
-                        "link": reverse_lazy("admin:enterprises_enterpriseentity_changelist"),
+                        "link": get_admin_url("admin:enterprises_enterpriseentity_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("enterprises", "EnterpriseEntity").objects.count(),
+                            "attrs": {"class": "bg-green-500 text-white"},
+                        } if "enterprises" in apps.app_configs else None,
                     },
                     {
                         "title": _("Lĩnh vực"),
                         "icon": "category",
-                        "link": reverse_lazy("admin:enterprises_fieldentity_changelist"),
+                        "link": get_admin_url("admin:enterprises_fieldentity_changelist"),
                     },
                     {
-                        "title": _("Vị trí"),
-                        "icon": "category",
-                        "link": reverse_lazy("admin:enterprises_positionentity_changelist"),
+                        "title": _("Vị trí tuyển dụng"),
+                        "icon": "work_outline",
+                        "link": get_admin_url("admin:enterprises_positionentity_changelist"),
                     },
                     {
-                        "title": _("Bài viết"),
+                        "title": _("Tin tuyển dụng"),
                         "icon": "article",
-                        "link": reverse_lazy("admin:enterprises_postentity_changelist"),
+                        "link": get_admin_url("admin:enterprises_postentity_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("enterprises", "PostEntity").objects.count(),
+                            "attrs": {"class": "bg-amber-500 text-white"},
+                        } if "enterprises" in apps.app_configs else None,
                     },
                     {
                         "title": _("Tiêu chí"),
                         "icon": "checklist",
-                        "link": reverse_lazy("admin:enterprises_criteriaentity_changelist"),
+                        "link": get_admin_url("admin:enterprises_criteriaentity_changelist"),
                     },
                 ]
             },
             {
-                "title": _("Chat"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Quản lý tương tác"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "interests",
                 "items": [
                     {
                         "title": _("Tin nhắn"),
                         "icon": "chat",
-                        "link": reverse_lazy("admin:chat_message_changelist"),
+                        "link": get_admin_url("admin:chat_message_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("chat", "Message").objects.count(),
+                            "attrs": {"class": "bg-cyan-500 text-white"},
+                        } if "chat" in apps.app_configs else None,
                     },
-                ]
-            },
-            {
-                "title": _("Phỏng vấn"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
                     {
                         "title": _("Phỏng vấn"),
                         "icon": "event_note",
-                        "link": reverse_lazy("admin:interviews_interview_changelist"),
+                        "link": get_admin_url("admin:interviews_interview_changelist"),
                     },
-                ]
-            },
-            # Notification
-            {
-                "title": _("Thông báo"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
-                "items": [
                     {
                         "title": _("Thông báo"),
                         "icon": "notifications",
-                        "link": reverse_lazy("admin:notifications_notification_changelist"),
+                        "link": get_admin_url("admin:notifications_notification_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("notifications", "Notification").objects.filter(is_read=False).count(),
+                            "attrs": {"class": "bg-red-500 text-white"},
+                        } if "notifications" in apps.app_configs else None,
                     },
                 ]
             },
-            # Profile
             {
-                "title": _("Hồ sơ"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Quản lý hồ sơ"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "folder_shared",
                 "items": [
                     {
-                        "title": _("Hồ sơ"),
+                        "title": _("Hồ sơ ứng viên"),
                         "icon": "account_box",
-                        "link": reverse_lazy("admin:profiles_userinfo_changelist"),
+                        "link": get_admin_url("admin:profiles_userinfo_changelist"),
                     },
                     {
-                        "title": _("CV"),
+                        "title": _("CV ứng tuyển"),
                         "icon": "description",
-                        "link": reverse_lazy("admin:profiles_cv_changelist"),
+                        "link": get_admin_url("admin:profiles_cv_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("profiles", "Cv").objects.count(),
+                            "attrs": {"class": "bg-indigo-500 text-white"},
+                        } if "profiles" in apps.app_configs else None,
                     },
-                    # {
-                    #     "title": _("CV đã xem"),
-                    #     "icon": "visibility",
-                    #     "link": reverse_lazy("admin:profiles_cvview_changelist"),
-                    # },
-                    # {
-                    #     "title": _("CV đã đánh dấu"),
-                    #     "icon": "bookmark",
-                    #     "link": reverse_lazy("admin:profiles_cvmark_changelist"),
-                    # },
                 ],
             },
-            # services
-            # {
-            #     "title": _("Dịch vụ"),
-            #     "separator": True,  # Top border
-            #     "collapsible": True,  # Collapsible group of links
-            #     "items": [
-            #         {
-            #             "title": _("Loại dịch vụ"),
-            #             "icon": "design_services",
-            #             "link": reverse_lazy("admin:services_typeservice_changelist"),
-            #         },
-            #         {
-            #             "title": _("Gói dịch vụ"),
-            #             "icon": "widgets",
-            #             "link": reverse_lazy("admin:services_packageentity_changelist"),
-            #         },
-            #         {
-            #             "title": _("Gói đăng ký"),
-            #             "icon": "subscriptions",
-            #             "link": reverse_lazy("admin:services_packagecampaign_changelist"),
-            #         },
-            #     ],
-            # },
-            # # transactions
             {
-                "title": _("Giao dịch"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Quản lý thanh toán"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "account_balance_wallet",
                 "items": [
-                    # {
-                    #     "title": _("Lịch sử giao dịch"),
-                    #     "icon": "payments",
-                    #     "link": reverse_lazy("admin:transactions_historymoney_changelist"),
-                    # },
                     {
                         "title": _("Giao dịch VNPay"),
                         "icon": "payments",
-                        "link": reverse_lazy("admin:transactions_vnpaytransaction_changelist"),
+                        "link": get_admin_url("admin:transactions_vnpaytransaction_changelist"),
                     },
-                    # PremiumHistory
                     {
                         "title": _("Lịch sử Premium"),
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:transactions_premiumhistory_changelist"),
+                        "icon": "history",
+                        "link": get_admin_url("admin:transactions_premiumhistory_changelist"),
                     },
-                    # premiumpackage
                     {
-                        "title": _("Gói dịch vụ"),
+                        "title": _("Gói Premium"),
                         "icon": "subscriptions",
-                        "link": reverse_lazy("admin:transactions_premiumpackage_changelist"),
+                        "link": get_admin_url("admin:transactions_premiumpackage_changelist"),
                     },
                 ],
             },
-            # google
             {
-                "title": _("Google"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "title": _("Tích hợp"),
+                "separator": True,
+                "collapsible": True,
+                "icon": "integration_instructions",
                 "items": [
                     {
-                        "title": _("Cấu hình OAuth2"),
-                        "icon": "settings",
-                        "link": reverse_lazy("admin:social_django_usersocialauth_changelist"),
-                    },
-                    {
-                        "title": _("Đăng nhập Google"),
+                        "title": _("Google OAuth2"),
                         "icon": "google",
-                        "link": reverse_lazy("admin:social_django_nonce_changelist"),
+                        "link": get_admin_url("admin:social_django_usersocialauth_changelist"),
                     },
                     {
-                        "title": _("Liên kết xã hội"),
+                        "title": _("Các liên kết xã hội khác"),
                         "icon": "link",
-                        "link": reverse_lazy("admin:social_django_association_changelist"),
+                        "link": get_admin_url("admin:social_django_association_changelist"),
                     },
                 ],
             },
-
-            
         ],
     },
+    # Thêm cài đặt theme mới
+    "THEME": {
+        "DARK_MODE_SUPPORT": True,
+        "THEME_SWITCHER": True,
+        "DEFAULT_THEME": "light",
+    },
+    # Thêm nút hành động nhanh
+    "ACTIONS": [
+        {
+            "name": "create_user",
+            "label": _("Tạo người dùng mới"),
+            "url": get_admin_url("admin:accounts_useraccount_add"),
+            "icon": "add_circle",
+            "styles": "bg-green-600 hover:bg-green-700 text-white",
+        },
+        {
+            "name": "create_post",
+            "label": _("Thêm tin tuyển dụng"),
+            "url": get_admin_url("admin:enterprises_postentity_add"),
+            "icon": "post_add",
+            "styles": "bg-blue-600 hover:bg-blue-700 text-white",
+        },
+    ],
 }
+

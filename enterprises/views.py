@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, time
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -625,6 +625,7 @@ def get_enterprise_premium(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_posts(request):
+    time_start  = datetime.now()
     sort = request.query_params.get('sort', '-created_at')
     posts = PostEntity.objects.filter(is_active=True, deadline__gt=datetime.now())
     if (sort == '-salary_max'):
@@ -637,6 +638,8 @@ def get_posts(request):
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
     serializer = PostSerializer(paginated_posts, many=True)
+    time_end = datetime.now()
+    print(f"Time taken: {time_end - time_start} seconds")
     return paginator.get_paginated_response(serializer.data)
 
 
@@ -1301,6 +1304,7 @@ def search_enterprises(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_posts(request):
+    time_start  = datetime.now()
     # Tạo cache key dựa trên tất cả các tham số tìm kiếm
     params = {}
     
@@ -1396,7 +1400,8 @@ def search_posts(request):
     
     # Lưu kết quả vào cache
     cache.set(cache_key, response_data)
-    
+    time_end = datetime.now()
+    print(f"Time taken: {time_end - time_start} seconds")
     return Response(response_data)
 
 # Get Distinct Values for Filters

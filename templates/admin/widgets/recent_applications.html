@@ -1,0 +1,79 @@
+{% load admin_urls %}
+
+<div class="overflow-hidden">
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h3 class="text-lg font-medium leading-6 text-gray-900">Ứng viên mới đăng ký</h3>
+    </div>
+    <div class="px-4 py-3">
+      <ul class="divide-y divide-gray-200">
+        {% for application in recent_applications %}
+        <li class="py-3">
+          <div class="flex items-center space-x-4">
+            {% if application.candidate.avatar %}
+              <div class="flex-shrink-0">
+                <img class="h-10 w-10 rounded-full" src="{{ application.candidate.avatar.url }}" alt="{{ application.candidate.full_name }}" />
+              </div>
+            {% else %}
+              <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <span class="text-blue-600 font-semibold">{{ application.candidate.full_name|slice:":1" }}</span>
+              </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">
+                {{ application.candidate.full_name }}
+              </p>
+              <p class="text-sm text-gray-500 truncate">
+                {{ application.job_posting.title }}
+              </p>
+            </div>
+            <div>
+              <a href="{% url 'admin:applications_applicationentity_change' application.id %}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                Xem
+              </a>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+              {{ application.job_posting.enterprise.name }}
+            </span>
+            <span class="ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+              {% if application.status == 'pending' %}
+                bg-yellow-50 text-yellow-700 ring-yellow-600/20
+              {% elif application.status == 'accepted' %}
+                bg-green-50 text-green-700 ring-green-600/20
+              {% elif application.status == 'rejected' %}
+                bg-red-50 text-red-700 ring-red-600/20
+              {% else %}
+                bg-gray-50 text-gray-700 ring-gray-600/20
+              {% endif %}
+            ">
+              {% if application.status == 'pending' %}
+                Đang chờ
+              {% elif application.status == 'accepted' %}
+                Đã chấp nhận
+              {% elif application.status == 'rejected' %}
+                Đã từ chối
+              {% else %}
+                {{ application.status }}
+              {% endif %}
+            </span>
+            <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+              {{ application.created_at|date:"d/m/Y" }}
+            </span>
+          </div>
+        </li>
+        {% empty %}
+        <li class="py-3 text-center text-gray-500">
+          Không có ứng viên mới nào.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 border-t border-gray-200">
+      <a href="{% url 'admin:applications_applicationentity_changelist' %}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+        Xem tất cả
+      </a>
+    </div>
+  </div>
+</div> 
