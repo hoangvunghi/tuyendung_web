@@ -3,6 +3,7 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 import os
 from django.contrib.staticfiles.storage import staticfiles_storage
+from django.apps import apps
 import json
 
 # Thay thế việc sử dụng reverse_lazy trực tiếp bằng một hàm trì hoãn
@@ -380,21 +381,21 @@ def get_dashboard_config(request, context):
 
 # Cấu hình cơ bản cho Unfold
 UNFOLD = {
-    "SITE_TITLE": "Tuyển Dụng Admin",
-    "SITE_HEADER": "Tuyển Dụng Admin",
-    "SITE_SUBHEADER": "Quản lý hệ thống tuyển dụng",
-    "SITE_ICON": None,  # Favicon, tương đối với STATIC_URL hoặc URL đầy đủ
-    "SITE_LOGO": None,  # Logo, tương đối với STATIC_URL hoặc URL đầy đủ
-    "SITE_SYMBOL": "diversity_3",  # Biểu tượng cho sidebar, từ Google Material Symbols
+    "SITE_TITLE": "✨ Tuyển Dụng Admin",
+    "SITE_HEADER": "✨ Tuyển Dụng Admin",
+    "SITE_SUBHEADER": "Hệ thống quản lý tuyển dụng chuyên nghiệp",
+    "SITE_ICON": None,
+    "SITE_LOGO": lambda request: static("logo.svg"),
+    "SITE_SYMBOL": "work_history",
     "DASHBOARD_CALLBACK": get_dashboard_config,
     "SITE_DROPDOWN": [
         {
-            "icon": "public",
+            "icon": "home",
             "title": _("Trang chủ"),
             "link": "http://localhost:5173",
         },
         {
-            "icon": "analytics", 
+            "icon": "bar_chart", 
             "title": _("Thống kê"),
             "link": get_admin_url("admin:index"),
         },
@@ -418,37 +419,130 @@ UNFOLD = {
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
     "ENVIRONMENT": "development",
+    "ENVIRONMENT_NAME": "Môi trường phát triển",
+    "ENVIRONMENT_COLOR": "indigo",
     
     # Giao diện
-    "BORDER_RADIUS": "10px",
+    "BORDER_RADIUS": "12px",
     "COLOR_SCHEME": {
         "primary": {
-            "50": "240 249 255",
-            "100": "224 242 254",
-            "200": "186 230 253",
-            "300": "125 211 252",
-            "400": "56 189 248",
-            "500": "14 165 233",
-            "600": "2 132 199",
-            "700": "3 105 161",
-            "800": "7 89 133",
-            "900": "12 74 110",
-            "950": "8 47 73",
+            "50": "236 252 253",
+            "100": "207 250 254",
+            "200": "165 243 252",
+            "300": "103 232 249",
+            "400": "45 212 235",
+            "500": "14 186 211",
+            "600": "8 145 176",
+            "700": "14 116 144",
+            "800": "21 94 118",
+            "900": "22 78 99",
+            "950": "16 55 71",
+        },
+        "secondary": {
+            "50": "246 249 255",
+            "100": "236 242 254",
+            "200": "217 227 254",
+            "300": "190 205 252",
+            "400": "156 174 246",
+            "500": "126 142 238",
+            "600": "104 113 228",
+            "700": "91 90 213",
+            "800": "76 76 175",
+            "900": "68 68 137",
+            "950": "44 41 82",
         },
     },
     "COLORS": {
         "primary": {
-            "50": "240 249 255",
-            "100": "224 242 254",
-            "200": "186 230 253",
-            "300": "125 211 252",
-            "400": "56 189 248",
-            "500": "14 165 233",
-            "600": "2 132 199",
-            "700": "3 105 161",
-            "800": "7 89 133",
-            "900": "12 74 110",
-            "950": "8 47 73",
+            "50": "236 252 253",
+            "100": "207 250 254",
+            "200": "165 243 252",
+            "300": "103 232 249",
+            "400": "45 212 235",
+            "500": "14 186 211",
+            "600": "8 145 176",
+            "700": "14 116 144",
+            "800": "21 94 118",
+            "900": "22 78 99",
+            "950": "16 55 71",
+        },
+        "secondary": {
+            "50": "246 249 255",
+            "100": "236 242 254",
+            "200": "217 227 254",
+            "300": "190 205 252",
+            "400": "156 174 246",
+            "500": "126 142 238",
+            "600": "104 113 228",
+            "700": "91 90 213",
+            "800": "76 76 175",
+            "900": "68 68 137",
+            "950": "44 41 82",
+        },
+        "accent": {
+            "50": "255 247 237",
+            "100": "255 237 213",
+            "200": "254 215 170",
+            "300": "253 186 116",
+            "400": "251 146 60",
+            "500": "249 115 22",
+            "600": "234 88 12",
+            "700": "194 65 12",
+            "800": "154 52 18",
+            "900": "124 45 18",
+            "950": "67 20 7",
+        },
+        "success": {
+            "50": "240 253 244",
+            "100": "220 252 231",
+            "200": "187 247 208",
+            "300": "134 239 172",
+            "400": "74 222 128",
+            "500": "34 197 94",
+            "600": "22 163 74",
+            "700": "21 128 61",
+            "800": "22 101 52",
+            "900": "20 83 45",
+            "950": "5 46 22",
+        },
+        "danger": {
+            "50": "254 242 242",
+            "100": "254 226 226",
+            "200": "254 202 202",
+            "300": "252 165 165",
+            "400": "248 113 113",
+            "500": "239 68 68",
+            "600": "220 38 38",
+            "700": "185 28 28",
+            "800": "153 27 27",
+            "900": "127 29 29",
+            "950": "69 10 10",
+        },
+        "warning": {
+            "50": "255 251 235",
+            "100": "254 243 199",
+            "200": "253 230 138",
+            "300": "252 211 77",
+            "400": "251 191 36",
+            "500": "245 158 11",
+            "600": "217 119 6",
+            "700": "180 83 9",
+            "800": "146 64 14",
+            "900": "120 53 15",
+            "950": "69 26 3",
+        },
+        "info": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
         },
     },
     
@@ -460,37 +554,45 @@ UNFOLD = {
     
     # Cấu hình sidebar
     "SIDEBAR": {
-        "show_search": True,  # Search in applications and models names
-        "show_all_applications": True,  # Dropdown with all applications and models
+        "show_search": True,
+        "show_all_applications": True,
         "navigation": [
             {
                 "title": _("Bảng điều khiển"),
-                "separator": True,  # Top border
-                "collapsible": False,  # Không thu gọn được
+                "separator": True,
+                "collapsible": False,
                 "items": [
                     {
                         "title": _("Tổng quan"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+                        "icon": "dashboard",
                         "link": get_admin_url("admin:index"),
-                        # "badge": "sample_app.badge_callback",
                         "permission": lambda request: request.user.is_superuser,
                     },
                 ],
             },
             {
                 "title": _("Quản lý tài khoản"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "manage_accounts",
                 "items": [
                     {
                         "title": _("Tài khoản người dùng"),
                         "icon": "person",
                         "link": get_admin_url("admin:accounts_useraccount_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.count(),
+                            "attrs": {"class": "bg-blue-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
                     },
                     {
                         "title": _("Tài khoản premium"),
                         "icon": "workspace_premium",
                         "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?is_premium__exact=1",
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.filter(is_premium=True).count(),
+                            "attrs": {"class": "bg-purple-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
                     },
                     {
                         "title": _("Vai trò"),
@@ -506,13 +608,18 @@ UNFOLD = {
             },
             {
                 "title": _("Quản lý doanh nghiệp"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "business_center",
                 "items": [
                     {
                         "title": _("Doanh nghiệp"),
                         "icon": "business",
                         "link": get_admin_url("admin:enterprises_enterpriseentity_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("enterprises", "EnterpriseEntity").objects.count(),
+                            "attrs": {"class": "bg-green-500 text-white"},
+                        } if "enterprises" in apps.app_configs else None,
                     },
                     {
                         "title": _("Lĩnh vực"),
@@ -528,6 +635,10 @@ UNFOLD = {
                         "title": _("Tin tuyển dụng"),
                         "icon": "article",
                         "link": get_admin_url("admin:enterprises_postentity_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("enterprises", "PostEntity").objects.count(),
+                            "attrs": {"class": "bg-amber-500 text-white"},
+                        } if "enterprises" in apps.app_configs else None,
                     },
                     {
                         "title": _("Tiêu chí"),
@@ -538,13 +649,18 @@ UNFOLD = {
             },
             {
                 "title": _("Quản lý tương tác"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "interests",
                 "items": [
                     {
                         "title": _("Tin nhắn"),
                         "icon": "chat",
                         "link": get_admin_url("admin:chat_message_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("chat", "Message").objects.count(),
+                            "attrs": {"class": "bg-cyan-500 text-white"},
+                        } if "chat" in apps.app_configs else None,
                     },
                     {
                         "title": _("Phỏng vấn"),
@@ -555,13 +671,18 @@ UNFOLD = {
                         "title": _("Thông báo"),
                         "icon": "notifications",
                         "link": get_admin_url("admin:notifications_notification_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("notifications", "Notification").objects.filter(is_read=False).count(),
+                            "attrs": {"class": "bg-red-500 text-white"},
+                        } if "notifications" in apps.app_configs else None,
                     },
                 ]
             },
             {
                 "title": _("Quản lý hồ sơ"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "folder_shared",
                 "items": [
                     {
                         "title": _("Hồ sơ ứng viên"),
@@ -572,13 +693,18 @@ UNFOLD = {
                         "title": _("CV ứng tuyển"),
                         "icon": "description",
                         "link": get_admin_url("admin:profiles_cv_changelist"),
+                        "badge": lambda request: {
+                            "value": apps.get_model("profiles", "Cv").objects.count(),
+                            "attrs": {"class": "bg-indigo-500 text-white"},
+                        } if "profiles" in apps.app_configs else None,
                     },
                 ],
             },
             {
                 "title": _("Quản lý thanh toán"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "account_balance_wallet",
                 "items": [
                     {
                         "title": _("Giao dịch VNPay"),
@@ -599,8 +725,9 @@ UNFOLD = {
             },
             {
                 "title": _("Tích hợp"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
+                "separator": True,
+                "collapsible": True,
+                "icon": "integration_instructions",
                 "items": [
                     {
                         "title": _("Google OAuth2"),
@@ -616,5 +743,28 @@ UNFOLD = {
             },
         ],
     },
+    # Thêm cài đặt theme mới
+    "THEME": {
+        "DARK_MODE_SUPPORT": True,
+        "THEME_SWITCHER": True,
+        "DEFAULT_THEME": "light",
+    },
+    # Thêm nút hành động nhanh
+    "ACTIONS": [
+        {
+            "name": "create_user",
+            "label": _("Tạo người dùng mới"),
+            "url": get_admin_url("admin:accounts_useraccount_add"),
+            "icon": "add_circle",
+            "styles": "bg-green-600 hover:bg-green-700 text-white",
+        },
+        {
+            "name": "create_post",
+            "label": _("Thêm tin tuyển dụng"),
+            "url": get_admin_url("admin:enterprises_postentity_add"),
+            "icon": "post_add",
+            "styles": "bg-blue-600 hover:bg-blue-700 text-white",
+        },
+    ],
 }
 
