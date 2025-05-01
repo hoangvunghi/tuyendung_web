@@ -156,3 +156,19 @@ class CriteriaEntity(models.Model):
     class Meta:
         verbose_name = 'Tiêu chí'
         verbose_name_plural = 'Tiêu chí'
+
+class SavedPostEntity(models.Model):
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='saved_posts')
+    post = models.ForeignKey(PostEntity, on_delete=models.CASCADE, related_name='saved_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.user.username} saved {self.post.title}"
+    
+    class Meta:
+        verbose_name = 'Bài đăng đã lưu'
+        verbose_name_plural = 'Bài đăng đã lưu'
+        unique_together = ('user', 'post')  # Đảm bảo mỗi người dùng chỉ lưu mỗi bài đăng một lần
+        indexes = [
+            models.Index(fields=['user', 'created_at'], name='saved_post_user_time_idx'),
+        ]

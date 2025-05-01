@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
+from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity, SavedPostEntity
 from base.cloudinary_utils import upload_image_to_cloudinary, delete_image_from_cloudinary
 import re
 
@@ -91,3 +91,15 @@ class CriteriaSerializer(serializers.ModelSerializer):
         model = CriteriaEntity
         fields = '__all__'
         read_only_fields = ('user', 'created_at', 'modified_at')
+
+class SavedPostSerializer(serializers.ModelSerializer):
+    post_detail = PostSerializer(source='post', read_only=True)
+    
+    class Meta:
+        model = SavedPostEntity
+        fields = ['id', 'user', 'post', 'post_detail', 'created_at']
+        read_only_fields = ('created_at',)
+        extra_kwargs = {
+            'user': {'write_only': True},
+            'post': {'write_only': True}
+        }

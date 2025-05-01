@@ -7,11 +7,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
-from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity
+from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity, SavedPostEntity
 from .serializers import (
     EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
     FieldSerializer, PositionSerializer, CriteriaSerializer,
-    PostUpdateSerializer, PostEnterpriseForEmployerSerializer
+    PostUpdateSerializer, PostEnterpriseForEmployerSerializer, SavedPostSerializer
 )
 from profiles.models import Cv
 from profiles.serializers import CvSerializer, CvStatusSerializer
@@ -30,6 +30,7 @@ from base.cloudinary_utils import delete_image_from_cloudinary, upload_image_to_
 from django.core.cache import cache
 from django.utils.http import urlencode
 import os
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Tạo các lớp quyền kết hợp với quyền admin
 AdminOrEnterpriseOwner = create_permission_class_with_admin_override(IsEnterpriseOwner)
@@ -2445,4 +2446,318 @@ def enterprise_statistics(request):
         'status': status.HTTP_200_OK,
         'data': data
     }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Lưu bài đăng việc làm",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['post'],
+        properties={
+            'post': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của bài đăng cần lưu"),
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            description="Bài đăng đã được lưu thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Lỗi khi lưu bài đăng",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Không tìm thấy bài đăng",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_post(request):
+    """Lưu bài đăng việc làm"""
+    post_id = request.data.get('post')
+    
+    try:
+        post = PostEntity.objects.get(id=post_id)
+    except PostEntity.DoesNotExist:
+        return Response({
+            'message': 'Không tìm thấy bài đăng',
+            'status': 404
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Kiểm tra xem bài đăng đã được lưu chưa
+    saved_post, created = SavedPostEntity.objects.get_or_create(
+        user=request.user,
+        post=post
+    )
+    
+    if not created:
+        return Response({
+            'message': 'Bài đăng đã được lưu trước đó',
+            'status': 400,
+            'errors': {'post': ['Bài đăng này đã được lưu trước đó']}
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    serializer = SavedPostSerializer(saved_post)
+    
+    return Response({
+        'message': 'Lưu bài đăng thành công',
+        'status': 201,
+        'data': serializer.data
+    }, status=status.HTTP_201_CREATED)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Lấy danh sách bài đăng đã lưu của người dùng",
+    manual_parameters=[
+        openapi.Parameter(
+            'page', openapi.IN_QUERY, 
+            description="Số trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            'page_size', openapi.IN_QUERY, 
+            description="Số lượng bài đăng mỗi trang", 
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="Thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'data': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'links': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'next': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                    'previous': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                                }
+                            ),
+                            'total': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'total_pages': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'results': openapi.Schema(
+                                type=openapi.TYPE_ARRAY,
+                                items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                            ),
+                        }
+                    )
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_saved_posts(request):
+    """Lấy danh sách bài đăng đã lưu của người dùng"""
+    saved_posts = SavedPostEntity.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Phân trang
+    page = request.query_params.get('page', 1)
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+    
+    page_size = request.query_params.get('page_size', 10)
+    try:
+        page_size = int(page_size)
+    except ValueError:
+        page_size = 10
+    
+    paginator = Paginator(saved_posts, page_size)
+    total_pages = paginator.num_pages
+    
+    try:
+        current_page = paginator.page(page)
+    except (EmptyPage, PageNotAnInteger):
+        current_page = paginator.page(1)
+        page = 1
+    
+    serializer = SavedPostSerializer(current_page, many=True)
+    
+    # Tạo URL cho next và previous
+    base_url = request.build_absolute_uri().split('?')[0]
+    next_url = f"{base_url}?page={page + 1}&page_size={page_size}" if current_page.has_next() else None
+    prev_url = f"{base_url}?page={page - 1}&page_size={page_size}" if current_page.has_previous() else None
+    
+    return Response({
+        'message': 'Lấy danh sách bài đăng đã lưu thành công',
+        'status': 200,
+        'data': {
+            'links': {
+                'next': next_url,
+                'previous': prev_url
+            },
+            'total': paginator.count,
+            'page': page,
+            'total_pages': total_pages,
+            'page_size': page_size,
+            'results': serializer.data
+        }
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='delete',
+    operation_description="Xóa bài đăng đã lưu",
+    responses={
+        200: openapi.Response(
+            description="Xóa thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Không tìm thấy bài đăng đã lưu",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_saved_post(request, pk):
+    """Xóa bài đăng đã lưu"""
+    try:
+        saved_post = SavedPostEntity.objects.get(id=pk, user=request.user)
+    except SavedPostEntity.DoesNotExist:
+        return Response({
+            'message': 'Không tìm thấy bài đăng đã lưu',
+            'status': 404
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    saved_post.delete()
+    
+    return Response({
+        'message': 'Đã xóa bài đăng đã lưu',
+        'status': 200
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='delete',
+    operation_description="Xóa bài đăng đã lưu theo ID bài đăng",
+    responses={
+        200: openapi.Response(
+            description="Xóa thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        404: openapi.Response(
+            description="Không tìm thấy bài đăng đã lưu",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_saved_post_by_post_id(request, post_id):
+    """Xóa bài đăng đã lưu theo ID bài đăng"""
+    try:
+        saved_post = SavedPostEntity.objects.get(post_id=post_id, user=request.user)
+    except SavedPostEntity.DoesNotExist:
+        return Response({
+            'message': 'Không tìm thấy bài đăng đã lưu',
+            'status': 404
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    saved_post.delete()
+    
+    return Response({
+        'message': 'Đã xóa bài đăng đã lưu',
+        'status': 200
+    }, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='get',
+    operation_description="Kiểm tra xem người dùng đã lưu bài đăng hay chưa",
+    responses={
+        200: openapi.Response(
+            description="Thành công",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'is_saved': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'saved_post_id': openapi.Schema(type=openapi.TYPE_INTEGER, nullable=True)
+                }
+            )
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_post_saved(request, post_id):
+    """Kiểm tra xem người dùng đã lưu bài đăng hay chưa"""
+    try:
+        saved_post = SavedPostEntity.objects.get(post_id=post_id, user=request.user)
+        return Response({
+            'message': 'Đã lưu bài đăng này',
+            'status': 200,
+            'is_saved': True,
+            'saved_post_id': saved_post.id
+        }, status=status.HTTP_200_OK)
+    except SavedPostEntity.DoesNotExist:
+        return Response({
+            'message': 'Chưa lưu bài đăng này',
+            'status': 200,
+            'is_saved': False,
+            'saved_post_id': None
+        }, status=status.HTTP_200_OK)
 

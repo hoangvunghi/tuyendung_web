@@ -46,4 +46,11 @@ urlpatterns = [
     path('criteria/update/', views.update_criteria, name='update_criteria'),
     path('criteria/delete/', views.delete_criteria, name='delete_criteria'),
     path('statistics/', views.enterprise_statistics, name='enterprise_statistics'),
+    
+    # SavedPost URLs
+    path('saved-posts/', views.get_saved_posts, name='get_saved_posts'),
+    path('saved-posts/save/', views.save_post, name='save_post'),
+    path('saved-posts/<int:pk>/delete/', views.delete_saved_post, name='delete_saved_post'),
+    path('saved-posts/post/<int:post_id>/delete/', views.delete_saved_post_by_post_id, name='delete_saved_post_by_post_id'),
+    path('saved-posts/post/<int:post_id>/check/', views.check_post_saved, name='check_post_saved'),
 ]
