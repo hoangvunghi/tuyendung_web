@@ -1,0 +1,79 @@
+{% load admin_urls %}
+
+<div class="overflow-hidden">
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-4 py-3 border-b border-gray-200">
+      <h3 class="text-lg font-medium leading-6 text-gray-900">Công việc hot đang tuyển</h3>
+    </div>
+    <div class="px-4 py-3">
+      <ul class="divide-y divide-gray-200">
+        {% for post in recent_posts %}
+        <li class="py-3">
+          <div class="flex items-center space-x-4">
+            {% if post.enterprise.logo %}
+              <div class="flex-shrink-0">
+                <img class="h-10 w-10 rounded-full" src="{{ post.enterprise.logo.url }}" alt="{{ post.enterprise.name }}" />
+              </div>
+            {% else %}
+              <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <span class="text-blue-600 font-semibold">{{ post.enterprise.name|slice:":1" }}</span>
+              </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">
+                {{ post.job_title }}
+              </p>
+              <p class="text-sm text-gray-500 truncate">
+                {{ post.enterprise.name }} • {{ post.get_job_type_display }}
+              </p>
+            </div>
+            <div>
+              <a href="{% url 'admin:enterprises_postentity_change' post.id %}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                Xem
+              </a>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+              {{ post.salary_min|floatformat:0 }}M - {{ post.salary_max|floatformat:0 }}M VNĐ
+            </span>
+            {% if post.field %}
+            <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+              {{ post.field.name }}
+            </span>
+            {% endif %}
+            <span class="ml-2 inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20">
+              {{ post.created_at|date:"d/m/Y" }}
+            </span>
+          </div>
+        </li>
+        {% empty %}
+        <li class="py-3 text-center text-gray-500">
+          Không có bài đăng tuyển dụng nào.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 border-t border-gray-200">
+      <a href="{% url 'admin:enterprises_postentity_changelist' %}" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+        Xem tất cả
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Lấy dữ liệu bài đăng hot nhất (nhiều lượt xem và ngày gần đây)
+    fetch('/api/admin/hot-jobs/')
+      .then(response => response.json())
+      .then(data => {
+        // Xử lý dữ liệu và cập nhật vào DOM
+        const jobsList = document.querySelector('#hot-jobs-list');
+        if (jobsList && data.length > 0) {
+          // Cập nhật UI
+        }
+      })
+      .catch(error => console.error('Error loading hot jobs:', error));
+  });
+</script> 
