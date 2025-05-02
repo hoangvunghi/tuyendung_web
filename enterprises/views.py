@@ -1,12 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, Value, IntegerField
+from django.utils import timezone
+
+from transactions.models import PremiumHistory
 from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity, SavedPostEntity
 from .serializers import (
     EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
@@ -681,122 +684,120 @@ def get_posts(request):
     # Tạo cache key dựa trên tham số sắp xếp và trang hiện tại
     page = request.query_params.get('page', '1')
     page_size = request.query_params.get('page_size', '10')
-    cache_key = f'get_posts_{sort}_{page}_{page_size}'
+    cache_key = f'posts_basic_data_{sort}_{page}_{page_size}'
     
-    # Kiểm tra cache trước khi truy vấn
-    cached_response = cache.get(cache_key)
-    if cached_response is not None:
-        return Response(cached_response)
+    # Thử lấy post IDs từ cache
+    cached_post_ids = cache.get(cache_key)
     
-    # Lấy bài đăng với filter cơ bản và select_related để giảm số lượng truy vấn
-    posts = PostEntity.objects.filter(
-        is_active=True, 
-        deadline__gt=datetime.now()
-    ).select_related(
-        'position', 
-        'enterprise', 
-        'field'
-    )
-    
-    # Sắp xếp cơ bản theo tham số
-    if (sort == '-salary_max'):
-        posts = posts.order_by('-salary_max')
-    elif (sort == '-salary_min'):
-        posts = posts.order_by('-salary_min')
-    elif (sort == '-created_at'):
-        posts = posts.order_by('-created_at')
-    
-    # Import cho việc sắp xếp theo premium
-    from transactions.models import PremiumHistory
-    from django.utils import timezone
-    from django.db.models import Case, When, Value, IntegerField
-    
-    # Thêm sorting theo premium nếu cần
-    # Lấy danh sách ID bài đăng theo thứ tự cơ bản
-    post_ids = list(posts.values_list('id', flat=True))
-    
-    # Cần thông tin enterprise_id để sắp xếp theo premium
-    post_data = list(posts.values('id', 'enterprise_id', 'created_at'))
-    
-    # Tìm doanh nghiệp liên quan đến các bài đăng
-    enterprise_ids = {post['enterprise_id'] for post in post_data}
-    
-    # Lấy thông tin priority coefficient từ cache
-    priority_cache_key = 'enterprise_priority_coefficients'
-    priority_coefficients = cache.get(priority_cache_key, {})
-    
-    # Chỉ truy vấn các doanh nghiệp chưa có trong cache
-    missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
-    
-    if missing_enterprise_ids:
-        # Lấy thông tin doanh nghiệp
-        enterprises = EnterpriseEntity.objects.filter(
-            id__in=missing_enterprise_ids
-        ).select_related('user')
-        
-        # Map user_id to enterprise_id
-        user_to_enterprise = {e.user_id: e.id for e in enterprises}
-        
-        # Lấy premium histories hiệu quả với một truy vấn
-        premium_histories = PremiumHistory.objects.filter(
-            user_id__in=user_to_enterprise.keys(),
-            is_active=True,
-            is_cancelled=False,
-            end_date__gt=timezone.now()
-        ).select_related('package')
-        
-        # Map user_id to premium_history hiệu quả
-        user_premiums = {}
-        for ph in premium_histories:
-            if ph.user_id not in user_premiums:
-                user_premiums[ph.user_id] = ph
-        
-        # Tính toán priority coefficients cho các doanh nghiệp thiếu
-        for enterprise in enterprises:
-            premium = user_premiums.get(enterprise.user_id)
-            if premium and premium.package:
-                priority_coefficients[enterprise.id] = premium.package.priority_coefficient
-            else:
-                priority_coefficients[enterprise.id] = 999
-        
-        # Lưu vào cache trong 1 giờ
-        cache.set(priority_cache_key, priority_coefficients, 60 * 60)
-    
-    # Sắp xếp post_data theo hệ số ưu tiên
-    post_data.sort(key=lambda post: (
-        priority_coefficients.get(post['enterprise_id'], 999),
-        -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
-    ))
-    
-    # Lấy ID bài đăng theo thứ tự mới
-    sorted_ids = [post['id'] for post in post_data]
-    
-    # Tạo case when để bảo toàn thứ tự
-    if sorted_ids:
-        preserved_order = Case(
-            *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(sorted_ids)],
-            output_field=IntegerField()
-        )
-        
-        # Lấy queryset đã sắp xếp với ít truy vấn nhất
+    if cached_post_ids is None:
+        # Nếu không có trong cache, thực hiện truy vấn để lấy post IDs
         posts = PostEntity.objects.filter(
-            id__in=sorted_ids
+            is_active=True, 
+            deadline__gt=datetime.now()
         ).select_related(
             'position', 
             'enterprise', 
             'field'
-        ).order_by(preserved_order)
+        )
+        
+        # Sắp xếp cơ bản theo tham số
+        if (sort == '-salary_max'):
+            posts = posts.order_by('-salary_max')
+        elif (sort == '-salary_min'):
+            posts = posts.order_by('-salary_min')
+        elif (sort == '-created_at'):
+            posts = posts.order_by('-created_at')
+            
+        # Import cho việc sắp xếp theo premium
+        from transactions.models import PremiumHistory
+        from django.utils import timezone
+        from django.db.models import Case, When, Value, IntegerField
+        
+        # Lấy danh sách ID bài đăng theo thứ tự cơ bản
+        post_ids = list(posts.values_list('id', flat=True))
+        
+        # Cần thông tin enterprise_id để sắp xếp theo premium
+        post_data = list(posts.values('id', 'enterprise_id', 'created_at'))
+        
+        # Tìm doanh nghiệp liên quan đến các bài đăng
+        enterprise_ids = {post['enterprise_id'] for post in post_data}
+        
+        # Lấy thông tin priority coefficient từ cache
+        priority_cache_key = 'enterprise_priority_coefficients'
+        priority_coefficients = cache.get(priority_cache_key, {})
+        
+        # Chỉ truy vấn các doanh nghiệp chưa có trong cache
+        missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
+        
+        if missing_enterprise_ids:
+            # Lấy thông tin doanh nghiệp
+            enterprises = EnterpriseEntity.objects.filter(
+                id__in=missing_enterprise_ids
+            ).select_related('user')
+            
+            # Map user_id to enterprise_id
+            user_to_enterprise = {e.user_id: e.id for e in enterprises}
+            
+            # Lấy premium histories hiệu quả với một truy vấn
+            premium_histories = PremiumHistory.objects.filter(
+                user_id__in=user_to_enterprise.keys(),
+                is_active=True,
+                is_cancelled=False,
+                end_date__gt=timezone.now()
+            ).select_related('package')
+            
+            # Map user_id to premium_history hiệu quả
+            user_premiums = {}
+            for ph in premium_histories:
+                if ph.user_id not in user_premiums:
+                    user_premiums[ph.user_id] = ph
+            
+            # Tính toán priority coefficients cho các doanh nghiệp thiếu
+            for enterprise in enterprises:
+                premium = user_premiums.get(enterprise.user_id)
+                if premium and premium.package:
+                    priority_coefficients[enterprise.id] = premium.package.priority_coefficient
+                else:
+                    priority_coefficients[enterprise.id] = 999
+            
+            # Lưu vào cache trong 1 giờ
+            cache.set(priority_cache_key, priority_coefficients, 60 * 60)
+        
+        # Sắp xếp post_data theo hệ số ưu tiên
+        post_data.sort(key=lambda post: (
+            priority_coefficients.get(post['enterprise_id'], 999),
+            -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
+        ))
+        
+        # Lấy ID bài đăng theo thứ tự mới
+        sorted_ids = [post['id'] for post in post_data]
+        
+        # Cache danh sách ID đã sắp xếp
+        cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
     else:
-        posts = PostEntity.objects.none()
+        sorted_ids = cached_post_ids
+
+    # Lấy dữ liệu posts từ database với các ID đã sắp xếp
+    preserved_order = Case(
+        *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(sorted_ids)],
+        output_field=IntegerField()
+    )
     
+    posts = PostEntity.objects.filter(
+        id__in=sorted_ids
+    ).select_related(
+        'position', 
+        'enterprise', 
+        'field'
+    ).order_by(preserved_order)
+
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    serializer = PostSerializer(paginated_posts, many=True)
-    response_data = paginator.get_paginated_response(serializer.data).data
     
-    # Lưu kết quả vào cache trong 5 phút
-    cache.set(cache_key, response_data, 60 * 5)
+    # Serialize với context để tính toán các trường động như is_saved
+    serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
+    response_data = paginator.get_paginated_response(serializer.data).data
     
     time_end = datetime.now()
     print(f"Time taken: {time_end - time_start} seconds")
@@ -847,7 +848,7 @@ def get_post_for_enterprise(request):
 def get_posts_for_enterprise_detail(request, pk):
     posts = PostEntity.objects.filter(enterprise=pk)
     posts = posts.order_by('-created_at')
-    serializer = PostSerializer(posts, many=True)
+    serializer = PostSerializer(posts, many=True, context={'request': request})
     return Response(serializer.data)
 
 
@@ -872,7 +873,7 @@ def get_post_of_user(request):
     # phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    serializer = PostSerializer(paginated_posts, many=True)
+    serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
@@ -893,8 +894,7 @@ def get_all_posts(request):
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    
-    serializer = PostSerializer(paginated_posts, many=True)
+    serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
@@ -1463,7 +1463,6 @@ def search_enterprises(request):
 )
 @api_view(['GET'])
 @permission_classes([AllowAny])
-@permission_classes([AllowAny])
 def search_posts(request):
     time_start = datetime.now()
     # Tạo cache key dựa trên tất cả các tham số tìm kiếm
@@ -1483,129 +1482,143 @@ def search_posts(request):
             
     # Xử lý tham số boolean negotiable
     negotiable = request.query_params.get('negotiable')
-    if negotiable in ['true', 'false']:
+    if negotiable:
         params['negotiable'] = negotiable
-        
-    # Thêm các tham số phân trang và sắp xếp
-    params['sort_by'] = request.query_params.get('sort_by', '-created_at')
+    
+    # Thêm tham số sắp xếp
+    params['sort_by'] = request.query_params.get('sort_by', 'created_at')
     params['sort_order'] = request.query_params.get('sort_order', 'desc')
+    
+    # Thêm tham số phân trang
     params['page'] = request.query_params.get('page', '1')
     params['page_size'] = request.query_params.get('page_size', '10')
     
-    cache_key = f'posts_search_{urlencode(params)}'
+    # Tạo cache key từ params
+    cache_key = f"search_posts_ids_{hash(frozenset(params.items()))}"
     
-    # Kiểm tra cache
-    cached_response = cache.get(cache_key)
-    if cached_response is not None:
-        return Response(cached_response)
+    # Thử lấy post IDs từ cache
+    cached_post_ids = cache.get(cache_key)
     
-    from transactions.models import PremiumHistory
-    from django.utils import timezone
-    from django.db.models import Case, When, Value, IntegerField
-    
-    posts_query = PostEntity.objects.filter(
-        is_active=True,
-        deadline__gte=datetime.now()
-    )
-    
-    search_conditions = Q()
-    if params.get('q'):
-        search_conditions |= (
-            Q(title__icontains=params['q']) |
-            Q(description__icontains=params['q']) |
-            Q(required__icontains=params['q']) |
-            Q(enterprise__company_name__icontains=params['q'])
-        )
-        posts_query = posts_query.filter(search_conditions)
-    
-    if params.get('city'):
-        posts_query = posts_query.filter(city__iexact=params['city'])
-    if params.get('position'):
-        posts_query = posts_query.filter(position__name__iexact=params['position'])
-    if params.get('experience'):
-        posts_query = posts_query.filter(experience__iexact=params['experience'])
-    if params.get('type_working'):
-        posts_query = posts_query.filter(type_working__iexact=params['type_working'])
-    
-    # Xử lý lọc theo khoảng lương
-    if params.get('salary_min') and params.get('salary_max'):
-        posts_query = posts_query.filter(
-            salary_min__gte=params['salary_min'],
-            salary_max__lte=params['salary_max'],
-            is_salary_negotiable=False
-        )
-    elif params.get('salary_min'):
-        posts_query = posts_query.filter(
-            salary_min__gte=params['salary_min'],
-            is_salary_negotiable=False
-        )
-    elif params.get('salary_max'):
-        posts_query = posts_query.filter(
-            salary_max__lte=params['salary_max'],
-            is_salary_negotiable=False
-        )
-    
-    # Lọc lương thỏa thuận
-    if params.get('negotiable') == 'true':
-        posts_query = posts_query.filter(is_salary_negotiable=True)
-    
-    sort_by = params['sort_by']
-    if params['sort_order'] == 'desc' and not sort_by.startswith('-'):
-        sort_by = f'-{sort_by}'
-    
-    post_ids = list(posts_query.values_list('id', flat=True).order_by(sort_by).distinct())
-    
-    post_info_query = PostEntity.objects.filter(id__in=post_ids).values('id', 'enterprise_id', 'created_at')
-    post_info_map = {post['id']: post for post in post_info_query}
-    
-    filtered_posts = [{'id': post_id, 'enterprise_id': post_info_map[post_id]['enterprise_id'], 
-                       'created_at': post_info_map[post_id]['created_at']} 
-                     for post_id in post_ids if post_id in post_info_map]
-    enterprise_ids = {post['enterprise_id'] for post in filtered_posts}
-    priority_cache_key = 'enterprise_priority_coefficients'
-    priority_coefficients = cache.get(priority_cache_key, {})
-    missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
-    
-    # Nếu có doanh nghiệp chưa có trong cache, thực hiện truy vấn một lần
-    if missing_enterprise_ids:
-        enterprises_with_premium = EnterpriseEntity.objects.filter(
-            id__in=missing_enterprise_ids
-        ).select_related('user')
-        
-        user_ids = [e.user_id for e in enterprises_with_premium]
-        active_premiums = PremiumHistory.objects.filter(
-            user_id__in=user_ids,
+    if cached_post_ids is None:
+        # Nếu không có trong cache, thực hiện tìm kiếm
+        posts_query = PostEntity.objects.filter(
             is_active=True,
-            is_cancelled=False,
-            end_date__gt=timezone.now()
-        ).select_related('package').order_by('-created_at')
-        user_premium_map = {}
-        for premium in active_premiums:
-            if premium.user_id not in user_premium_map:
-                user_premium_map[premium.user_id] = premium
+            deadline__gte=datetime.now()
+        )
         
-        # Cập nhật priority_coefficients cho các doanh nghiệp chưa có trong cache
-        for enterprise in enterprises_with_premium:
-            premium_history = user_premium_map.get(enterprise.user_id)
+        # Tạo Q objects cho việc tìm kiếm
+        search_conditions = Q()
+        if params.get('q'):
+            search_conditions = Q(
+                Q(title__icontains=params['q']) |
+                Q(description__icontains=params['q']) |
+                Q(required__icontains=params['q']) |
+                Q(enterprise__company_name__icontains=params['q'])
+            )
+            posts_query = posts_query.filter(search_conditions)
+        
+        # Áp dụng các bộ lọc chính xác
+        if params.get('city'):
+            posts_query = posts_query.filter(city__iexact=params['city'])
+        if params.get('position'):
+            posts_query = posts_query.filter(position__name__iexact=params['position'])
+        if params.get('experience'):
+            posts_query = posts_query.filter(experience__iexact=params['experience'])
+        if params.get('type_working'):
+            posts_query = posts_query.filter(type_working__iexact=params['type_working'])
+        
+        # Xử lý lọc theo khoảng lương
+        if params.get('salary_min') and params.get('salary_max'):
+            posts_query = posts_query.filter(
+                salary_min__gte=params['salary_min'],
+                salary_max__lte=params['salary_max'],
+                is_salary_negotiable=False
+            )
+        elif params.get('salary_min'):
+            posts_query = posts_query.filter(
+                salary_min__gte=params['salary_min'],
+                is_salary_negotiable=False
+            )
+        elif params.get('salary_max'):
+            posts_query = posts_query.filter(
+                salary_max__lte=params['salary_max'],
+                is_salary_negotiable=False
+            )
+        
+        # Lọc lương thỏa thuận
+        if params.get('negotiable') == 'true':
+            posts_query = posts_query.filter(is_salary_negotiable=True)
+        
+        # Sắp xếp kết quả
+        sort_by = params['sort_by']
+        if params['sort_order'] == 'desc' and not sort_by.startswith('-'):
+            sort_by = f'-{sort_by}'
+        
+        # Lấy post IDs và thông tin cần thiết cho sắp xếp
+        post_info_query = posts_query.values('id', 'enterprise_id', 'created_at').order_by(sort_by).distinct()
+        post_info_map = {post['id']: post for post in post_info_query}
+        
+        filtered_posts = [
+            {'id': post['id'], 'enterprise_id': post['enterprise_id'], 'created_at': post['created_at']} 
+            for post in post_info_query
+        ]
+        
+        # Xử lý sắp xếp theo premium
+        enterprise_ids = {post['enterprise_id'] for post in filtered_posts}
+        priority_cache_key = 'enterprise_priority_coefficients'
+        priority_coefficients = cache.get(priority_cache_key, {})
+        missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
+        
+        if missing_enterprise_ids:
+            enterprises_with_premium = EnterpriseEntity.objects.filter(
+                id__in=missing_enterprise_ids
+            ).select_related('user')
             
-            if premium_history and premium_history.package:
-                priority_coefficients[enterprise.id] = premium_history.package.priority_coefficient
-            else:
-                priority_coefficients[enterprise.id] = 999
-        cache.set(priority_cache_key, priority_coefficients, 60 * 60)
-    filtered_posts.sort(key=lambda post: (
-        priority_coefficients.get(post['enterprise_id'], 999),  # Ưu tiên theo hệ số (thấp đến cao)
-        -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)  # Sau đó theo thời gian (mới đến cũ)
-    ))
-    prioritized_post_ids = [post['id'] for post in filtered_posts]
-    if prioritized_post_ids:
+            user_ids = [e.user_id for e in enterprises_with_premium]
+            active_premiums = PremiumHistory.objects.filter(
+                user_id__in=user_ids,
+                is_active=True,
+                is_cancelled=False,
+                end_date__gt=timezone.now()
+            ).select_related('package').order_by('-created_at')
+            
+            user_premium_map = {}
+            for premium in active_premiums:
+                if premium.user_id not in user_premium_map:
+                    user_premium_map[premium.user_id] = premium
+            
+            for enterprise in enterprises_with_premium:
+                premium_history = user_premium_map.get(enterprise.user_id)
+                if premium_history and premium_history.package:
+                    priority_coefficients[enterprise.id] = premium_history.package.priority_coefficient
+                else:
+                    priority_coefficients[enterprise.id] = 999
+            
+            cache.set(priority_cache_key, priority_coefficients, 60 * 60)
+        
+        # Sắp xếp theo priority và thời gian
+        filtered_posts.sort(key=lambda post: (
+            priority_coefficients.get(post['enterprise_id'], 999),
+            -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
+        ))
+        
+        # Lấy danh sách ID đã sắp xếp
+        sorted_ids = [post['id'] for post in filtered_posts]
+        
+        # Cache danh sách ID đã sắp xếp
+        cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
+    else:
+        sorted_ids = cached_post_ids
+    
+    # Lấy dữ liệu posts từ database với các ID đã sắp xếp
+    if sorted_ids:
         order_clause = Case(
-            *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(prioritized_post_ids)],
+            *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(sorted_ids)],
             output_field=IntegerField()
         )
-    
+        
         ordered_posts = PostEntity.objects.filter(
-            id__in=prioritized_post_ids
+            id__in=sorted_ids
         ).select_related(
             'position', 
             'enterprise', 
@@ -1614,19 +1627,17 @@ def search_posts(request):
     else:
         ordered_posts = PostEntity.objects.none()
     
-    # 11. Phân trang
+    # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(ordered_posts, request)
     
-    # 12. Serialize kết quả
-    serializer = PostSerializer(paginated_posts, many=True)
+    # Serialize với context để tính toán các trường động như is_saved
+    serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
     response_data = paginator.get_paginated_response(serializer.data).data
-    
-    # 13. Lưu vào cache
-    cache.set(cache_key, response_data, 60 * 15)  # Cache 15 phút
     
     time_end = datetime.now()
     print(f"Time taken: {time_end - time_start} seconds")
+    
     return Response(response_data)
 # Get Distinct Values for Filters
 @api_view(['GET'])
@@ -1674,8 +1685,7 @@ def get_recommended_posts(request):
         
         paginator = CustomPagination()
         paginated_posts = paginator.paginate_queryset(posts, request)
-        
-        serializer = PostSerializer(paginated_posts, many=True)
+        serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
         
     except CriteriaEntity.DoesNotExist:
@@ -2685,9 +2695,9 @@ def enterprise_statistics(request):
     operation_description="Lưu bài đăng việc làm",
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
-        required=['post'],
+        required=['post_id'],
         properties={
-            'post': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của bài đăng cần lưu"),
+            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="ID của bài đăng cần lưu"),
         }
     ),
     responses={
@@ -2730,7 +2740,7 @@ def enterprise_statistics(request):
 @permission_classes([IsAuthenticated])
 def save_post(request):
     """Lưu bài đăng việc làm"""
-    post_id = request.data.get('post')
+    post_id = request.data.get('post_id')
     
     try:
         post = PostEntity.objects.get(id=post_id)
@@ -2840,21 +2850,12 @@ def get_saved_posts(request):
         current_page = paginator.page(1)
         page = 1
     
-    serializer = SavedPostSerializer(current_page, many=True)
-    
-    # Tạo URL cho next và previous
-    base_url = request.build_absolute_uri().split('?')[0]
-    next_url = f"{base_url}?page={page + 1}&page_size={page_size}" if current_page.has_next() else None
-    prev_url = f"{base_url}?page={page - 1}&page_size={page_size}" if current_page.has_previous() else None
+    serializer = SavedPostSerializer(current_page, many=True, context={'request': request})
     
     return Response({
         'message': 'Lấy danh sách bài đăng đã lưu thành công',
         'status': 200,
         'data': {
-            'links': {
-                'next': next_url,
-                'previous': prev_url
-            },
             'total': paginator.count,
             'page': page,
             'total_pages': total_pages,

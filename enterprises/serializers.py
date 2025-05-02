@@ -35,6 +35,20 @@ class PostSerializer(serializers.ModelSerializer):
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
     field_name = serializers.CharField(source='field.name', read_only=True)
+    is_saved = serializers.SerializerMethodField()
+    is_enterprise_premium = serializers.SerializerMethodField()
+
+    def get_is_saved(self, obj):
+        request = self.context.get('request', None)
+        user = getattr(request, 'user', None)
+        
+        if user and user.is_authenticated:
+            return SavedPostEntity.objects.filter(user=user, post=obj).exists()
+        return False
+
+    def get_is_enterprise_premium(self, obj):
+        return obj.enterprise.user.is_premium
+
     # def to_representation(self, instance):
     #     data = super().to_representation(instance)
     #     # Strip HTML tags from text fields
@@ -42,13 +56,11 @@ class PostSerializer(serializers.ModelSerializer):
     #     data['required'] = strip_html_tags(data.get('required'))
     #     data['interest'] = strip_html_tags(data.get('interest'))
     #     return data
-    is_enterprise_premium = serializers.SerializerMethodField()
-    def get_is_enterprise_premium(self, obj):
-        return obj.enterprise.user.is_premium
     class Meta:
         model = PostEntity
         fields = '__all__'
         read_only_fields = ('created_at', 'modified_at')
+
 class PostEnterpriseSerializer(serializers.ModelSerializer):
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
@@ -94,6 +106,12 @@ class CriteriaSerializer(serializers.ModelSerializer):
 
 class SavedPostSerializer(serializers.ModelSerializer):
     post_detail = PostSerializer(source='post', read_only=True)
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Truyền context cho PostSerializer
+        data['post_detail'] = PostSerializer(instance.post, context=self.context).data
+        return data
     
     class Meta:
         model = SavedPostEntity
