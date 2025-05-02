@@ -2,14 +2,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time, timezone
 from django.shortcuts import render, get_object_or_404
 from django.core.cache import cache
-from django.db.models import (
-    Q,
-    Count,
-    Case,
-    When,
-    Value,
-    IntegerField,
-)
+from django.db.models import Q, Count
+from django.db.models.expressions import Case, When, Value
+from django.db.models.fields import IntegerField
 from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
@@ -722,11 +717,6 @@ def get_posts(request):
         elif (sort == '-created_at'):
             posts = posts.order_by('-created_at')
             
-        # Import cho việc sắp xếp theo premium
-        from transactions.models import PremiumHistory
-        from django.utils import timezone
-        from django.db.models import Case, When, Value, IntegerField
-        
         # Lấy danh sách ID bài đăng theo thứ tự cơ bản
         post_ids = list(posts.values_list('id', flat=True))
         
@@ -792,22 +782,27 @@ def get_posts(request):
         sorted_ids = cached_post_ids
 
     # Lấy dữ liệu posts từ database với các ID đã sắp xếp
-    preserved_order = Case(
-        *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(sorted_ids)],
-        output_field=IntegerField()
-    )
+    if sorted_ids:
+        from django.db import models  # Import models namespace
+        
+        order_clause = models.Case(
+            *[models.When(id=pk, then=models.Value(pos)) for pos, pk in enumerate(sorted_ids)],
+            output_field=models.IntegerField()
+        )
+        
+        ordered_posts = PostEntity.objects.filter(
+            id__in=sorted_ids
+        ).select_related(
+            'position', 
+            'enterprise', 
+            'field'
+        ).order_by(order_clause)
+    else:
+        ordered_posts = PostEntity.objects.none()
     
-    posts = PostEntity.objects.filter(
-        id__in=sorted_ids
-    ).select_related(
-        'position', 
-        'enterprise', 
-        'field'
-    ).order_by(preserved_order)
-
     # Phân trang
     paginator = CustomPagination()
-    paginated_posts = paginator.paginate_queryset(posts, request)
+    paginated_posts = paginator.paginate_queryset(ordered_posts, request)
     
     # Serialize với context để tính toán các trường động như is_saved
     serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
