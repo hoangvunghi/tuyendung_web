@@ -106,7 +106,7 @@ class PositionEntity(models.Model):
 
 class PostEntity(models.Model):
     title = models.CharField(max_length=255, db_index=True)
-    deadline = models.DateField(null=True, blank=True)
+    deadline = models.DateField(null=True, blank=True, db_index=True)
     district = models.CharField(max_length=100, default='', blank=True)
     experience = models.CharField(max_length=50, db_index=True, default='Không yêu cầu')
     enterprise = models.ForeignKey(EnterpriseEntity, on_delete=models.CASCADE, related_name='posts')
@@ -116,8 +116,8 @@ class PostEntity(models.Model):
     level = models.CharField(max_length=50, default='', blank=True)
     quantity = models.IntegerField(default=1)
     required = models.TextField(default='')
-    salary_min = models.IntegerField(default=0)
-    salary_max = models.IntegerField(default=0)
+    salary_min = models.IntegerField(default=0, db_index=True)
+    salary_max = models.IntegerField(default=0, db_index=True)
     is_salary_negotiable = models.BooleanField(default=False, db_index=True)
     time_working = models.CharField(max_length=255, default='', blank=True)
     type_working = models.CharField(max_length=50, db_index=True, default='Toàn thời gian')
@@ -137,6 +137,10 @@ class PostEntity(models.Model):
             models.Index(fields=['title', 'city', 'experience', 'type_working']),
             models.Index(fields=['is_active', 'is_salary_negotiable']),
             models.Index(fields=['salary_min', 'salary_max']),
+            models.Index(fields=['is_active', 'deadline']),
+            models.Index(fields=['position', 'field']),
+            models.Index(fields=['enterprise', 'is_active']),
+            models.Index(fields=['type_working', 'experience', 'city']),
         ]
 
 class CriteriaEntity(models.Model):

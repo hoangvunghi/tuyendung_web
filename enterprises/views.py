@@ -2,9 +2,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time, timezone
 from django.shortcuts import render, get_object_or_404
 from django.core.cache import cache
-from django.db.models import Q, Count
-from django.db.models.expressions import Case, When, Value
-from django.db.models.fields import IntegerField
+from django.db.models import Q, Count, Case, When, Value, IntegerField, OuterRef, Subquery, F, Sum
+from django.db.models.functions import Coalesce
+from django.db.models.fields import Field
 from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
@@ -710,12 +710,12 @@ def get_posts(request):
         )
         
         # Sắp xếp cơ bản theo tham số
-        if (sort == '-salary_max'):
-            posts = posts.order_by('-salary_max')
-        elif (sort == '-salary_min'):
-            posts = posts.order_by('-salary_min')
-        elif (sort == '-created_at'):
-            posts = posts.order_by('-created_at')
+    if (sort == '-salary_max'):
+        posts = posts.order_by('-salary_max')
+    elif (sort == '-salary_min'):
+        posts = posts.order_by('-salary_min')
+    elif (sort == '-created_at'):
+        posts = posts.order_by('-created_at')
             
         # Lấy danh sách ID bài đăng theo thứ tự cơ bản
         post_ids = list(posts.values_list('id', flat=True))
@@ -810,7 +810,7 @@ def get_posts(request):
     
     time_end = datetime.now()
     print(f"Time taken: {time_end - time_start} seconds")
-    
+
     return Response(response_data)
 
 @swagger_auto_schema(
@@ -1352,7 +1352,7 @@ def search_enterprises(request):
         ),
         openapi.Parameter(
             'position', openapi.IN_QUERY, 
-            description="Vị trí công việc", 
+            description="Vị trí công việc (ID hoặc tên)", 
             type=openapi.TYPE_STRING,
             required=False
         ),
@@ -1365,6 +1365,18 @@ def search_enterprises(request):
         openapi.Parameter(
             'type_working', openapi.IN_QUERY, 
             description="Loại công việc (ví dụ: 'Full-time', 'Part-time', 'Remote')", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'scales', openapi.IN_QUERY, 
+            description="Quy mô công ty (ví dụ: '1-50', '51-150', '151-300')", 
+            type=openapi.TYPE_STRING,
+            required=False
+        ),
+        openapi.Parameter(
+            'field', openapi.IN_QUERY, 
+            description="Lĩnh vực (ID hoặc tên)", 
             type=openapi.TYPE_STRING,
             required=False
         ),
@@ -1383,6 +1395,13 @@ def search_enterprises(request):
         openapi.Parameter(
             'negotiable', openapi.IN_QUERY, 
             description="Lọc bài đăng có lương thỏa thuận. Giá trị: 'true' hoặc 'false'. Có thể kết hợp với salary_min và salary_max", 
+            type=openapi.TYPE_STRING,
+            enum=['true', 'false'],
+            required=False
+        ),
+        openapi.Parameter(
+            'all', openapi.IN_QUERY, 
+            description="Hiển thị tất cả bài đăng (true) hay chỉ hiển thị bài đăng phù hợp tiêu chí (false). Mặc định là true", 
             type=openapi.TYPE_STRING,
             enum=['true', 'false'],
             required=False
@@ -1459,6 +1478,14 @@ def search_enterprises(request):
                                                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                                             }
                                         ),
+                                        'field': openapi.Schema(
+                                            type=openapi.TYPE_OBJECT,
+                                            properties={
+                                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                            },
+                                            nullable=True
+                                        ),
                                         'created_at': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
                                     }
                                 )
@@ -1474,180 +1501,210 @@ def search_enterprises(request):
 @permission_classes([AllowAny])
 def search_posts(request):
     time_start = datetime.now()
-    # Tạo cache key dựa trên tất cả các tham số tìm kiếm
-    params = {}
     
-    # Lấy các tham số và chỉ thêm vào dict nếu có giá trị
-    for key in ['q', 'city', 'position', 'experience', 'type_working']:
+    # Lấy các tham số và tạo cache key
+    params = {}
+    for key in ['q', 'city', 'position', 'experience', 'type_working', 'scales', 'field', 'salary_min', 'salary_max', 'negotiable', 'all']:
         value = request.query_params.get(key, '')
         if value:
             params[key] = value
             
-    # Xử lý các tham số số nguyên
-    for key in ['salary_min', 'salary_max']:
-        value = request.query_params.get(key)
-        if value and value.isdigit():
-            params[key] = value
-            
-    # Xử lý tham số boolean negotiable
-    negotiable = request.query_params.get('negotiable')
-    if negotiable:
-        params['negotiable'] = negotiable
-    
-    # Thêm tham số sắp xếp
     params['sort_by'] = request.query_params.get('sort_by', 'created_at')
     params['sort_order'] = request.query_params.get('sort_order', 'desc')
-    
-    # Thêm tham số phân trang
     params['page'] = request.query_params.get('page', '1')
     params['page_size'] = request.query_params.get('page_size', '10')
     
-    # Tạo cache key từ params
-    cache_key = f"search_posts_ids_{hash(frozenset(params.items()))}"
+    # Mặc định all=true
+    if 'all' not in params:
+        params['all'] = 'true'
     
-    # Thử lấy post IDs từ cache
-    cached_post_ids = cache.get(cache_key)
+    cache_key = f"search_posts_results_{hash(frozenset(params.items()))}"
     
-    if cached_post_ids is None:
-        # Nếu không có trong cache, thực hiện tìm kiếm
-        posts_query = PostEntity.objects.filter(
-            is_active=True,
-            deadline__gte=datetime.now()
+    # Kiểm tra cache
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return Response(cached_data)
+    
+    # Lấy tất cả bài đăng active
+    all_posts = PostEntity.objects.filter(
+        is_active=True,
+        deadline__gte=datetime.now()
+    ).select_related('position', 'field', 'enterprise', 'position__field')
+
+    # Áp dụng bộ lọc tìm kiếm từ params nếu có
+    filtered_posts = all_posts
+
+    if params.get('q'):
+        search_term = params.get('q')
+        filtered_posts = filtered_posts.filter(
+            Q(title__icontains=search_term) |
+            Q(description__icontains=search_term) |
+            Q(required__icontains=search_term) |
+            Q(enterprise__company_name__icontains=search_term)
         )
-        
-        # Tạo Q objects cho việc tìm kiếm
-        search_conditions = Q()
-        if params.get('q'):
-            search_conditions = Q(
-                Q(title__icontains=params['q']) |
-                Q(description__icontains=params['q']) |
-                Q(required__icontains=params['q']) |
-                Q(enterprise__company_name__icontains=params['q'])
+
+    if params.get('city'):
+        filtered_posts = filtered_posts.filter(city__iexact=params.get('city'))
+
+    if params.get('experience'):
+        filtered_posts = filtered_posts.filter(experience__iexact=params.get('experience'))
+
+    if params.get('type_working'):
+        filtered_posts = filtered_posts.filter(type_working__iexact=params.get('type_working'))
+
+    if params.get('scales'):
+        filtered_posts = filtered_posts.filter(enterprise__scale__iexact=params.get('scales'))
+
+    if params.get('position'):
+        position_param = params.get('position')
+        if position_param.isdigit():
+            filtered_posts = filtered_posts.filter(position__id=int(position_param))
+        else:
+            filtered_posts = filtered_posts.filter(position__name__icontains=position_param)
+
+    if params.get('field'):
+        field_param = params.get('field')
+        if field_param.isdigit():
+            filtered_posts = filtered_posts.filter(
+                    Q(field__id=int(field_param)) |
+                    Q(position__field__id=int(field_param))
             )
-            posts_query = posts_query.filter(search_conditions)
+        else:
+            filtered_posts = filtered_posts.filter(
+                    Q(field__name__icontains=field_param) |
+                    Q(position__field__name__icontains=field_param)
+                )
+
+    if params.get('salary_min'):
+        filtered_posts = filtered_posts.filter(salary_min__gte=int(params.get('salary_min')))
+
+    if params.get('salary_max'):
+        filtered_posts = filtered_posts.filter(salary_max__lte=int(params.get('salary_max')))
+
+    if params.get('negotiable') == 'true':
+        filtered_posts = filtered_posts.filter(is_salary_negotiable=True)
+
+    # Lấy danh sách posts sau khi lọc
+    filtered_posts = list(filtered_posts)
+
+    # Nếu không có kết quả lọc và all=true, lấy tất cả bài đăng
+    if len(filtered_posts) == 0 and params.get('all') == 'true':
+        filtered_posts = list(all_posts)
+
+    # Lấy thông tin user criteria nếu đã đăng nhập
+    user = request.user
+    user_criteria = None
+    if user.is_authenticated:
+        try:
+            user_criteria = CriteriaEntity.objects.select_related('field', 'position').get(user=user)
+        except CriteriaEntity.DoesNotExist:
+            pass
+
+    # Lấy thông tin premium cho các doanh nghiệp
+    enterprise_ids = {post.enterprise_id for post in filtered_posts}
+    enterprise_premium_coefficients = {}
+
+    # Lấy hệ số ưu tiên cho mỗi doanh nghiệp
+    enterprise_users = {}
+    for enterprise in EnterpriseEntity.objects.filter(id__in=enterprise_ids):
+        enterprise_users[enterprise.id] = enterprise.user_id
+
+    # Lấy premium histories
+    user_ids = list(enterprise_users.values())
+    premium_histories = PremiumHistory.objects.filter(
+        user_id__in=user_ids,
+        is_active=True,
+        is_cancelled=False,
+        end_date__gt=timezone.now()
+    ).select_related('package')
+
+    # Map user_id -> premium_history
+    user_premiums = {}
+    for ph in premium_histories:
+        user_premiums[ph.user_id] = ph
+
+    # Tính hệ số cho mỗi doanh nghiệp
+    for enterprise_id, user_id in enterprise_users.items():
+        premium = user_premiums.get(user_id)
+        if premium and premium.package:
+            enterprise_premium_coefficients[enterprise_id] = premium.package.priority_coefficient
+        else:
+            enterprise_premium_coefficients[enterprise_id] = 999
+
+    # Tính điểm cho mỗi post
+    for post in filtered_posts:
+        score = 0
         
-        # Áp dụng các bộ lọc chính xác
-        if params.get('city'):
-            posts_query = posts_query.filter(city__iexact=params['city'])
-        if params.get('position'):
-            posts_query = posts_query.filter(position__name__iexact=params['position'])
-        if params.get('experience'):
-            posts_query = posts_query.filter(experience__iexact=params['experience'])
-        if params.get('type_working'):
-            posts_query = posts_query.filter(type_working__iexact=params['type_working'])
-        
-        # Xử lý lọc theo khoảng lương
-        if params.get('salary_min') and params.get('salary_max'):
-            posts_query = posts_query.filter(
-                salary_min__gte=params['salary_min'],
-                salary_max__lte=params['salary_max'],
-                is_salary_negotiable=False
-            )
-        elif params.get('salary_min'):
-            posts_query = posts_query.filter(
-                salary_min__gte=params['salary_min'],
-                is_salary_negotiable=False
-            )
-        elif params.get('salary_max'):
-            posts_query = posts_query.filter(
-                salary_max__lte=params['salary_max'],
-                is_salary_negotiable=False
-            )
-        
-        # Lọc lương thỏa thuận
-        if params.get('negotiable') == 'true':
-            posts_query = posts_query.filter(is_salary_negotiable=True)
-        
-        # Sắp xếp kết quả
-        sort_by = params['sort_by']
-        if params['sort_order'] == 'desc' and not sort_by.startswith('-'):
-            sort_by = f'-{sort_by}'
-        
-        # Lấy post IDs và thông tin cần thiết cho sắp xếp
-        post_info_query = posts_query.values('id', 'enterprise_id', 'created_at').order_by(sort_by).distinct()
-        post_info_map = {post['id']: post for post in post_info_query}
-        
-        filtered_posts = [
-            {'id': post['id'], 'enterprise_id': post['enterprise_id'], 'created_at': post['created_at']} 
-            for post in post_info_query
-        ]
-        
-        # Xử lý sắp xếp theo premium
-        enterprise_ids = {post['enterprise_id'] for post in filtered_posts}
-        priority_cache_key = 'enterprise_priority_coefficients'
-        priority_coefficients = cache.get(priority_cache_key, {})
-        missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
-        
-        if missing_enterprise_ids:
-            enterprises_with_premium = EnterpriseEntity.objects.filter(
-                id__in=missing_enterprise_ids
-            ).select_related('user')
+        # Tính điểm dựa trên criteria của user (nếu có)
+        if user_criteria:
+            # City (4 điểm)
+            if user_criteria.city and post.city and post.city.lower() == user_criteria.city.lower():
+                score += 4
             
-            user_ids = [e.user_id for e in enterprises_with_premium]
-            active_premiums = PremiumHistory.objects.filter(
-                user_id__in=user_ids,
-                is_active=True,
-                is_cancelled=False,
-                end_date__gt=timezone.now()
-            ).select_related('package').order_by('-created_at')
+            # Experience (3 điểm)
+            if user_criteria.experience and post.experience and post.experience.lower() == user_criteria.experience.lower():
+                score += 3
             
-            user_premium_map = {}
-            for premium in active_premiums:
-                if premium.user_id not in user_premium_map:
-                    user_premium_map[premium.user_id] = premium
+            # Type of working (3 điểm)
+            if user_criteria.type_working and post.type_working and post.type_working.lower() == user_criteria.type_working.lower():
+                score += 3
             
-            for enterprise in enterprises_with_premium:
-                premium_history = user_premium_map.get(enterprise.user_id)
-                if premium_history and premium_history.package:
-                    priority_coefficients[enterprise.id] = premium_history.package.priority_coefficient
-                else:
-                    priority_coefficients[enterprise.id] = 999
+            # Scales (2 điểm)
+            if user_criteria.scales and post.enterprise.scale and post.enterprise.scale.lower() == user_criteria.scales.lower():
+                score += 2
             
-            cache.set(priority_cache_key, priority_coefficients, 60 * 60)
+            # Field (5 điểm)
+            if user_criteria.field:
+                if (post.field and post.field.id == user_criteria.field.id) or \
+                    (post.position and post.position.field and post.position.field.id == user_criteria.field.id):
+                    score += 5
+            
+            # Position (5 điểm)
+            if user_criteria.position and post.position and post.position.id == user_criteria.position.id:
+                score += 5
+            
+            # Salary (3 điểm)
+            if user_criteria.salary_min and post.salary_min and post.salary_min >= user_criteria.salary_min:
+                score += 3
         
-        # Sắp xếp theo priority và thời gian
-        filtered_posts.sort(key=lambda post: (
-            priority_coefficients.get(post['enterprise_id'], 999),
-            -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
-        ))
+        # Tính điểm dựa trên các tham số tìm kiếm
+        if params.get('city') and post.city and post.city.lower() == params.get('city').lower():
+            score += 4
         
-        # Lấy danh sách ID đã sắp xếp
-        sorted_ids = [post['id'] for post in filtered_posts]
+        if params.get('experience') and post.experience and post.experience.lower() == params.get('experience').lower():
+            score += 3
         
-        # Cache danh sách ID đã sắp xếp
-        cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
+        if params.get('type_working') and post.type_working and post.type_working.lower() == params.get('type_working').lower():
+            score += 3
+        
+        if params.get('scales') and post.enterprise.scale and post.enterprise.scale.lower() == params.get('scales').lower():
+            score += 2
+        
+        # Lưu điểm và đánh dấu matches_criteria
+        post.match_score = score
+        post.matches_criteria = score >= 7
+        post.priority_coefficient = enterprise_premium_coefficients.get(post.enterprise_id, 999)
+
+    # Sắp xếp posts theo tiêu chí phù hợp
+    if params.get('all') == 'false':
+        # Nếu all=false, chỉ giữ lại những bài đăng phù hợp với tiêu chí
+        filtered_posts = [post for post in filtered_posts if post.matches_criteria]
     else:
-        sorted_ids = cached_post_ids
-    
-    # Lấy dữ liệu posts từ database với các ID đã sắp xếp
-    if sorted_ids:
-        order_clause = Case(
-            *[When(id=pk, then=Value(pos)) for pos, pk in enumerate(sorted_ids)],
-            output_field=IntegerField()
-        )
-        
-        ordered_posts = PostEntity.objects.filter(
-            id__in=sorted_ids
-        ).select_related(
-            'position', 
-            'enterprise', 
-            'field'
-        ).order_by(order_clause)
-    else:
-        ordered_posts = PostEntity.objects.none()
-    
+        # all=true: Sắp xếp posts theo matches_criteria rồi đến hệ số ưu tiên và thời gian tạo
+        filtered_posts.sort(key=lambda p: (not p.matches_criteria, p.priority_coefficient, -p.created_at.timestamp()))
+
+    # Serialize dữ liệu
+    serializer = PostSerializer(filtered_posts, many=True, context={'request': request})
+    time_end = datetime.now()
+    print(f"Search time taken: {time_end - time_start} seconds")
+
     # Phân trang
     paginator = CustomPagination()
-    paginated_posts = paginator.paginate_queryset(ordered_posts, request)
-    
-    # Serialize với context để tính toán các trường động như is_saved
+    paginated_posts = paginator.paginate_queryset(filtered_posts, request)
     serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
-    response_data = paginator.get_paginated_response(serializer.data).data
-    
-    time_end = datetime.now()
-    print(f"Time taken: {time_end - time_start} seconds")
-    
-    return Response(response_data)
+    cache.set(cache_key, serializer.data, 60 * 5)  # Cache trong 5 phút
+    return paginator.get_paginated_response(serializer.data)
+
 # Get Distinct Values for Filters
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -2314,22 +2371,23 @@ def get_criteria(request):
     try:
         criteria = CriteriaEntity.objects.filter(user=request.user).first()
         
-        # paginator = CustomPagination()
-        # paginated_criteria = paginator.paginate_queryset([criteria], request)
+        if not criteria:
+            return Response({
+                'message': 'Bạn chưa có tiêu chí tìm việc',
+                'status': status.HTTP_404_NOT_FOUND
+            }, status=status.HTTP_404_NOT_FOUND)
         
-        # serializer = CriteriaSerializer(paginated_criteria, many=True)
-        # return paginator.get_paginated_response(serializer.data)
         serializer = CriteriaSerializer(criteria)
         return Response({
             'message': 'Thành công',
             'status': status.HTTP_200_OK,
             'data': serializer.data
         }, status=status.HTTP_200_OK)
-    except CriteriaEntity.DoesNotExist:
+    except Exception as e:
         return Response({
-            'message': 'Bạn chưa có tiêu chí tìm việc',
-            'status': status.HTTP_404_NOT_FOUND
-        }, status=status.HTTP_404_NOT_FOUND)
+            'message': f'Lỗi: {str(e)}',
+            'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @swagger_auto_schema(
     method='post',
