@@ -2319,10 +2319,11 @@ def get_criteria(request):
         
         # serializer = CriteriaSerializer(paginated_criteria, many=True)
         # return paginator.get_paginated_response(serializer.data)
+        serializer = CriteriaSerializer(criteria)
         return Response({
             'message': 'Thành công',
             'status': status.HTTP_200_OK,
-            'data': criteria
+            'data': serializer.data
         }, status=status.HTTP_200_OK)
     except CriteriaEntity.DoesNotExist:
         return Response({

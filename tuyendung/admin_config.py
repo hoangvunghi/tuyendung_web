@@ -405,7 +405,7 @@ UNFOLD = {
             "link": get_admin_url("admin:index"),
         },
     ],
-    
+
     "SITE_FAVICONS": [
         {
             "rel": "icon",
