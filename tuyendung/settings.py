@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "notifications",
     'interviews',  
     'chat',  
+    'gemini_chat',  # Thêm ứng dụng Gemini Chat
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -372,3 +373,6 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=7, minute=0),  # Chạy lúc 7 giờ sáng hàng ngày
     },
 }
+
+# Gemini API Configuration
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY_HERE')  # Thay thế bằng API key thực tế

@@ -41,6 +41,7 @@ urlpatterns = [
         path('', include('notifications.urls')),
         path('', include('interviews.urls')),
         path('', include('chat.urls')),
+        path('gemini-chat/', include('gemini_chat.urls')),  # Thêm đường dẫn cho Gemini Chat API
         # path('', include('services.urls')),
         path('auth/', include('social_django.urls', namespace='social')),  # Social auth URLs
         path('dashboard/stats/', views.dashboard_stats, name='dashboard_stats'),  # Dashboard API
