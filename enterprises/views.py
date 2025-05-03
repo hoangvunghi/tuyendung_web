@@ -2141,6 +2141,7 @@ def get_post_detail(request, pk):
         data['enterprise_logo'] = post.enterprise.logo_url
         data['user_id'] = post.enterprise.user.id
         data['is_enterprise_premium'] = post.enterprise.user.is_premium
+        data['enterprise_address'] = post.enterprise.address
         # Tính tổng số ứng viên đã ứng tuyển
         total_applicants = Cv.objects.filter(post=post).count()
         
