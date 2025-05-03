@@ -11,7 +11,8 @@ urlpatterns = [
     path('sessions/<str:session_id>/', views.get_chat_session, name='get_chat_session'),
     path('sessions/<str:session_id>/delete/', views.delete_chat_session, name='delete_chat_session'),
     path('sessions/<str:session_id>/close/', views.close_chat_session, name='close_chat_session'),
+    path('sessions/<str:session_id>/update-title/', views.update_chat_session_title, name='update_chat_session_title'),
     
     # Demo API (không yêu cầu đăng nhập)
-    path('demo/', views.demo_chat, name='demo_chat'),
+    # path('demo/', views.demo_chat, name='demo_chat'),
 ] 

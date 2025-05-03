@@ -4,16 +4,16 @@ from .models import GeminiChatSession, GeminiChatMessage
 class GeminiChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = GeminiChatMessage
-        fields = ['id', 'role', 'content', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'role', 'content', 'timestamp']
+        read_only_fields = ['id', 'timestamp']
 
 class GeminiChatSessionSerializer(serializers.ModelSerializer):
     messages = GeminiChatMessageSerializer(many=True, read_only=True)
     
     class Meta:
         model = GeminiChatSession
-        fields = ['id', 'session_id', 'title', 'is_active', 'created_at', 'updated_at', 'messages']
-        read_only_fields = ['id', 'session_id', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'is_active', 'created_at', 'updated_at', 'messages']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class ChatRequestSerializer(serializers.Serializer):
     message = serializers.CharField(required=True, allow_blank=False)

@@ -84,8 +84,8 @@ def send_message(request):
             'message': 'Gửi tin nhắn thành công',
             'status': status.HTTP_200_OK,
             'data': {
-                'session_id': result['session'].session_id,
-                'response': result['model_message'].content
+                'session_id': str(result['session_id']),
+                'response': result['assistant_message']['content']
             }
         }, status=status.HTTP_200_OK)
     
@@ -170,8 +170,22 @@ def get_chat_sessions(request):
 @permission_classes([IsAuthenticated])
 def get_chat_session(request, session_id):
     """API endpoint để lấy chi tiết phiên chat và tin nhắn"""
+    # Đảm bảo session_id hợp lệ
+    if session_id == 'undefined' or session_id is None:
+        return Response({
+            'message': 'ID phiên chat không hợp lệ',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
     try:
-        session = GeminiChatSession.objects.get(session_id=session_id, user=request.user)
+        # Nếu session_id là ID số nguyên (từ DB cũ), chuyển đổi
+        try:
+            # Cố gắng parse thành số nguyên nếu là kiểu cũ
+            id_value = int(session_id)
+            session = GeminiChatSession.objects.get(id=id_value, user=request.user)
+        except (ValueError, TypeError):
+            # Nếu không phải số nguyên, sử dụng trực tiếp
+            session = GeminiChatSession.objects.get(id=session_id, user=request.user)
     except GeminiChatSession.DoesNotExist:
         return Response({
             'message': 'Phiên chat không tồn tại',
@@ -247,18 +261,17 @@ def create_chat_session(request):
 def delete_chat_session(request, session_id):
     """API endpoint để xóa phiên chat"""
     try:
-        session = GeminiChatSession.objects.get(session_id=session_id, user=request.user)
+        session = GeminiChatSession.objects.get(id=session_id, user=request.user)
+        session.delete()
+        return Response({
+            'message': 'Xóa phiên chat thành công',
+            'status': status.HTTP_204_NO_CONTENT
+        }, status=status.HTTP_204_NO_CONTENT)
     except GeminiChatSession.DoesNotExist:
         return Response({
             'message': 'Phiên chat không tồn tại',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
-    
-    session.delete()
-    return Response({
-        'message': 'Xóa phiên chat thành công',
-        'status': status.HTTP_204_NO_CONTENT
-    }, status=status.HTTP_204_NO_CONTENT)
 
 @swagger_auto_schema(
     method='post',
@@ -290,49 +303,48 @@ def delete_chat_session(request, session_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def close_chat_session(request, session_id):
-    """API endpoint để đóng phiên chat"""
+    """API endpoint để đóng phiên chat (đánh dấu không còn hoạt động)"""
     try:
-        session = GeminiChatSession.objects.get(session_id=session_id, user=request.user)
+        session = GeminiChatSession.objects.get(id=session_id, user=request.user)
+        session.is_active = False
+        session.save()
+        
+        serializer = GeminiChatSessionSerializer(session)
+        return Response({
+            'message': 'Đóng phiên chat thành công',
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
     except GeminiChatSession.DoesNotExist:
         return Response({
             'message': 'Phiên chat không tồn tại',
             'status': status.HTTP_404_NOT_FOUND
         }, status=status.HTTP_404_NOT_FOUND)
-    
-    session.is_active = False
-    session.save(update_fields=['is_active'])
-    
-    serializer = GeminiChatSessionSerializer(session)
-    return Response({
-        'message': 'Đóng phiên chat thành công',
-        'status': status.HTTP_200_OK,
-        'data': serializer.data
-    }, status=status.HTTP_200_OK)
 
-# API không yêu cầu đăng nhập, cho trang landing
 @swagger_auto_schema(
-    method='post',
-    operation_description="Gửi tin nhắn không cần đăng nhập (demo)",
-    request_body=ChatRequestSerializer,
+    method='put',
+    operation_description="Cập nhật tiêu đề phiên chat",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['title'],
+        properties={
+            'title': openapi.Schema(type=openapi.TYPE_STRING, description="Tiêu đề mới cho phiên chat"),
+        }
+    ),
     responses={
         200: openapi.Response(
-            description="Successful response",
+            description="Tiêu đề đã được cập nhật thành công",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
                     'message': openapi.Schema(type=openapi.TYPE_STRING),
                     'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'data': openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'response': openapi.Schema(type=openapi.TYPE_STRING),
-                        }
-                    )
+                    'data': openapi.Schema(type=openapi.TYPE_OBJECT)
                 }
             )
         ),
         400: openapi.Response(
-            description="Bad request",
+            description="Dữ liệu không hợp lệ",
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
@@ -344,49 +356,42 @@ def close_chat_session(request, session_id):
         )
     }
 )
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def demo_chat(request):
-    """API endpoint cho demo chat không cần đăng nhập"""
-    serializer = ChatRequestSerializer(data=request.data)
-    
-    if not serializer.is_valid():
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_chat_session_title(request, pk):
+    """API endpoint để cập nhật tiêu đề phiên chat"""
+    try:
+        chat_session = GeminiChatSession.objects.get(id=pk, user=request.user)
+    except GeminiChatSession.DoesNotExist:
         return Response({
-            'message': 'Dữ liệu không hợp lệ',
+            'message': 'Phiên chat không tồn tại',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    title = request.data.get('title', '').strip()
+    
+    if not title:
+        return Response({
+            'message': 'Tiêu đề không được để trống',
             'status': status.HTTP_400_BAD_REQUEST,
-            'errors': serializer.errors
+            'errors': {'title': ['Tiêu đề không được để trống']}
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    message = serializer.validated_data['message']
+    # Tối ưu tiêu đề nếu quá dài
+    if len(title) > 100:
+        words = title.split()
+        if len(words) > 15:
+            title = ' '.join(words[:15]) + '...'
+        else:
+            title = title[:100] + '...'
     
-    try:
-        # Khởi tạo Gemini API
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        # Tạo prompt
-        demo_prompt = """
-        Bạn là trợ lý ảo của hệ thống tuyển dụng. Hãy trả lời câu hỏi của người dùng.
-        Nếu được hỏi về thông tin cá nhân hoặc dữ liệu riêng tư, hãy đề nghị họ đăng ký tài khoản để có trải nghiệm đầy đủ.
-        Trả lời bằng tiếng Việt rõ ràng, lịch sự.
-        """
-        
-        # Kết hợp prompt với câu hỏi
-        full_prompt = f"{demo_prompt}\n\nNgười dùng: {message}"
-        
-        # Gửi yêu cầu đến API
-        response = model.generate_content(full_prompt)
-        
-        return Response({
-            'message': 'Gửi tin nhắn thành công',
-            'status': status.HTTP_200_OK,
-            'data': {
-                'response': response.text
-            }
-        }, status=status.HTTP_200_OK)
+    chat_session.title = title
+    chat_session.save()
     
-    except Exception as e:
-        return Response({
-            'message': f'Lỗi khi xử lý tin nhắn: {str(e)}',
-            'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    serializer = GeminiChatSessionSerializer(chat_session)
+    
+    return Response({
+        'message': 'Cập nhật tiêu đề thành công',
+        'status': status.HTTP_200_OK,
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
