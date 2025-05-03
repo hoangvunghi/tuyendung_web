@@ -3264,4 +3264,3 @@ def check_post_saved(request, post_id):
             'is_saved': False,
             'saved_post_id': None
         }, status=status.HTTP_200_OK)
-
