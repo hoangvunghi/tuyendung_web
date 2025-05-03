@@ -30,8 +30,7 @@ urlpatterns = [
     path('fields/', views.get_fields, name='get-fields'),
     path('fields/create/', views.create_field, name='create-field'),
     path('fields/<int:field_id>/', views.get_field_name, name='get-field-name'),
-    # Filter Options
-    path('filter-options/', views.get_filter_options, name='get-filter-options'),
+ 
 
     # Position URLs
     path('positions/', views.get_positions, name='get_positions'),

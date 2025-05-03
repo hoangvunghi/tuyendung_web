@@ -1705,31 +1705,6 @@ def search_posts(request):
     cache.set(cache_key, serializer.data, 60 * 5)  # Cache trong 5 phút
     return paginator.get_paginated_response(serializer.data)
 
-# Get Distinct Values for Filters
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def get_filter_options(request):
-    # Lấy danh sách các giá trị duy nhất cho các trường lọc
-    cities = PostEntity.objects.values_list('city', flat=True).distinct()
-    experiences = PostEntity.objects.values_list('experience', flat=True).distinct()
-    type_workings = PostEntity.objects.values_list('type_working', flat=True).distinct()
-    enterprise_scales = EnterpriseEntity.objects.values_list('scale', flat=True).distinct()
-    fields = FieldEntity.objects.filter(status='active').values('id', 'name')
-    positions = PositionEntity.objects.filter(status='active').values('id', 'name')
-    
-    return Response({
-        'message': 'Filter options retrieved successfully',
-        'status': status.HTTP_200_OK,
-        'data': {
-            'cities': list(cities),
-            'experiences': list(experiences),
-            'type_workings': list(type_workings),
-            'enterprise_scales': list(enterprise_scales),
-            'fields': list(fields),
-            'positions': list(positions)
-        }
-    })
-
 # Get Recommended Posts
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
