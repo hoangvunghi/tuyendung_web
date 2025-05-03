@@ -1702,8 +1702,9 @@ def search_posts(request):
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(filtered_posts, request)
     serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
-    cache.set(cache_key, serializer.data, 60 * 5)  # Cache trong 5 phút
-    return paginator.get_paginated_response(serializer.data)
+    response_data = paginator.get_paginated_response(serializer.data)
+    cache.set(cache_key, response_data.data, 60 * 5)  # Cache trong 5 phút
+    return response_data
 
 # Get Recommended Posts
 @api_view(['GET'])
