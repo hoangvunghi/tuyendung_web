@@ -402,8 +402,12 @@ CSRF_COOKIE_SECURE = True
 # Đảm bảo SESSION_COOKIE_SECURE cũng được bật
 SESSION_COOKIE_SECURE = True
 
-# Thêm domain của bạn vào CSRF_TRUSTED_ORIGINS
-CSRF_TRUSTED_ORIGINS = ['https://api.tuyendungtlu.site']
-
+CSRF_TRUSTED_ORIGINS = [
+    'https://tuyendungtlu.site',
+    'https://api.tuyendungtlu.site',
+    'http://localhost:5173',  # Add for local development if needed
+    'http://localhost:3000',  # Add for local development if needed
+]
+CORS_ALLOW_CREDENTIALS = True
 # Thiết lập CSRF_USE_SESSIONS = True nếu cần
 # CSRF_USE_SESSIONS = True
