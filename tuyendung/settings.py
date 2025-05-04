@@ -149,12 +149,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://3.1.71.16:3000",
     "https://tuyendungtlu.site",
     "https://tuyendungtlu.site:5173",
-    "http://api.tuyendungtlu.site",
+    # "http://api.tuyendungtlu.site",
     "https://api.tuyendungtlu.site",
 ]
 
 SECURITY_PASSWORD_SALT = "@bfjkh189721!@#kjds905-222ss"
-BACKEND_URL = "http://api.tuyendungtlu.site/api"
+BACKEND_URL = "https://api.tuyendungtlu.site"
 FRONTEND_URL = "https://tuyendungtlu.site"
 # FRONT_END_URL = "http://localhost:5173"
 MIDDLEWARE = [
@@ -406,7 +406,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://tuyendungtlu.site',
     'http://tuyendungtlu.site   ',
     'https://api.tuyendungtlu.site',
-    'http://api.tuyendungtlu.site',
+    # 'http://api.tuyendungtlu.site',
     'http://localhost:5173',  # Add for local development if needed
     'http://localhost:3000',  # Add for local development if needed
 ]
