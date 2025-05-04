@@ -74,6 +74,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  
 ]
 
+# allow host
+ALLOWED_HOSTS = ['*']
 # Google OAuth2 settings
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_SECRET')
@@ -98,7 +100,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 # Social Auth settings
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'  # URL của view callback
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'http://localhost:5173/login-error'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://tuyendungtlu.site/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
@@ -119,24 +121,38 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_UNIQUE_EMAIL = True
 
 # URL Frontend cho redirect sau khi login
-FRONTEND_URL = 'http://localhost:5173'
+# FRONTEND_URL = 'http://localhost:5173'
+FRONTEND_URL = 'https://tuyendungtlu.site'
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels.layers.InMemoryChannelLayer',
+#     },
+# }
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
     },
 }
-
 AUTH_USER_MODEL = 'accounts.UserAccount'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://3.1.71.16",
+    "http://3.1.71.16:5173",
+    "http://3.1.71.16:3000",
+    "https://tuyendungtlu.site",
+    "https://tuyendungtlu.site:5173",
 ]
 
 SECURITY_PASSWORD_SALT = "@bfjkh189721!@#kjds905-222ss"
 BACKEND_URL = "http://127.0.0.1:8000/api"
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = "https://tuyendungtlu.site"
 # FRONT_END_URL = "http://localhost:5173"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

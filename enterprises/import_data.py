@@ -319,57 +319,57 @@ def import_premium_packages_from_json(file_path):
         }
 
 if __name__ == '__main__':
-    # # Import fields
-    # fields_result = import_fields_from_json('data/fields.json')
-    # print("\nImport Fields Result:")
-    # print(f"Total: {fields_result['total']}")
-    # print(f"Success: {fields_result['success']}")
-    # print(f"Failed: {fields_result['failed']}")
-    # if fields_result['errors']:
-    #     print("Errors:")
-    #     for error in fields_result['errors']:
-    #         print(f"- {error}")
+    # Import fields
+    fields_result = import_fields_from_json('data/fields.json')
+    print("\nImport Fields Result:")
+    print(f"Total: {fields_result['total']}")
+    print(f"Success: {fields_result['success']}")
+    print(f"Failed: {fields_result['failed']}")
+    if fields_result['errors']:
+        print("Errors:")
+        for error in fields_result['errors']:
+            print(f"- {error}")
 
-    # # Import positions
-    # positions_result = import_positions_from_json('data/positions.json')
-    # print("\nImport Positions Result:")
-    # print(f"Total: {positions_result['total']}")
-    # print(f"Success: {positions_result['success']}")
-    # print(f"Failed: {positions_result['failed']}")
-    # if positions_result['errors']:
-    #     print("Errors:")
-    #     for error in positions_result['errors']:
-    #         print(f"- {error}")
+    # Import positions
+    positions_result = import_positions_from_json('data/positions.json')
+    print("\nImport Positions Result:")
+    print(f"Total: {positions_result['total']}")
+    print(f"Success: {positions_result['success']}")
+    print(f"Failed: {positions_result['failed']}")
+    if positions_result['errors']:
+        print("Errors:")
+        for error in positions_result['errors']:
+            print(f"- {error}")
 
     # Import enterprises and recruiters
-    # enterprises_result = import_enterprises_from_json('data/enterprises.json')
-    # print("\nImport Enterprises and Recruiters Result:")
-    # print(f"Total: {enterprises_result['total']}")
-    # print(f"Success: {enterprises_result['success']}")
-    # print(f"Failed: {enterprises_result['failed']}")
-    # if enterprises_result['errors']:
-    #     print("Errors:")
-    #     for error in enterprises_result['errors']:
-    #         print(f"- {error}")
-
-    # # Import posts
-    # posts_result = import_posts_from_json('data/posts.json')
-    # print("\nImport Posts Result:")
-    # print(f"Total: {posts_result['total']}")
-    # print(f"Success: {posts_result['success']}")
-    # print(f"Failed: {posts_result['failed']}")
-    # if posts_result['errors']:
-    #     print("Errors:")
-    #     for error in posts_result['errors']:
-    #         print(f"- {error}")
-    
-    # Import premium packages
-    premium_packages_result = import_premium_packages_from_json('data/premium_packages.json')
-    print("\nImport Premium Packages Result:")
-    print(f"Total: {premium_packages_result['total']}")
-    print(f"Success: {premium_packages_result['success']}")
-    print(f"Failed: {premium_packages_result['failed']}")
-    if premium_packages_result['errors']:
+    enterprises_result = import_enterprises_from_json('data/enterprises.json')
+    print("\nImport Enterprises and Recruiters Result:")
+    print(f"Total: {enterprises_result['total']}")
+    print(f"Success: {enterprises_result['success']}")
+    print(f"Failed: {enterprises_result['failed']}")
+    if enterprises_result['errors']:
         print("Errors:")
-        for error in premium_packages_result['errors']:
-            print(f"- {error}") 
+        for error in enterprises_result['errors']:
+            print(f"- {error}")
+
+    # Import posts
+    posts_result = import_posts_from_json('data/posts.json')
+    print("\nImport Posts Result:")
+    print(f"Total: {posts_result['total']}")
+    print(f"Success: {posts_result['success']}")
+    print(f"Failed: {posts_result['failed']}")
+    if posts_result['errors']:
+        print("Errors:")
+        for error in posts_result['errors']:
+            print(f"- {error}")
+    
+    # # Import premium packages
+    # premium_packages_result = import_premium_packages_from_json('data/premium_packages.json')
+    # print("\nImport Premium Packages Result:")
+    # print(f"Total: {premium_packages_result['total']}")
+    # print(f"Success: {premium_packages_result['success']}")
+    # print(f"Failed: {premium_packages_result['failed']}")
+    # if premium_packages_result['errors']:
+    #     print("Errors:")
+    #     for error in premium_packages_result['errors']:
+    #         print(f"- {error}") 
