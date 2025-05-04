@@ -76,7 +76,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # allow host
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 # Google OAuth2 settings
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_SECRET')
@@ -169,7 +169,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',  # Middleware cho social_django
 ]
-# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'tuyendung.urls'
 
 TEMPLATES = [
