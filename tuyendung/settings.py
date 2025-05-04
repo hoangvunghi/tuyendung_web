@@ -148,7 +148,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://3.1.71.16:5173",
     "http://3.1.71.16:3000",
     "https://tuyendungtlu.site",
-    "https://tuyendungtlu.site:5173",
+    # "https://tuyendungtlu.site:5173",
     # "http://api.tuyendungtlu.site",
     "https://api.tuyendungtlu.site",
 ]
@@ -397,18 +397,17 @@ CELERY_BEAT_SCHEDULE = {
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY_HERE')  # Thay thế bằng API key thực tế
 
 
-# Đảm bảo SESSION_COOKIE_SECURE cũng được bật
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://tuyendungtlu.site',
-    # 'http://tuyendungtlu.site',
-    'https://api.tuyendungtlu.site',
+    # 'https://tuyendungtlu.site',
+    # # 'http://tuyendungtlu.site',
+    'https://api.tuyendungtlu.site'
     # 'http://api.tuyendungtlu.site',
-    'http://localhost:5173',  # Add for local development if needed
-    'http://localhost:3000',  # Add for local development if needed
+    # 'http://localhost:5173',  # Add for local development if needed
+    # 'http://localhost:3000',  # Add for local development if needed
 ]
 CORS_ALLOW_CREDENTIALS = True
 # Thiết lập CSRF_USE_SESSIONS = True nếu cần
