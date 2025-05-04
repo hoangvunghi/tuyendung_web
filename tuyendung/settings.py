@@ -19,7 +19,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS = ['*']  # Chỉ để test local, production nên giới hạn
-ALLOWED_HOSTS = ['tuyendungtlu.site', 'api.tuyendungtlu.site']
+ALLOWED_HOSTS = ['tuyendungtlu.site', 'api.tuyendungtlu.site','www.api.tuyendungtlu.site']
 
 # Cloudinary configuration
 cloudinary.config( 
@@ -401,7 +401,7 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY_HERE')  # Thay
 
 
 SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = False 
+CSRF_COOKIE_SECURE = True 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
@@ -409,6 +409,7 @@ CSRF_TRUSTED_ORIGINS = [
     # # 'http://tuyendungtlu.site',
     'https://api.tuyendungtlu.site',
     'http://3.1.71.16:8001',
+    'https://www.api.tuyendungtlu.site',
     # 'http://api.tuyendungtlu.site',
     # 'http://localhost:5173',  # Add for local development if needed
     # 'http://localhost:3000',  # Add for local development if needed
@@ -416,4 +417,4 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 # Thiết lập CSRF_USE_SESSIONS = True nếu cần
 # CSRF_USE_SESSIONS = True
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
