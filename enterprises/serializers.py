@@ -58,7 +58,7 @@ class PostSerializer(serializers.ModelSerializer):
             'type_working', 'salary_min', 'salary_max', 'is_salary_negotiable',
             'quantity', 'city', 'district', 'position', 'field', 'created_at',
             'deadline', 'is_active', 'enterprise', 'enterprise_name', 'enterprise_logo',
-            'is_saved', 'is_enterprise_premium', 'matches_criteria'
+            'is_saved', 'is_enterprise_premium', 'matches_criteria', 'experience', 'level', 'time_working'
         ]
         read_only_fields = ['created_at', 'is_active', 'is_saved', 'is_enterprise_premium', 'matches_criteria']
 

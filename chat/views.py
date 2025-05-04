@@ -115,7 +115,7 @@ def get_messages(request):
     messages = Message.objects.filter(
         Q(sender=request.user, recipient_id=conversation_with) |
         Q(recipient=request.user, sender_id=conversation_with)
-    ).order_by('created_at')
+    ).order_by('-created_at')
     
     paginator = CustomPagination()
     paginated_messages = paginator.paginate_queryset(messages, request)
@@ -377,7 +377,7 @@ def get_conversations(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_latest_messages(request):
-    """Lấy tin nhắn mới nhất cho mỗi cuộc trò chuyện"""
+    """Lấy tin nhắn mới nhất cho mỗi cuộc trò chuyện, data trả thêm thông tin tên của người nhận"""
     user_id = request.user.id
     
     # Tìm tin nhắn mới nhất cho mỗi cuộc trò chuyện
