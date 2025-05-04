@@ -18,8 +18,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# ALLOWED_HOSTS = ['*']  # Chỉ để test local, production nên giới hạn
-ALLOWED_HOSTS = ['tuyendungtlu.site', 'api.tuyendungtlu.site','www.api.tuyendungtlu.site']
+ALLOWED_HOSTS = ['tuyendungtlu.site', 'api.tuyendungtlu.site','www.api.tuyendungtlu.site','www.tuyendungtlu.site',"3.1.71.16","127.0.0.1","localhost"]
 
 # Cloudinary configuration
 cloudinary.config( 
@@ -75,8 +74,6 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  
 ]
 
-# allow host
-# ALLOWED_HOSTS = ['*']
 # Google OAuth2 settings
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_SECRET')
@@ -149,11 +146,13 @@ CORS_ALLOWED_ORIGINS = [
 
     "http://3.1.71.16:5173",
     "http://3.1.71.16:3000",
-    "http://tuyendungtlu.site",
+    # "http://tuyendungtlu.site",
     "https://tuyendungtlu.site",
+    "https://www.tuyendungtlu.site",
     # "https://tuyendungtlu.site:5173",
     # "http://api.tuyendungtlu.site",
     "https://api.tuyendungtlu.site",
+    "https://www.api.tuyendungtlu.site",
 ]
 
 SECURITY_PASSWORD_SALT = "@bfjkh189721!@#kjds905-222ss"
@@ -172,7 +171,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',  # Middleware cho social_django
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'tuyendung.urls'
 
 TEMPLATES = [
@@ -405,8 +404,8 @@ CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
-    # 'https://tuyendungtlu.site',
-    # # 'http://tuyendungtlu.site',
+    'https://tuyendungtlu.site',
+    'https://www.tuyendungtlu.site',
     'https://api.tuyendungtlu.site',
     'http://3.1.71.16:8001',
     'https://www.api.tuyendungtlu.site',
@@ -415,6 +414,3 @@ CSRF_TRUSTED_ORIGINS = [
     # 'http://localhost:3000',  # Add for local development if needed
 ]
 CORS_ALLOW_CREDENTIALS = True
-# Thiết lập CSRF_USE_SESSIONS = True nếu cần
-# CSRF_USE_SESSIONS = True
-# ALLOWED_HOSTS = ['*']
