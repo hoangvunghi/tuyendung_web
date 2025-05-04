@@ -18,7 +18,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']  # Chỉ để test local, production nên giới hạn
+# ALLOWED_HOSTS = ['*']  # Chỉ để test local, production nên giới hạn
+ALLOWED_HOSTS = ['tuyendungtlu.site', 'api.tuyendungtlu.site']
 
 # Cloudinary configuration
 cloudinary.config( 
@@ -168,7 +169,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',  # Middleware cho social_django
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'tuyendung.urls'
 
 TEMPLATES = [
