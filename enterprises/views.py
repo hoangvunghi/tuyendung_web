@@ -717,92 +717,92 @@ def get_posts(request):
     elif (sort == '-created_at'):
         posts = posts.order_by('-created_at')
             
-        # Lấy danh sách ID bài đăng theo thứ tự cơ bản
-        post_ids = list(posts.values_list('id', flat=True))
+        # # Lấy danh sách ID bài đăng theo thứ tự cơ bản
+        # post_ids = list(posts.values_list('id', flat=True))
         
-        # Cần thông tin enterprise_id để sắp xếp theo premium
-        post_data = list(posts.values('id', 'enterprise_id', 'created_at'))
+        # # Cần thông tin enterprise_id để sắp xếp theo premium
+        # post_data = list(posts.values('id', 'enterprise_id', 'created_at'))
         
-        # Tìm doanh nghiệp liên quan đến các bài đăng
-        enterprise_ids = {post['enterprise_id'] for post in post_data}
+        # # Tìm doanh nghiệp liên quan đến các bài đăng
+        # enterprise_ids = {post['enterprise_id'] for post in post_data}
         
-        # Lấy thông tin priority coefficient từ cache
-        priority_cache_key = 'enterprise_priority_coefficients'
-        priority_coefficients = cache.get(priority_cache_key, {})
+        # # Lấy thông tin priority coefficient từ cache
+        # priority_cache_key = 'enterprise_priority_coefficients'
+        # priority_coefficients = cache.get(priority_cache_key, {})
         
-        # Chỉ truy vấn các doanh nghiệp chưa có trong cache
-        missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
+        # # Chỉ truy vấn các doanh nghiệp chưa có trong cache
+        # missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
         
-        if missing_enterprise_ids:
-            # Lấy thông tin doanh nghiệp
-            enterprises = EnterpriseEntity.objects.filter(
-                id__in=missing_enterprise_ids
-            ).select_related('user')
+        # if missing_enterprise_ids:
+        #     # Lấy thông tin doanh nghiệp
+        #     enterprises = EnterpriseEntity.objects.filter(
+        #         id__in=missing_enterprise_ids
+        #     ).select_related('user')
             
-            # Map user_id to enterprise_id
-            user_to_enterprise = {e.user_id: e.id for e in enterprises}
+        #     # Map user_id to enterprise_id
+        #     user_to_enterprise = {e.user_id: e.id for e in enterprises}
             
-            # Lấy premium histories hiệu quả với một truy vấn
-            premium_histories = PremiumHistory.objects.filter(
-                user_id__in=user_to_enterprise.keys(),
-                is_active=True,
-                is_cancelled=False,
-                end_date__gt=timezone.now()
-            ).select_related('package')
+        #     # Lấy premium histories hiệu quả với một truy vấn
+        #     premium_histories = PremiumHistory.objects.filter(
+        #         user_id__in=user_to_enterprise.keys(),
+        #         is_active=True,
+        #         is_cancelled=False,
+        #         end_date__gt=timezone.now()
+        #     ).select_related('package')
             
-            # Map user_id to premium_history hiệu quả
-            user_premiums = {}
-            for ph in premium_histories:
-                if ph.user_id not in user_premiums:
-                    user_premiums[ph.user_id] = ph
+        #     # Map user_id to premium_history hiệu quả
+        #     user_premiums = {}
+        #     for ph in premium_histories:
+        #         if ph.user_id not in user_premiums:
+        #             user_premiums[ph.user_id] = ph
             
-            # Tính toán priority coefficients cho các doanh nghiệp thiếu
-            for enterprise in enterprises:
-                premium = user_premiums.get(enterprise.user_id)
-                if premium and premium.package:
-                    priority_coefficients[enterprise.id] = premium.package.priority_coefficient
-                else:
-                    priority_coefficients[enterprise.id] = 999
+        #     # Tính toán priority coefficients cho các doanh nghiệp thiếu
+        #     for enterprise in enterprises:
+        #         premium = user_premiums.get(enterprise.user_id)
+        #         if premium and premium.package:
+        #             priority_coefficients[enterprise.id] = premium.package.priority_coefficient
+        #         else:
+        #             priority_coefficients[enterprise.id] = 999
             
-            # Lưu vào cache trong 1 giờ
-            cache.set(priority_cache_key, priority_coefficients, 60 * 60)
+        #     # Lưu vào cache trong 1 giờ
+        #     cache.set(priority_cache_key, priority_coefficients, 60 * 60)
         
-        # Sắp xếp post_data theo hệ số ưu tiên
-        post_data.sort(key=lambda post: (
-            priority_coefficients.get(post['enterprise_id'], 999),
-            -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
-        ))
+        # # Sắp xếp post_data theo hệ số ưu tiên
+        # post_data.sort(key=lambda post: (
+        #     priority_coefficients.get(post['enterprise_id'], 999),
+        #     -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
+        # ))
         
-        # Lấy ID bài đăng theo thứ tự mới
-        sorted_ids = [post['id'] for post in post_data]
+        # # Lấy ID bài đăng theo thứ tự mới
+        # sorted_ids = [post['id'] for post in post_data]
         
-        # Cache danh sách ID đã sắp xếp
-        cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
-    else:
-        sorted_ids = cached_post_ids
+        # # Cache danh sách ID đã sắp xếp
+        # cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
+    # else:
+    #     sorted_ids = cached_post_ids
 
-    # Lấy dữ liệu posts từ database với các ID đã sắp xếp
-    if sorted_ids:
-        from django.db import models  # Import models namespace
+    # # Lấy dữ liệu posts từ database với các ID đã sắp xếp
+    # if sorted_ids:
+    #     from django.db import models  # Import models namespace
         
-        order_clause = models.Case(
-            *[models.When(id=pk, then=models.Value(pos)) for pos, pk in enumerate(sorted_ids)],
-            output_field=models.IntegerField()
-        )
+    #     order_clause = models.Case(
+    #         *[models.When(id=pk, then=models.Value(pos)) for pos, pk in enumerate(sorted_ids)],
+    #         output_field=models.IntegerField()
+    #     )
         
-        ordered_posts = PostEntity.objects.filter(
-            id__in=sorted_ids
-        ).select_related(
-            'position', 
-            'enterprise', 
-            'field'
-        ).order_by(order_clause)
-    else:
-        ordered_posts = PostEntity.objects.none()
+    #     ordered_posts = PostEntity.objects.filter(
+    #         id__in=sorted_ids
+    #     ).select_related(
+    #         'position', 
+    #         'enterprise', 
+    #         'field'
+    #     ).order_by(order_clause)
+    # else:
+    #     ordered_posts = PostEntity.objects.none()
     
     # Phân trang
     paginator = CustomPagination()
-    paginated_posts = paginator.paginate_queryset(ordered_posts, request)
+    paginated_posts = paginator.paginate_queryset(posts, request)
     
     # Serialize với context để tính toán các trường động như is_saved
     serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
@@ -2396,11 +2396,13 @@ def get_post_detail(request, pk):
             data['can_chat_with_employer'] = request.user.can_chat_with_employers()
         else:
             data['can_chat_with_employer'] = False
-        # lấy ngày ứng tuyển gần nhất
-        latest_application = Cv.objects.filter(post=post).order_by('-created_at').first()
-        if latest_application:
-            # format ngày tháng năm
-            data['latest_application_date'] = latest_application.created_at.strftime('%d/%m/%Y')
+        # lấy ngày ứng tuyển gần nhất của user đang đăng nhập
+        if request.user.is_authenticated:
+            latest_application = Cv.objects.filter(post=post, user=request.user).order_by('-created_at').first()
+            if latest_application:
+                data['latest_application_date'] = latest_application.created_at.strftime('%d/%m/%Y')
+            else:
+                data['latest_application_date'] = None
         else:
             data['latest_application_date'] = None
         return Response({
