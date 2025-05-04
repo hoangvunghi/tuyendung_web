@@ -163,7 +163,7 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -404,7 +404,9 @@ SESSION_COOKIE_SECURE = True
 
 CSRF_TRUSTED_ORIGINS = [
     'https://tuyendungtlu.site',
+    'http://tuyendungtlu.site   ',
     'https://api.tuyendungtlu.site',
+    'http://api.tuyendungtlu.site',
     'http://localhost:5173',  # Add for local development if needed
     'http://localhost:3000',  # Add for local development if needed
 ]
