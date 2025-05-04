@@ -405,10 +405,11 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
     'https://tuyendungtlu.site',
-    'https://www.tuyendungtlu.site',
-    'https://api.tuyendungtlu.site',
+    'https://www.*.tuyendungtlu.site',
+    'https://*.tuyendungtlu.site',
     'http://3.1.71.16:8001',
-    'https://www.api.tuyendungtlu.site',
+    'https://www.*.tuyendungtlu.site',
+    'https://*.api.tuyendungtlu.site',
     # 'http://api.tuyendungtlu.site',
     # 'http://localhost:5173',  # Add for local development if needed
     # 'http://localhost:3000',  # Add for local development if needed
