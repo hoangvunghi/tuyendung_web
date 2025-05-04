@@ -396,15 +396,15 @@ CELERY_BEAT_SCHEDULE = {
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY_HERE')  # Thay thế bằng API key thực tế
 
-# Đảm bảo CSRF_COOKIE_SECURE được bật khi dùng HTTPS
-CSRF_COOKIE_SECURE = True
 
 # Đảm bảo SESSION_COOKIE_SECURE cũng được bật
 SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
     'https://tuyendungtlu.site',
-    'http://tuyendungtlu.site   ',
+    # 'http://tuyendungtlu.site',
     'https://api.tuyendungtlu.site',
     # 'http://api.tuyendungtlu.site',
     'http://localhost:5173',  # Add for local development if needed
