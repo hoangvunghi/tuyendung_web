@@ -1748,6 +1748,7 @@ def search_posts(request):
                     'next': None,
                     'previous': None,
                 },
+                'q': params.get('q'),
                 'total': 0,
                 'page': int(params.get('page', 1)),
                 'total_pages': 0,
