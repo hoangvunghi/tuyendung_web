@@ -1621,6 +1621,7 @@ def search_posts(request):
                         'previous': None,
                     },
                     'total': 0,
+                    "q": params['q'],
                     'page': int(params.get('page', 1)),
                     'total_pages': 0,
                     'page_size': int(params.get('page_size', 10)),
