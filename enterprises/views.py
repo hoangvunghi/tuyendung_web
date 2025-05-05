@@ -976,6 +976,7 @@ def create_post(request):
     else:
         # Employer chỉ tạo được post cho doanh nghiệp mình
         enterprise = request.user.get_enterprise()
+        print("ALO", enterprise)
         if not enterprise:
             return Response({
                 'message': 'Bạn không phải là nhà tuyển dụng',
