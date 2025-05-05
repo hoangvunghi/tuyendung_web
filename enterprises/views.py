@@ -1610,8 +1610,7 @@ def search_posts(request):
     
     # **Bỏ logic lấy toàn bộ bài đăng khi không có kết quả và all=true**
     # Thay vào đó, nếu post_data rỗng và q được cung cấp, trả về danh sách rỗng
-    if not post_data and params.get('q'):
-        if params['q'].strip():
+    if not post_data and params.get('q')!='':
             empty_data = {
                 'message': 'No matching posts found',
                 'status': status.HTTP_200_OK,
