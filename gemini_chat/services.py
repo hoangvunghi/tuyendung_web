@@ -113,13 +113,28 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
 - Tôi có thể hỗ trợ bạn nâng cấp tài khoản premium"""
             return base_prompt + job_seeker_prompt
     
-    def _get_enterprise_job_posts(self, enterprise):
+    def _get_enterprise_job_posts(self, enterprise, limit=None):
         """Lấy thông tin bài đăng tuyển dụng của doanh nghiệp"""
         if not enterprise:
             return "Không có dữ liệu tin tuyển dụng"
             
-        # Lấy 5 bài đăng gần nhất
-        posts = PostEntity.objects.filter(enterprise=enterprise).order_by('-created_at')[:5]
+        # Xác định số lượng bài đăng cần lấy dựa trên quy mô doanh nghiệp và có bao nhiêu tin tuyển dụng
+        if not limit:
+            # Đếm số lượng tin tuyển dụng của doanh nghiệp
+            post_count = PostEntity.objects.filter(enterprise=enterprise).count()
+            
+            # Điều chỉnh limit dựa trên số lượng tin
+            if post_count <= 5:
+                limit = post_count  # Hiển thị tất cả nếu chỉ có ít tin
+            elif post_count <= 10:
+                limit = 5  # Giới hạn 5 tin nếu có nhiều hơn 5 nhưng ít hơn 10
+            elif post_count <= 20:
+                limit = 8  # Hiển thị nhiều hơn nếu doanh nghiệp có nhiều tin
+            else:
+                limit = 10  # Giới hạn tối đa 10 tin cho doanh nghiệp lớn
+        
+        # Lấy tin tuyển dụng gần nhất
+        posts = PostEntity.objects.filter(enterprise=enterprise).order_by('-created_at')[:limit]
         
         if not posts:
             return "Doanh nghiệp chưa có tin tuyển dụng nào"
@@ -129,6 +144,11 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Đếm số đơn ứng tuyển
             cv_count = Cv.objects.filter(post=post).count()
             
+            # Định dạng thông tin việc làm
+            post_status = "Đang hiển thị" if post.is_active else "Chưa đăng"
+            deadline_info = f"Hạn nộp: {post.deadline.strftime('%d/%m/%Y')}" if post.deadline else "Không có hạn nộp"
+            
+            # Tạo chuỗi thông tin chi tiết hơn cho mỗi bài đăng
             posts_info.append(f"""
             - Tiêu đề: {post.title}
             - Vị trí: {post.position.name if post.position else ""}
@@ -136,14 +156,46 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             - Lương: {f"Từ {post.salary_min} đến {post.salary_max} triệu" if not post.is_salary_negotiable else "Thỏa thuận"}
             - Thành phố: {post.city}
             - Số lượng ứng viên đã ứng tuyển: {cv_count}
-            - Trạng thái: {"Đang hiển thị" if post.is_active else "Chưa đăng"}
+            - {deadline_info}
+            - Trạng thái: {post_status}
             """)
         
-        return "Một số tin tuyển dụng gần đây:\n" + "\n".join(posts_info)
+        # Thêm thông tin tổng hợp về doanh nghiệp
+        total_posts = PostEntity.objects.filter(enterprise=enterprise).count()
+        active_posts = PostEntity.objects.filter(enterprise=enterprise, is_active=True).count()
+        
+        # Tạo kết quả với thông tin tổng quan
+        result = f"### Thông tin tin tuyển dụng của {enterprise.company_name}\n\n"
+        result += f"**Tổng số tin tuyển dụng:** {total_posts} (Đang hiển thị: {active_posts})\n\n"
+        
+        if total_posts > limit:
+            result += f"**Hiển thị {limit} tin tuyển dụng gần đây nhất:**\n\n"
+        else:
+            result += "**Danh sách tất cả tin tuyển dụng:**\n\n"
+            
+        result += "\n".join(posts_info)
+        
+        return result
     
     def search_job_posts(self, query=None, city=None, experience=None, position_id=None, limit=5):
         """Tìm kiếm việc làm dựa trên các tiêu chí"""
         from enterprises.models import PostEntity
+        
+        # Xác định giới hạn kết quả phù hợp dựa trên truy vấn
+        if not limit or limit <= 0:
+            limit = 5  # Giá trị mặc định
+        
+        # Nếu truy vấn quá ngắn và mang tính khái quát, nên giới hạn kết quả để tránh spam
+        if query and len(query.strip()) < 3 and not city and not experience and not position_id:
+            limit = min(limit, 5)  # Giới hạn kết quả nếu từ khóa tìm kiếm quá ngắn
+        
+        # Nếu từ khóa tìm kiếm cụ thể, có thể tăng số lượng kết quả
+        if query and len(query.strip()) >= 6:
+            limit = min(limit, 15)  # Tăng giới hạn cho truy vấn cụ thể
+        
+        # Nếu tìm kiếm có nhiều tiêu chí (city, experience, position), có thể cần nhiều kết quả hơn
+        if city and (experience or position_id):
+            limit = min(limit, 15)  # Tăng giới hạn cho tìm kiếm đa tiêu chí
         
         posts = PostEntity.objects.filter(is_active=True)
         
@@ -152,15 +204,26 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             query_terms = query.split()
             q_object = Q()
             
+            # Ưu tiên tìm kiếm chính xác hơn cho các từ khóa
+            exact_match_weight = 3  # Trọng số cho đúng chính xác
+            contains_weight = 1     # Trọng số cho chứa một phần
+            
             for term in query_terms:
+                if len(term) <= 2:  # Bỏ qua từ quá ngắn vì có thể gây nhiễu
+                    continue
+                
+                # Tìm kiếm với các trường quan trọng
                 q_object |= (
-                    Q(title__icontains=term) | 
-                    Q(description__icontains=term) | 
-                    Q(required__icontains=term) |
-                    Q(interest__icontains=term) |
-                    Q(position__name__icontains=term) |
-                    Q(field__name__icontains=term) |
-                    Q(enterprise__company_name__icontains=term)
+                    Q(title__iexact=term) * exact_match_weight |
+                    Q(title__icontains=term) * contains_weight | 
+                    Q(description__icontains=term) * contains_weight | 
+                    Q(required__icontains=term) * contains_weight |
+                    Q(interest__icontains=term) * contains_weight |
+                    Q(position__name__iexact=term) * exact_match_weight |
+                    Q(position__name__icontains=term) * contains_weight |
+                    Q(field__name__iexact=term) * exact_match_weight |
+                    Q(field__name__icontains=term) * contains_weight |
+                    Q(enterprise__company_name__icontains=term) * contains_weight
                 )
             
             posts = posts.filter(q_object)
@@ -199,11 +262,58 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         # Lọc theo kinh nghiệm
         if experience:
-            posts = posts.filter(experience__icontains=experience)
+            # Mở rộng tìm kiếm kinh nghiệm để tìm chính xác hơn
+            experience_lower = experience.lower()
+            
+            # Xử lý các mẫu kinh nghiệm phổ biến
+            if "không yêu cầu" in experience_lower or "không cần" in experience_lower:
+                posts = posts.filter(
+                    Q(experience__icontains="không yêu cầu") | 
+                    Q(experience__icontains="không cần") |
+                    Q(experience__icontains="0 năm") |
+                    Q(experience__icontains="chưa có")
+                )
+            elif "mới ra trường" in experience_lower or "mới tốt nghiệp" in experience_lower:
+                posts = posts.filter(
+                    Q(experience__icontains="mới ra trường") | 
+                    Q(experience__icontains="mới tốt nghiệp") |
+                    Q(experience__icontains="fresh") |
+                    Q(experience__icontains="0 năm") |
+                    Q(experience__icontains="chưa có")
+                )
+            elif re.search(r"(\d+)[-\s](\d+) năm", experience_lower):
+                # Xử lý dạng "1-3 năm"
+                match = re.search(r"(\d+)[-\s](\d+) năm", experience_lower)
+                min_exp = int(match.group(1))
+                max_exp = int(match.group(2))
+                
+                # Tìm các tin có kinh nghiệm trong khoảng này
+                exp_filter = Q()
+                for i in range(min_exp, max_exp + 1):
+                    exp_filter |= Q(experience__icontains=f"{i} năm")
+                exp_filter |= Q(experience__icontains=f"{min_exp}-{max_exp} năm")
+                
+                posts = posts.filter(exp_filter)
+            elif re.search(r"(\d+) năm", experience_lower):
+                # Xử lý dạng "3 năm"
+                match = re.search(r"(\d+) năm", experience_lower)
+                years = int(match.group(1))
+                
+                # Tìm các tin có kinh nghiệm tương đương hoặc nằm trong khoảng
+                posts = posts.filter(
+                    Q(experience__icontains=f"{years} năm") |
+                    Q(experience__regex=r"{}[-\s]\d+ năm".format(years))
+                )
+            else:
+                # Trường hợp khác, sử dụng tìm kiếm thông thường
+                posts = posts.filter(experience__icontains=experience)
         
         # Lọc theo vị trí công việc
         if position_id:
             posts = posts.filter(position_id=position_id)
+        
+        # Đếm tổng số kết quả trước khi giới hạn để thông báo
+        total_count = posts.count()
         
         # Sắp xếp kết quả (mới nhất trước)
         posts = posts.order_by('-created_at')
@@ -234,6 +344,12 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         # Format kết quả thành markdown
         markdown_result = "### Kết quả tìm kiếm việc làm\n\n"
+        
+        # Thêm thông tin tổng số kết quả tìm được
+        if total_count > len(results):
+            markdown_result += f"🔍 **Tìm thấy {total_count} kết quả phù hợp.** Hiển thị {len(results)} kết quả đầu tiên.\n\n"
+        else:
+            markdown_result += f"🔍 **Tìm thấy {len(results)} kết quả phù hợp.**\n\n"
         
         for job in results:
             markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
@@ -394,11 +510,32 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         except CriteriaEntity.DoesNotExist:
             return "Bạn chưa cập nhật tiêu chí tìm việc. Vui lòng vào mục 'Tiêu chí tìm việc' để cập nhật."
     
-    def get_highest_paying_jobs(self, limit=5):
+    def get_highest_paying_jobs(self, limit=10):
         """Lấy danh sách việc làm có mức lương cao nhất"""
         from enterprises.models import PostEntity
         
-        posts = PostEntity.objects.filter(is_active=True).order_by('-salary_max', '-salary_min')[:limit]
+        # Xác định giới hạn kết quả phù hợp
+        if not limit or limit <= 0:
+            limit = 10  # Giới hạn mặc định là 10 kết quả
+        
+        # Tùy chỉnh giới hạn dựa trên số lượng việc làm có sẵn
+        total_jobs = PostEntity.objects.filter(
+            is_active=True, 
+            salary_max__isnull=False
+        ).count()
+        
+        if total_jobs <= 5:
+            # Nếu ít hơn 5 việc làm, hiển thị tất cả
+            limit = total_jobs
+        elif limit > 20:
+            # Giới hạn tối đa 20 kết quả để tránh quá tải
+            limit = 20
+        
+        # Chỉ lấy những công việc có thông tin lương cụ thể (không null)
+        posts = PostEntity.objects.filter(
+            is_active=True, 
+            salary_max__isnull=False
+        ).order_by('-salary_max', '-salary_min')[:limit]
         
         if not posts:
             return "Không tìm thấy thông tin về việc làm lương cao nhất."
@@ -423,6 +560,12 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         # Format kết quả thành markdown
         markdown_result = "### Các công việc có mức lương cao nhất\n\n"
         
+        # Thêm thông tin về giới hạn kết quả
+        if total_jobs > limit:
+            markdown_result += f"🔍 **Hiển thị {limit} trong tổng số {total_jobs} việc làm, sắp xếp theo mức lương cao nhất**\n\n"
+        else:
+            markdown_result += f"🔍 **Hiển thị tất cả {len(results)} việc làm, sắp xếp theo mức lương cao nhất**\n\n"
+        
         for job in results:
             markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
             markdown_result += f"🏢 **Công ty:** {job['company']}\n"
@@ -440,10 +583,24 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         return markdown_result.strip()
     
-    def get_most_recent_jobs(self, limit=5):
+    def get_most_recent_jobs(self, limit=10):
         """Lấy danh sách việc làm mới đăng gần đây"""
         from enterprises.models import PostEntity
         
+        # Xác định giới hạn kết quả phù hợp
+        if not limit or limit <= 0:
+            limit = 10  # Giới hạn mặc định là 10 kết quả
+        
+        # Tùy chỉnh giới hạn dựa trên số lượng việc làm có sẵn
+        total_jobs = PostEntity.objects.filter(is_active=True).count()
+        if total_jobs <= 5:
+            # Nếu ít hơn 5 việc làm, hiển thị tất cả
+            limit = total_jobs
+        elif limit > 20:
+            # Giới hạn tối đa 20 kết quả để tránh quá tải
+            limit = 20
+        
+        # Lấy jobs mới nhất hiện đang active
         posts = PostEntity.objects.filter(is_active=True).order_by('-created_at')[:limit]
         
         if not posts:
@@ -451,6 +608,9 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         results = []
         for post in posts:
+            # Tính số ngày từ khi đăng bài
+            days_ago = (timezone.now().date() - post.created_at.date()).days
+            
             post_info = {
                 'id': post.id,
                 'title': post.title,
@@ -463,12 +623,18 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 'field': post.field.name if post.field else "",
                 'created_at': post.created_at.strftime('%d/%m/%Y'),
                 'deadline': post.deadline.strftime('%d/%m/%Y') if post.deadline else "",
-                'days_ago': (timezone.now().date() - post.created_at.date()).days
+                'days_ago': days_ago
             }
             results.append(post_info)
         
         # Format kết quả thành markdown
         markdown_result = "### Các việc làm mới đăng gần đây\n\n"
+        
+        # Thêm thông tin về giới hạn kết quả
+        if total_jobs > limit:
+            markdown_result += f"🔍 **Hiển thị {limit} trong tổng số {total_jobs} việc làm, sắp xếp theo thời gian đăng mới nhất**\n\n"
+        else:
+            markdown_result += f"🔍 **Hiển thị tất cả {len(results)} việc làm, sắp xếp theo thời gian đăng mới nhất**\n\n"
         
         for job in results:
             days_text = f"{job['days_ago']} ngày trước" if job['days_ago'] > 0 else "Hôm nay"
