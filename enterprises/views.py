@@ -1610,22 +1610,24 @@ def search_posts(request):
     
     # **Bỏ logic lấy toàn bộ bài đăng khi không có kết quả và all=true**
     # Thay vào đó, nếu post_data rỗng và q được cung cấp, trả về danh sách rỗng
-    if not post_data and params.get('q')!='':
+    if not post_data and params.get('q'):
+        if params['q'].strip():
             empty_data = {
                 'message': 'No matching posts found',
                 'status': status.HTTP_200_OK,
                 'data': {
-                    'links': {
-                        'next': None,
-                        'previous': None,
-                    },
-                    'total': 0,
-                    'page': int(params.get('page', 1)),
-                    'total_pages': 0,
-                    'page_size': int(params.get('page_size', 10)),
-                    'results': []
-                }
+                'links': {
+                    'next': None,
+                    'previous': None,
+                },
+                
+                'total': 0,
+                'page': int(params.get('page', 1)),
+                'total_pages': 0,
+                'page_size': int(params.get('page_size', 10)),
+                'results': []
             }
+        }
             cache.set(cache_key, empty_data, 60 * 5)
             return Response(empty_data)
     
