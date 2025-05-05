@@ -232,6 +232,14 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
             
         return package.can_view_job_applications
 
+    # kiểm tra xem user có critical nào không
+    def have_criteria(self):
+        from enterprises.models import CriteriaEntity
+        criteria = CriteriaEntity.objects.filter(user=self)
+        if criteria.count() > 0:
+            return True
+        return False
+
     class Meta:
         verbose_name = 'Tài khoản'
         verbose_name_plural = 'Tài khoản'

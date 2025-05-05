@@ -1546,7 +1546,6 @@ def search_posts(request):
             Q(required__icontains=search_term) |
             Q(enterprise__company_name__icontains=search_term)
         )
-
     if params.get('city'):
         query = query.filter(city__iexact=params.get('city'))
 
@@ -1609,19 +1608,19 @@ def search_posts(request):
     
     time_initial_query = datetime.now()
     print(f"Initial query execution time: {time_initial_query - time_query_build} seconds")
-    
+    # nếu user chưa đăng nhập thì 
     # Nếu không có kết quả lọc và all=true, lấy tất cả bài đăng
-    if len(post_data) == 0 and params.get('all') == 'true':
-        # Thực hiện query lại để lấy tất cả bài đăng active
-        post_data = list(PostEntity.objects.filter(
-            is_active=True,
-            deadline__gte=datetime.now()
-        ).values(
-            'id', 'title', 'city', 'experience', 'type_working', 
-            'salary_min', 'salary_max', 'is_salary_negotiable', 'created_at',
-            'enterprise_id', 'position_id', 'field_id',
-            'enterprise__scale', 'position__field_id'
-        ))
+    # if len(post_data) == 0 and params.get('all') == 'true':
+    #     # Thực hiện query lại để lấy tất cả bài đăng active
+    #     post_data = list(PostEntity.objects.filter(
+    #         is_active=True,
+    #         deadline__gte=datetime.now()
+    #     ).values(
+    #         'id', 'title', 'city', 'experience', 'type_working', 
+    #         'salary_min', 'salary_max', 'is_salary_negotiable', 'created_at',
+    #         'enterprise_id', 'position_id', 'field_id',
+    #         'enterprise__scale', 'position__field_id'
+    #     ))
     
     # Lấy thông tin user criteria nếu đã đăng nhập (cần thiết cho việc tính điểm)
     user = request.user
@@ -1737,7 +1736,7 @@ def search_posts(request):
     print(f"Post scoring time: {time_scoring - time_premium_fetch} seconds")
     
     # Lọc và sắp xếp posts theo tiêu chí
-    if params.get('all') == 'false':
+    if params.get('all') == 'false' or params.get("q"):
         # Nếu all=false, chỉ giữ lại những bài đăng phù hợp với tiêu chí
         filtered_posts = [post for post in scored_posts if post['matches_criteria']]
     else:
