@@ -167,7 +167,35 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         # Lọc theo thành phố
         if city:
-            posts = posts.filter(city__icontains=city)
+            # Cải thiện tìm kiếm thành phố với các biến thể tên
+            city_variants = {
+                "hcm": "hồ chí minh",
+                "tphcm": "hồ chí minh",
+                "tp hcm": "hồ chí minh",
+                "sài gòn": "hồ chí minh",
+                "sg": "hồ chí minh",
+                "hn": "hà nội",
+                "hà nội": "hà nội",
+                "ha noi": "hà nội",
+                "đà nẵng": "đà nẵng",
+                "da nang": "đà nẵng",
+                "đn": "đà nẵng",
+                "hải phòng": "hải phòng",
+                "hai phong": "hải phòng",
+                "hp": "hải phòng",
+                "cần thơ": "cần thơ",
+                "can tho": "cần thơ",
+                "vũng tàu": "vũng tàu",
+                "vung tau": "vũng tàu",
+            }
+            
+            # Chuẩn hóa thành phố
+            city_lower = city.lower()
+            if city_lower in city_variants:
+                normalized_city = city_variants[city_lower]
+                posts = posts.filter(city__icontains=normalized_city)
+            else:
+                posts = posts.filter(city__icontains=city)
         
         # Lọc theo kinh nghiệm
         if experience:
@@ -699,39 +727,204 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 
             # Tạo một chuỗi chứa ngữ cảnh của cuộc trò chuyện
             context_str = ""
-            for msg in context_messages[-5:]:  # Chỉ lấy 5 tin nhắn gần nhất để giới hạn độ dài
+            
+            # Lấy nhiều tin nhắn hơn để có ngữ cảnh tốt hơn
+            for msg in context_messages[-10:]:  # Tăng từ 5 lên 10 tin nhắn gần nhất
                 prefix = "User: " if msg['role'] == 'user' else "Assistant: "
                 context_str += f"{prefix}{msg['content']}\n"
-                
-            # Thêm tin nhắn hiện tại vào cuối
-            context_str += f"User: {current_message}"
             
+            # Phân tích tin nhắn hiện tại để xác định nó là câu hỏi ngắn hay cần ngữ cảnh
+            current_message_lower = current_message.lower()
+            
+            # Kiểm tra nếu người dùng đang giới thiệu bản thân
+            intro_patterns = [
+                r"tôi (là|tên là|tên|) (.*?)( |$)",
+                r"tên tôi (là|tên|) (.*?)( |$)",
+                r"mình (là|tên là|tên|) (.*?)( |$)",
+                r"tên mình (là|tên|) (.*?)( |$)",
+                r"chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
+                r"xin chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
+                r"(mình|tôi) (.*?)\d+ tuổi"
+            ]
+            
+            for pattern in intro_patterns:
+                if re.search(pattern, current_message_lower):
+                    # Người dùng đang giới thiệu, trả về ngữ cảnh trực tiếp không phải tìm kiếm
+                    context_str += f"User: {current_message}"
+                    return context_str
+            
+            # Lấy tin nhắn người dùng gần nhất để hiểu ngữ cảnh
+            last_user_message = None
+            last_assistant_message = None
+            
+            # Lấy tin nhắn gần nhất của người dùng và assistant
+            for msg in reversed(context_messages):
+                if msg['role'] == 'user' and not last_user_message:
+                    last_user_message = msg['content'].lower()
+                elif msg['role'] == 'assistant' and not last_assistant_message:
+                    last_assistant_message = msg['content']
+                
+                if last_user_message and last_assistant_message:
+                    break
+            
+            # Phát hiện câu nối tiếp trong hội thoại
             # Phân tích các từ đại diện (đó, này, kia, v.v.)
             references = [
                 "điều đó", "việc đó", "cái đó", "thứ đó", 
                 "điều này", "việc này", "cái này", "thứ này",
                 "điều kia", "việc kia", "cái kia", "thứ kia",
-                "đó", "này", "kia", "thế", "vậy", "họ", "nó",
-                "những gì", "những điều", "những thứ"
+                "đó", "này", "kia", "thế", "vậy", "họ", "nó", "còn",
+                "những gì", "những điều", "những thứ", "thì sao"
             ]
             
-            # Nếu tin nhắn hiện tại có chứa các từ đại diện, tìm trong ngữ cảnh
-            for ref in references:
-                if ref in current_message.lower():
-                    # Có từ đại diện, trả về toàn bộ ngữ cảnh để xử lý
-                    return context_str
-                    
+            # Phát hiện từ khoá về địa điểm (thành phố)
+            cities = [
+                "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
+                "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
+                "thành phố", "tỉnh", "tp", "hcm", "hn"
+            ]
+            
+            # Phát hiện từ khóa về công nghệ/lĩnh vực
+            tech_keywords = [
+                "python", "java", "javascript", "php", "c#", "c++", ".net",
+                "react", "vue", "angular", "node", "django", "laravel", "spring",
+                "frontend", "backend", "fullstack", "devops", "data", "ai",
+                "machine learning", "lập trình", "developer", "programmer"
+            ]
+            
+            # Phát hiện từ khóa về lĩnh vực công việc
+            job_fields = [
+                "marketing", "kế toán", "tài chính", "nhân sự", "bán hàng",
+                "kinh doanh", "quản lý", "giáo dục", "y tế", "du lịch",
+                "khách sạn", "nhà hàng", "bất động sản", "luật", "ngân hàng"
+            ]
+            
+            # Kiểm tra nếu câu hỏi hiện tại chỉ chứa từ đại diện
+            has_reference = any(ref in current_message_lower for ref in references)
+            
+            # Kiểm tra nếu câu hỏi chỉ đề cập đến thành phố mà không nói rõ mục đích
+            city_only = any(city in current_message_lower for city in cities) and len(current_message_lower.split()) <= 5
+            
+            # Kiểm tra nếu câu hỏi chỉ đề cập đến công nghệ/kỹ năng mà không nói rõ mục đích
+            tech_only = any(tech in current_message_lower for tech in tech_keywords) and len(current_message_lower.split()) <= 5
+            
+            # Kiểm tra nếu câu hỏi chỉ đề cập đến lĩnh vực công việc mà không nói rõ mục đích
+            field_only = any(field in current_message_lower for field in job_fields) and len(current_message_lower.split()) <= 5
+            
             # Kiểm tra nếu tin nhắn quá ngắn (thường là câu trả lời, câu hỏi tiếp theo)
-            if len(current_message.split()) <= 5:
-                return context_str
+            is_short_message = len(current_message_lower.split()) <= 7
+            
+            # Kiểm tra nếu tin nhắn hiện tại không chứa từ khóa tìm kiếm rõ ràng nhưng 
+            # tin nhắn trước đó có liên quan đến tìm việc
+            previous_job_related = False
+            job_search_keywords = ["tìm việc", "việc làm", "công việc", "tuyển dụng", "ứng tuyển", "ngành nghề"]
+            
+            if last_user_message:
+                previous_job_related = any(keyword in last_user_message for keyword in job_search_keywords)
                 
+            # Nếu có bất kỳ điều kiện nào sau đây, cần xem xét ngữ cảnh
+            needs_context = has_reference or city_only or tech_only or field_only or is_short_message or previous_job_related
+            
+            if needs_context:
+                # Phân tích sâu hơn để tạo một tin nhắn tổng hợp ngữ cảnh
+                if last_user_message and (city_only or tech_only or field_only):
+                    # Nếu tin nhắn hiện tại chỉ đề cập đến thành phố/công nghệ/lĩnh vực
+                    # và tin nhắn trước đó liên quan đến tìm việc, kết hợp hai tin nhắn
+                    if previous_job_related:
+                        # Tạo một tin nhắn tổng hợp kết hợp tin nhắn trước và tin nhắn hiện tại
+                        keywords_from_previous = self._extract_keywords(last_user_message)
+                        keywords_from_current = self._extract_keywords(current_message_lower)
+                        
+                        # Loại bỏ từ khóa trùng lặp
+                        combined_keywords = list(set(keywords_from_previous + keywords_from_current))
+                        
+                        # Tạo tin nhắn tổng hợp mang tính ngữ cảnh
+                        if "tìm" not in current_message_lower and "việc" not in current_message_lower:
+                            enhanced_message = f"tìm việc làm {' '.join(combined_keywords)}"
+                            return enhanced_message
+                
+                # Thêm tin nhắn hiện tại vào cuối
+                context_str += f"User: {current_message}"
+                return context_str
+            
             # Nếu không có từ đại diện và tin nhắn đủ dài, trả về None để xử lý riêng
             return None
             
         except Exception as e:
             self.logger.error(f"Lỗi khi phân tích ngữ cảnh: {str(e)}")
-            return None
+            return current_message  # Trả về tin nhắn hiện tại để đảm bảo không bị lỗi
             
+    def _extract_keywords(self, message):
+        """Trích xuất các từ khóa quan trọng từ tin nhắn để kết hợp vào ngữ cảnh"""
+        keywords = []
+        message_lower = message.lower()
+        
+        # Danh sách các từ khóa cần bỏ qua (stop words)
+        stop_words = [
+            "tôi", "bạn", "của", "và", "là", "có", "không", "trong", "với", "cho", 
+            "các", "được", "tại", "từ", "đến", "một", "này", "đó", "khi", "làm",
+            "muốn", "cần", "hãy", "xin", "vui lòng", "giúp", "giúp tôi", "ai", "tìm"
+        ]
+        
+        # Trích xuất thành phố
+        cities = [
+            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng",
+            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"
+        ]
+        
+        for city in cities:
+            if city in message_lower:
+                keywords.append(city)
+                
+        # Trích xuất công nghệ
+        tech_keywords = [
+            "python", "java", "javascript", "php", "c#", "c++", ".net",
+            "react", "vue", "angular", "node", "django", "laravel", "spring",
+            "frontend", "backend", "fullstack", "devops", "data", "ai",
+            "machine learning", "lập trình"
+        ]
+        
+        for tech in tech_keywords:
+            if tech in message_lower:
+                keywords.append(tech)
+                
+        # Trích xuất lĩnh vực
+        job_fields = [
+            "marketing", "kế toán", "tài chính", "nhân sự", "bán hàng",
+            "kinh doanh", "quản lý", "giáo dục", "y tế", "du lịch",
+            "khách sạn", "nhà hàng", "bất động sản", "luật", "ngân hàng"
+        ]
+        
+        for field in job_fields:
+            if field in message_lower:
+                keywords.append(field)
+                
+        # Trích xuất các từ khóa liên quan đến kinh nghiệm
+        experience_patterns = [
+            r"(\d+)[-\s](\d+) năm",
+            r"(\d+) năm",
+            r"không yêu cầu kinh nghiệm",
+            r"không cần kinh nghiệm",
+            r"chưa có kinh nghiệm",
+            r"mới ra trường"
+        ]
+        
+        for pattern in experience_patterns:
+            exp_match = re.search(pattern, message_lower)
+            if exp_match:
+                keywords.append(exp_match.group(0))
+                break
+                
+        # Loại bỏ các stop words
+        words = message_lower.split()
+        for word in words:
+            if (len(word) > 3 and word not in stop_words and 
+                word not in keywords and
+                not any(word in keyword for keyword in keywords)):
+                keywords.append(word)
+                
+        return keywords
+
     def _format_chat_history(self, chat_history):
         """Định dạng lại lịch sử trò chuyện để đưa vào prompt"""
         formatted_history = ""
@@ -740,10 +933,41 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
             content = msg["parts"][0]
             formatted_history += f"{role}: {content}\n"
         return formatted_history
-    
+
     def _process_database_queries(self, message_content, user):
         """Phân tích tin nhắn để xác định nếu cần truy vấn database và trả về kết quả phù hợp"""
         message_lower = message_content.lower()
+        
+        # Kiểm tra nếu người dùng đang giới thiệu bản thân, không phải tìm kiếm
+        intro_patterns = [
+            r"tôi (là|tên là|tên|) (.*?)( |$)",
+            r"tên tôi (là|tên|) (.*?)( |$)",
+            r"mình (là|tên là|tên|) (.*?)( |$)", 
+            r"tên mình (là|tên|) (.*?)( |$)",
+            r"chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
+            r"xin chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
+            r"(mình|tôi) (.*?)\d+ tuổi"
+        ]
+        
+        for pattern in intro_patterns:
+            if re.search(pattern, message_lower):
+                # Người dùng đang giới thiệu, không tìm kiếm trong database
+                return None
+                
+        # Kiểm tra các câu hỏi chào hỏi đơn giản
+        greeting_patterns = [
+            r"^(xin |)chào( bạn| các bạn|)$",
+            r"^hi$", r"^hello$", r"^hey$", r"^helo$",
+            r"^(bạn |mình |tôi |)khỏe không$",
+            r"^(bạn |mình |)(là ai|là gì|tên gì)$",
+            r"^bạn (giúp|hỗ trợ) được gì$",
+            r"^giới thiệu (về |)bạn$"
+        ]
+        
+        for pattern in greeting_patterns:
+            if re.search(pattern, message_lower):
+                # Câu chào hỏi đơn giản, không tìm kiếm trong database
+                return None
         
         # PHẦN 1: TRUY VẤN VIỆC LÀM THEO MỨC LƯƠNG
         # Truy vấn về việc làm lương cao nhất
@@ -980,9 +1204,48 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 position_id=None,
                 limit=8  # Tăng giới hạn kết quả cho tìm kiếm công nghệ
             )
+            
+        # PHẦN 10: TÌM KIẾM DỰA TRÊN ĐỊA ĐIỂM 
+        # Kiểm tra nếu tin nhắn chỉ chứa tên thành phố hoặc địa điểm
+        cities_variants = {
+            "hcm": "hồ chí minh",
+            "tphcm": "hồ chí minh",
+            "tp hcm": "hồ chí minh",
+            "sài gòn": "hồ chí minh",
+            "sg": "hồ chí minh",
+            "hn": "hà nội",
+            "hà nội": "hà nội",
+            "ha noi": "hà nội",
+            "đà nẵng": "đà nẵng",
+            "da nang": "đà nẵng",
+            "đn": "đà nẵng",
+            "hải phòng": "hải phòng",
+            "hai phong": "hải phòng",
+            "hp": "hải phòng",
+            "cần thơ": "cần thơ",
+            "can tho": "cần thơ",
+            "vũng tàu": "vũng tàu",
+            "vung tau": "vũng tàu",
+            "thành phố": "",
+            "tp": "",
+            "tỉnh": ""
+        }
+        
+        # Kiểm tra xem tin nhắn có chứa các từ khóa về thành phố không
+        for city_name, normalized_name in cities_variants.items():
+            if city_name in message_lower and len(message_lower.split()) <= 5:
+                # Nếu tin nhắn chỉ chứa tên thành phố, tìm việc làm ở thành phố đó
+                if normalized_name:
+                    return self.search_job_posts(
+                        query="",
+                        city=normalized_name,
+                        experience=None,
+                        position_id=None,
+                        limit=8
+                    )
         
         # Không tìm thấy truy vấn database phù hợp
-        return None 
+        return None
 
     def process_response(self, response_text, database_data=None):
         """Xử lý phản hồi từ Gemini và kết hợp với dữ liệu từ database nếu có"""
