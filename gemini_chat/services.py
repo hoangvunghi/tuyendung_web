@@ -552,8 +552,31 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 content=message_content
             )
             
-            # Thử truy vấn cơ sở dữ liệu trước
+            # Lấy toàn bộ nội dung trò chuyện trước đó để phân tích ngữ cảnh đầy đủ
+            previous_messages = GeminiChatMessage.objects.filter(
+                chat_session=chat_session
+            ).order_by('timestamp')
+            
+            # Kết hợp các tin nhắn trước đó để hiểu ngữ cảnh
+            context_messages = []
+            for msg in previous_messages:
+                if msg.id != user_message.id:  # Bỏ qua tin nhắn hiện tại
+                    context_messages.append({
+                        'role': msg.role,
+                        'content': msg.content
+                    })
+            
+            # Thử truy vấn cơ sở dữ liệu với ngữ cảnh đầy đủ
+            database_data = None
+            # Chỉ dùng tin nhắn mới để truy vấn database
             database_data = self._process_database_queries(message_content, user)
+            
+            # Nếu không tìm thấy trong database và có đủ ngữ cảnh, thử phân tích ngữ cảnh
+            if not database_data and len(context_messages) > 0:
+                # Tạo một ngữ cảnh hoàn chỉnh từ các tin nhắn trước để tìm trong database
+                context_content = self._analyze_conversation_context(context_messages, message_content)
+                if context_content:
+                    database_data = self._process_database_queries(context_content, user)
             
             if database_data:
                 # Xử lý phản hồi với dữ liệu từ database
@@ -572,7 +595,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 # Lấy tin nhắn của phiên chat hiện tại
                 messages = GeminiChatMessage.objects.filter(
                     chat_session=chat_session
-                ).order_by('timestamp')[:20]  # Giới hạn 20 tin nhắn gần nhất
+                ).order_by('timestamp')[:30]  # Tăng giới hạn từ 20 lên 30 tin nhắn gần nhất
                 
                 for msg in messages:
                     if msg.role == "user":
@@ -585,16 +608,28 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 
                 # Gửi tin nhắn với system prompt
                 try:
+                    # Thêm hướng dẫn về việc phân tích ngữ cảnh vào system prompt
+                    context_aware_prompt = system_prompt + """
+                    
+HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
+- Hãy phân tích toàn bộ cuộc trò chuyện từ đầu đến hiện tại để nắm rõ ngữ cảnh
+- Khi người dùng hỏi câu ngắn hoặc không rõ ràng, hãy dựa vào các tin nhắn trước đó để hiểu ý định
+- Nếu người dùng đề cập đến "cái đó", "việc này", "điều đó", hãy tìm trong lịch sử trò chuyện để hiểu họ đang đề cập đến điều gì
+- Khi trả lời, hãy kết nối với các phần trò chuyện trước đó nếu liên quan
+- Không lặp lại thông tin đã cung cấp trong các tin nhắn trước đó
+                    """
+                    
                     # Thử gửi với system instruction nếu API hỗ trợ
                     response = chat.send_message(
                         message_content,
                         generation_config=self.generation_config,
                         safety_settings=self.safety_settings,
-                        system_instruction=system_prompt
+                        system_instruction=context_aware_prompt
                     )
                 except TypeError:
                     # Nếu API không hỗ trợ system instruction, thêm vào prompt thủ công
-                    combined_message = f"{system_prompt}\n\nUser: {message_content}"
+                    # Tạo một prompt tổng hợp bao gồm cả ngữ cảnh
+                    combined_message = f"{system_prompt}\n\nLịch sử trò chuyện: {self._format_chat_history(chat_history)}\n\nUser: {message_content}"
                     response = chat.send_message(
                         combined_message,
                         generation_config=self.generation_config,
@@ -654,6 +689,57 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             return {
                 "error": f"Đã xảy ra lỗi: {str(e)}"
             }
+    
+    def _analyze_conversation_context(self, context_messages, current_message):
+        """Phân tích ngữ cảnh cuộc trò chuyện để hiểu ý định của người dùng"""
+        try:
+            # Nếu không có tin nhắn trước đó, trả về None
+            if not context_messages:
+                return None
+                
+            # Tạo một chuỗi chứa ngữ cảnh của cuộc trò chuyện
+            context_str = ""
+            for msg in context_messages[-5:]:  # Chỉ lấy 5 tin nhắn gần nhất để giới hạn độ dài
+                prefix = "User: " if msg['role'] == 'user' else "Assistant: "
+                context_str += f"{prefix}{msg['content']}\n"
+                
+            # Thêm tin nhắn hiện tại vào cuối
+            context_str += f"User: {current_message}"
+            
+            # Phân tích các từ đại diện (đó, này, kia, v.v.)
+            references = [
+                "điều đó", "việc đó", "cái đó", "thứ đó", 
+                "điều này", "việc này", "cái này", "thứ này",
+                "điều kia", "việc kia", "cái kia", "thứ kia",
+                "đó", "này", "kia", "thế", "vậy", "họ", "nó",
+                "những gì", "những điều", "những thứ"
+            ]
+            
+            # Nếu tin nhắn hiện tại có chứa các từ đại diện, tìm trong ngữ cảnh
+            for ref in references:
+                if ref in current_message.lower():
+                    # Có từ đại diện, trả về toàn bộ ngữ cảnh để xử lý
+                    return context_str
+                    
+            # Kiểm tra nếu tin nhắn quá ngắn (thường là câu trả lời, câu hỏi tiếp theo)
+            if len(current_message.split()) <= 5:
+                return context_str
+                
+            # Nếu không có từ đại diện và tin nhắn đủ dài, trả về None để xử lý riêng
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Lỗi khi phân tích ngữ cảnh: {str(e)}")
+            return None
+            
+    def _format_chat_history(self, chat_history):
+        """Định dạng lại lịch sử trò chuyện để đưa vào prompt"""
+        formatted_history = ""
+        for msg in chat_history[-10:]:  # Chỉ lấy 10 tin nhắn gần nhất để giới hạn độ dài
+            role = "User" if msg["role"] == "user" else "Assistant"
+            content = msg["parts"][0]
+            formatted_history += f"{role}: {content}\n"
+        return formatted_history
     
     def _process_database_queries(self, message_content, user):
         """Phân tích tin nhắn để xác định nếu cần truy vấn database và trả về kết quả phù hợp"""
@@ -717,7 +803,9 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             r"(việc|việc làm|công việc) (.*?) (ở|tại) (.*?)",
             r"muốn (làm|tìm) (việc|công việc) (.*?)",
             r"(tôi |)cần (tìm |)(việc|việc làm|công việc) (.*?)",
-            r"(xem|cho xem|hiển thị) (việc|việc làm|công việc) (.*?)"
+            r"(xem|cho xem|hiển thị) (việc|việc làm|công việc) (.*?)",
+            r"(tìm |)(việc|công việc|việc làm|cơ hội) (về|liên quan|liên quan đến|với) (.*?)",
+            r"(tìm |)(việc|công việc|việc làm|cơ hội) (cho người|cho|dành cho) (.*?)"
         ]
         
         for pattern in search_patterns:
@@ -727,7 +815,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 
                 # Lấy thông tin tìm kiếm từ các nhóm match
                 for group in match.groups():
-                    if group and group not in ["việc", "công việc", "việc làm", "tìm", "kiếm", "có", "không", "nào", "ở", "tại", "trong", "với", "có", "làm", "muốn", "cần", "tôi", "xem", "cho xem", "hiển thị"]:
+                    if group and group not in ["việc", "công việc", "việc làm", "tìm", "kiếm", "có", "không", "nào", "ở", "tại", "trong", "với", "có", "làm", "muốn", "cần", "tôi", "xem", "cho xem", "hiển thị", "về", "liên quan", "liên quan đến", "cho", "cho người", "dành cho", "cơ hội"]:
                         query_parts.append(group)
                 
                 # Xác định thành phố
@@ -830,6 +918,68 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                     experience=None,
                     position_id=None
                 )
+                
+        # PHẦN 9: TÌM KIẾM VIỆC LÀM THEO KỸ NĂNG LẬP TRÌNH/CÔNG NGHỆ
+        # Phát hiện kỹ năng lập trình và công nghệ trong tin nhắn
+        programming_keywords = [
+            "lập trình", "developer", "coder", "programmer", "development", "coding", 
+            "software", "phần mềm", "code", "web", "app", "mobile", "framework",
+            "fullstack", "backend", "frontend", "devops", "data", "AI", "machine learning"
+        ]
+        
+        programming_languages = [
+            "python", "java", "javascript", "typescript", "php", "c#", "c++", "ruby", 
+            "swift", "kotlin", "go", "golang", "rust", "scala", "perl", "r", "dart"
+        ]
+        
+        frameworks = [
+            "django", "flask", "fastapi", "spring", "springboot", "laravel", "symfony",
+            "react", "vue", "angular", "node", "express", "nestjs", "rails", "asp.net",
+            ".net", "dotnet", "flutter", "android", "ios", "xamarin", "react native"
+        ]
+        
+        databases = [
+            "sql", "mysql", "postgresql", "mongodb", "nosql", "firebase", "oracle",
+            "sqlite", "mariadb", "cassandra", "redis", "elasticsearch", "cơ sở dữ liệu"
+        ]
+        
+        # Kết hợp tất cả các từ khóa công nghệ
+        tech_keywords = programming_languages + frameworks + databases
+        
+        # Tìm kiếm các từ khóa công nghệ trong tin nhắn
+        found_tech_keywords = []
+        
+        # Kiểm tra các từ khóa lập trình chung
+        if any(keyword in message_lower for keyword in programming_keywords):
+            # Nếu có từ khóa lập trình chung, tìm các từ khóa công nghệ cụ thể
+            for keyword in tech_keywords:
+                if keyword in message_lower:
+                    found_tech_keywords.append(keyword)
+        else:
+            # Kiểm tra trực tiếp các từ khóa công nghệ cụ thể
+            for keyword in tech_keywords:
+                if keyword in message_lower:
+                    found_tech_keywords.append(keyword)
+        
+        # Nếu tìm thấy từ khóa công nghệ
+        if found_tech_keywords:
+            # Tạo một truy vấn tìm kiếm với các từ khóa công nghệ
+            tech_query = " ".join(found_tech_keywords)
+            
+            # Kiểm tra xem có từ kèm theo "việc làm", "công việc", "tìm", "tuyển dụng"
+            job_related = any(term in message_lower for term in ["việc làm", "công việc", "tìm", "tuyển dụng", "tuyển", "ứng tuyển", "nghề", "job"])
+            
+            # Nếu không có từ liên quan đến việc làm, thêm từ "việc làm" vào truy vấn
+            if not job_related:
+                tech_query = tech_query + " việc làm"
+                
+            return self.search_job_posts(
+                query=tech_query,
+                city=None,
+                experience=None,
+                position_id=None,
+                limit=8  # Tăng giới hạn kết quả cho tìm kiếm công nghệ
+            )
         
         # Không tìm thấy truy vấn database phù hợp
         return None 
