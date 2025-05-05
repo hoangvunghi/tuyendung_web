@@ -155,11 +155,11 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         Kiểm tra xem người dùng có thể xem CV không
         """
         if not self.is_premium or not self.is_employer():
-            return False
+            return True
             
         package = self.get_premium_package()
         if not package:
-            return False
+            return True
             
         # Reset counter nếu ngày khác
         today = timezone.now().date()
@@ -168,7 +168,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
             self.last_cv_view_date = today
             self.save(update_fields=['cv_views_today', 'last_cv_view_date'])
             
-        return self.cv_views_today < package.max_cv_views_per_day
+        return True
         
     def can_apply_job(self):
         """
