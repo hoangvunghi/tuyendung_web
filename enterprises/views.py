@@ -1507,7 +1507,7 @@ def search_posts(request):
     params = {}
     for key in ['q', 'city', 'position', 'experience', 'type_working', 'scales', 'field', 'salary_min', 'salary_max', 'negotiable', 'all']:
         value = request.query_params.get(key, '')
-        if value:
+        if value or key == 'all':
             params[key] = value
             
     params['sort_by'] = request.query_params.get('sort_by', 'created_at')
@@ -1531,73 +1531,67 @@ def search_posts(request):
         print(f"Cache hit! Time taken: {time_end - time_start} seconds")
         return Response(cached_data)
     
-    # Bắt đầu xây dựng query (chưa thực thi cho đến khi cần thiết)
+    # Bắt đầu xây dựng query
     query = PostEntity.objects.filter(
         is_active=True,
         deadline__gte=datetime.now()
     )
     
-    # Áp dụng bộ lọc tìm kiếm từ params nếu có (chưa thực thi truy vấn)
-    if params.get('q'):
-        search_term = params.get('q')
+    # Nếu q có giá trị hợp lệ, chỉ áp dụng bộ lọc q và bỏ qua các bộ lọc khác
+    if params.get('q') and params['q'].strip():
+        search_term = params['q'].strip()
         query = query.filter(
             Q(title__icontains=search_term) |
             Q(description__icontains=search_term) |
             Q(required__icontains=search_term) |
             Q(enterprise__company_name__icontains=search_term)
         )
-    if params.get('city'):
-        query = query.filter(city__iexact=params.get('city'))
-
-    if params.get('experience'):
-        query = query.filter(experience__iexact=params.get('experience'))
-
-    if params.get('type_working'):
-        query = query.filter(type_working__iexact=params.get('type_working'))
-
-    if params.get('scales'):
-        query = query.filter(enterprise__scale__iexact=params.get('scales'))
-
-    if params.get('position'):
-        position_param = params.get('position')
-        if position_param.isdigit():
-            query = query.filter(position__id=int(position_param))
-        else:
-            query = query.filter(position__name__icontains=position_param)
-
-    if params.get('field'):
-        field_param = params.get('field')
-        if field_param.isdigit():
-            query = query.filter(
-                Q(field__id=int(field_param)) |
-                Q(position__field__id=int(field_param))
-            )
-        else:
-            query = query.filter(
-                Q(field__name__icontains=field_param) |
-                Q(position__field__name__icontains=field_param)
-            )
-
-    if params.get('salary_min'):
-        query = query.filter(salary_min__gte=int(params.get('salary_min')))
-
-    if params.get('salary_max'):
-        query = query.filter(salary_max__lte=int(params.get('salary_max')))
-
-    if params.get('negotiable') == 'true':
-        query = query.filter(is_salary_negotiable=True)
+    else:
+        # Áp dụng các bộ lọc khác nếu q rỗng hoặc không có q
+        if params.get('city'):
+            query = query.filter(city__iexact=params.get('city'))
+        if params.get('experience'):
+            query = query.filter(experience__iexact=params.get('experience'))
+        if params.get('type_working'):
+            query = query.filter(type_working__iexact=params.get('type_working'))
+        if params.get('scales'):
+            query = query.filter(enterprise__scale__iexact=params.get('scales'))
+        if params.get('position'):
+            position_param = params.get('position')
+            if position_param.isdigit():
+                query = query.filter(position__id=int(position_param))
+            else:
+                query = query.filter(position__name__icontains=position_param)
+        if params.get('field'):
+            field_param = params.get('field')
+            if field_param.isdigit():
+                query = query.filter(
+                    Q(field__id=int(field_param)) |
+                    Q(position__field__id=int(field_param))
+                )
+            else:
+                query = query.filter(
+                    Q(field__name__icontains=field_param) |
+                    Q(position__field__name__icontains=field_param)
+                )
+        if params.get('salary_min'):
+            query = query.filter(salary_min__gte=int(params.get('salary_min')))
+        if params.get('salary_max'):
+            query = query.filter(salary_max__lte=int(params.get('salary_max')))
+        if params.get('negotiable') == 'true':
+            query = query.filter(is_salary_negotiable=True)
     
     time_query_build = datetime.now()
     print(f"Query building time: {time_query_build - time_params} seconds")
     
-    # Cải thiện hiệu suất bằng select_related trước khi thực hiện truy vấn
+    # Cải thiện hiệu suất bằng select_related
     filtered_query = query.select_related(
         'position', 
         'field', 
         'enterprise'
     )
     
-    # Chỉ lấy các trường cần thiết cho việc tính điểm và sắp xếp
+    # Chỉ lấy các trường cần thiết
     post_data = list(filtered_query.values(
         'id', 'title', 'city', 'experience', 'type_working', 
         'salary_min', 'salary_max', 'is_salary_negotiable', 'created_at',
@@ -1608,19 +1602,16 @@ def search_posts(request):
     time_initial_query = datetime.now()
     print(f"Initial query execution time: {time_initial_query - time_query_build} seconds")
     
-    # **Bỏ logic lấy toàn bộ bài đăng khi không có kết quả và all=true**
-    # Thay vào đó, nếu post_data rỗng và q được cung cấp, trả về danh sách rỗng
-    if not post_data and params.get('q'):
-        if params['q'].strip():
-            empty_data = {
-                'message': 'No matching posts found',
-                'status': status.HTTP_200_OK,
-                'data': {
+    # Nếu q có giá trị hợp lệ và không có bài đăng, trả về danh sách rỗng
+    if not post_data and params.get('q') and params['q'].strip():
+        empty_data = {
+            'message': 'No matching posts found',
+            'status': status.HTTP_200_OK,
+            'data': {
                 'links': {
                     'next': None,
                     'previous': None,
                 },
-                
                 'total': 0,
                 'page': int(params.get('page', 1)),
                 'total_pages': 0,
@@ -1628,8 +1619,8 @@ def search_posts(request):
                 'results': []
             }
         }
-            cache.set(cache_key, empty_data, 60 * 5)
-            return Response(empty_data)
+        cache.set(cache_key, empty_data, 60 * 5)
+        return Response(empty_data)
     
     # Lấy thông tin user criteria nếu đã đăng nhập
     user = request.user
@@ -1640,16 +1631,12 @@ def search_posts(request):
         except CriteriaEntity.DoesNotExist:
             pass
     
-    # Tối ưu thông tin premium cho các doanh nghiệp
+    # Tối ưu thông tin premium
     enterprise_ids = {post['enterprise_id'] for post in post_data if post['enterprise_id'] is not None}
-    
-    # Cache thông tin hệ số ưu tiên
     priority_cache_key = 'enterprise_priority_coefficients'
     enterprise_premium_coefficients = cache.get(priority_cache_key, {})
     
-    # Chỉ truy vấn enterprise và premium cho các doanh nghiệp chưa có trong cache
     missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in enterprise_premium_coefficients]
-    
     if missing_enterprise_ids:
         enterprise_users = {}
         for item in EnterpriseEntity.objects.filter(id__in=missing_enterprise_ids).values('id', 'user_id'):
@@ -1658,7 +1645,6 @@ def search_posts(request):
         if enterprise_users:
             user_ids = list(enterprise_users.values())
             user_premium_coefficients = {}
-            
             for ph in PremiumHistory.objects.filter(
                 user_id__in=user_ids,
                 is_active=True,
@@ -1670,13 +1656,12 @@ def search_posts(request):
             for enterprise_id, user_id in enterprise_users.items():
                 coefficient = user_premium_coefficients.get(user_id)
                 enterprise_premium_coefficients[enterprise_id] = coefficient if coefficient else 999
-            
             cache.set(priority_cache_key, enterprise_premium_coefficients, 60 * 60)
     
     time_premium_fetch = datetime.now()
     print(f"Premium data fetch time: {time_premium_fetch - time_initial_query} seconds")
     
-    # Tính điểm và priority cho mỗi post
+    # Tính điểm và priority
     scored_posts = []
     for post in post_data:
         score = 0
@@ -1700,27 +1685,28 @@ def search_posts(request):
             if user_criteria.salary_min and post['salary_min'] and post['salary_min'] >= user_criteria.salary_min:
                 score += 3
         
-        if params.get('city') and post['city'] and post['city'].lower() == params.get('city').lower():
-            score += 4
-        if params.get('experience') and post['experience'] and post['experience'].lower() == params.get('experience').lower():
-            score += 3
-        if params.get('type_working') and post['type_working'] and post['type_working'].lower() == params.get('type_working').lower():
-            score += 3
-        if params.get('scales') and post['enterprise__scale'] and post['enterprise__scale'].lower() == params.get('scales').lower():
-            score += 2
+        # Chỉ tính điểm cho các bộ lọc khác nếu q rỗng
+        if not (params.get('q') and params['q'].strip()):
+            if params.get('city') and post['city'] and post['city'].lower() == params.get('city').lower():
+                score += 4
+            if params.get('experience') and post['experience'] and post['experience'].lower() == params.get('experience').lower():
+                score += 3
+            if params.get('type_working') and post['type_working'] and post['type_working'].lower() == params.get('type_working').lower():
+                score += 3
+            if params.get('scales') and post['enterprise__scale'] and post['enterprise__scale'].lower() == params.get('scales').lower():
+                score += 2
         
         post_obj['match_score'] = score
         post_obj['matches_criteria'] = score >= 7
         post_obj['priority_coefficient'] = enterprise_premium_coefficients.get(post['enterprise_id'], 999)
         post_obj['is_enterprise_premium'] = post_obj['priority_coefficient'] < 999
-        
         scored_posts.append(post_obj)
     
     time_scoring = datetime.now()
     print(f"Post scoring time: {time_scoring - time_premium_fetch} seconds")
     
-    # Lọc và sắp xếp posts theo tiêu chí
-    if params.get('all') == 'false':
+    # Lọc và sắp xếp posts
+    if params.get('all') == 'false' and not (params.get('q') and params['q'].strip()):
         filtered_posts = [post for post in scored_posts if post['matches_criteria']]
     else:
         filtered_posts = sorted(
@@ -1748,7 +1734,6 @@ def search_posts(request):
                     'next': None,
                     'previous': None,
                 },
-                'q': params.get('q'),
                 'total': 0,
                 'page': int(params.get('page', 1)),
                 'total_pages': 0,
@@ -1759,9 +1744,8 @@ def search_posts(request):
         cache.set(cache_key, empty_data, 60 * 5)
         return Response(empty_data)
     
-    # Tiếp tục xử lý phân trang và trả về kết quả như trong code gốc
+    # Xử lý phân trang
     post_info_map = {post['id']: post for post in filtered_posts}
-    
     page = int(params.get('page', 1))
     page_size = int(params.get('page_size', 10))
     
@@ -1867,7 +1851,7 @@ def search_posts(request):
     response_data = {
         'message': 'Data retrieved successfully',
         'status': status.HTTP_200_OK,
-        "test": "test",
+        'test': 'test',
         'data': paged_data
     }
     
@@ -1888,7 +1872,7 @@ def search_posts(request):
     
     cache.set(cache_key, response_data, 60 * 5)
     return Response(response_data)
-# Get Recommended Posts
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_recommended_posts(request):
