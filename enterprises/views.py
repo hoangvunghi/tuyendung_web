@@ -1611,17 +1611,35 @@ def search_posts(request):
     print(f"Initial query execution time: {time_initial_query - time_query_build} seconds")
     
     # Nếu không có kết quả lọc và all=true, lấy tất cả bài đăng
-    if len(post_data) == 0 and params.get('all') == 'true':
+    if len(post_data) == 0:
+        # nếu q= thì tiếp tục còn không thì trả về rỗng
+        if params.get('q'):
+            return Response({
+                'message': 'Data retrieved successfully',
+                'status': status.HTTP_200_OK,
+                'data': {
+                    'links': {
+                        'next': None,
+                        'previous': None,
+                    },
+                    'total': 0,
+                    'page': int(params.get('page', 1)),
+                    'total_pages': 0,
+                    'page_size': int(params.get('page_size', 10)),
+                    'results': []
+                }
+            })
         # Thực hiện query lại để lấy tất cả bài đăng active
-        post_data = list(PostEntity.objects.filter(
-            is_active=True,
-            deadline__gte=datetime.now()
-        ).values(
-            'id', 'title', 'city', 'experience', 'type_working', 
-            'salary_min', 'salary_max', 'is_salary_negotiable', 'created_at',
-            'enterprise_id', 'position_id', 'field_id',
-            'enterprise__scale', 'position__field_id'
-        ))
+        if params.get('all') == 'true':
+            post_data = list(PostEntity.objects.filter(
+                is_active=True,
+                deadline__gte=datetime.now()
+            ).values(
+                'id', 'title', 'city', 'experience', 'type_working', 
+                'salary_min', 'salary_max', 'is_salary_negotiable', 'created_at',
+                'enterprise_id', 'position_id', 'field_id',
+                'enterprise__scale', 'position__field_id'
+            ))
     
     # Lấy thông tin user criteria nếu đã đăng nhập (cần thiết cho việc tính điểm)
     user = request.user
@@ -1931,6 +1949,7 @@ def search_posts(request):
     # Cache kết quả và trả về
     cache.set(cache_key, response_data, 60 * 5)  # Cache trong 5 phút
     return Response(response_data)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_recommended_posts(request):
