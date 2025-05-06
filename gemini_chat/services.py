@@ -798,6 +798,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 try:
                     chat_session = GeminiChatSession.objects.get(id=session_id, user=user)
                 except GeminiChatSession.DoesNotExist:
+                    self.logger.warning(f"Phiên chat ID {session_id} không tồn tại, tạo phiên mới")
                     chat_session = self.create_chat_session(user)
             else:
                 chat_session = self.create_chat_session(user)
@@ -826,6 +827,22 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             except Exception as context_err:
                 self.logger.error(f"Lỗi khi lấy ngữ cảnh trò chuyện: {str(context_err)}")
                 context_messages = []
+            
+            # Thử xử lý các trường hợp đặc biệt liên quan đến tìm kiếm thành phố
+            # Ví dụ: "các công việc tại thành phố hồ chí minh"
+            city_job_special_patterns = [
+                r"(các |những |)(việc|việc làm|công việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
+                r"(các |những |)(công việc|việc làm|việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*"
+            ]
+            
+            direct_city_search = False
+            for pattern in city_job_special_patterns:
+                match = re.search(pattern, message_content.lower())
+                if match:
+                    city_name = match.group(5) if len(match.groups()) >= 5 else None
+                    if city_name and len(city_name.strip()) > 0:
+                        direct_city_search = True
+                        # Tiếp tục tìm kiếm thông thường
             
             # Thử truy vấn cơ sở dữ liệu với ngữ cảnh đầy đủ
             database_data = None
@@ -857,8 +874,19 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                     response_content = "Xin lỗi, đã xảy ra lỗi khi xử lý dữ liệu. Tôi sẽ thử cách khác."
                     database_data = None  # Reset để sử dụng Gemini API
             
+            # Xử lý đặc biệt cho tìm kiếm theo thành phố không có kết quả
+            if direct_city_search and not database_data:
+                for pattern in city_job_special_patterns:
+                    match = re.search(pattern, message_content.lower())
+                    if match:
+                        city_name = match.group(5) if len(match.groups()) >= 5 else None
+                        if city_name and len(city_name.strip()) > 0:
+                            city_name = city_name.strip().lower()
+                            self.logger.info(f"Xử lý đặc biệt cho truy vấn thành phố: {city_name}")
+                            response_content = f"Tôi rất tiếc, hiện tại cơ sở dữ liệu của JobHub chưa có thông tin về công việc tại {city_name.title()}. Vui lòng thử lại sau hoặc tìm kiếm theo từ khóa khác. Bạn cũng có thể tìm kiếm việc làm theo ngành nghề, mức lương mong muốn hoặc kinh nghiệm. Tôi luôn sẵn sàng hỗ trợ bạn!"
+            
             # Nếu không có dữ liệu database hoặc xử lý bị lỗi, sử dụng Gemini API
-            if not database_data:
+            if not database_data and not response_content:
                 try:
                     # Gọi Gemini API nếu không có dữ liệu từ database
                     # Lấy system prompt
