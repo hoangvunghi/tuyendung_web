@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     "enterprises",
     "profiles",
     "transactions",
-    "services",
+    # "services",
     "notifications",
     'interviews',  
     'chat',  

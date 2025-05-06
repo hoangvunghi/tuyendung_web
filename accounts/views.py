@@ -63,10 +63,16 @@ def register_function(request, is_recruiter=False):
             'status': status.HTTP_201_CREATED,
             'data': serializer.data
         }, status=status.HTTP_201_CREATED)
+    
+    # Cải thiện thông báo lỗi để frontend có thể hiển thị chi tiết
+    error_messages = {}
+    for field, errors in serializer.errors.items():
+        error_messages[field] = [str(error) for error in errors]
+    
     return Response({
         'message': 'Đăng ký thất bại',
         'status': status.HTTP_400_BAD_REQUEST,
-        'errors': serializer.errors
+        'errors': error_messages
     }, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -297,27 +303,54 @@ def resend_activation_email(request):
 def login(request):
     username = request.data.get('username')
     password = request.data.get('password')
+    
+    # Khởi tạo dictionary errors để lưu các lỗi
+    errors = {}
+    
+    # Kiểm tra xem username và password có được cung cấp không
+    if not username:
+        errors['username'] = ['Vui lòng nhập tên đăng nhập']
+    
+    if not password:
+        errors['password'] = ['Vui lòng nhập mật khẩu']
+    
+    # Nếu có lỗi thiếu thông tin, trả về ngay
+    if errors:
+        return Response({
+            'message': 'Thông tin đăng nhập không đầy đủ',
+            'status': status.HTTP_400_BAD_REQUEST,
+            'errors': errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
     user = authenticate(username=username, password=password)
     
     if user is None:
         try:
             inactive_user = UserAccount.objects.get(username=username)
             if not inactive_user.is_active:
+                errors['account'] = ['Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.']
                 return Response({
-                    'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
-                    'status': status.HTTP_401_UNAUTHORIZED
+                    'message': 'Tài khoản chưa được kích hoạt',
+                    'status': status.HTTP_401_UNAUTHORIZED,
+                    'errors': errors
                 }, status=status.HTTP_401_UNAUTHORIZED)
             if inactive_user.is_banned:
+                errors['account'] = ['Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để biết thêm thông tin.']
                 return Response({
-                    'message': 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để biết thêm thông tin.',
-                    'status': status.HTTP_401_UNAUTHORIZED
+                    'message': 'Tài khoản đã bị vô hiệu hóa',
+                    'status': status.HTTP_401_UNAUTHORIZED,
+                    'errors': errors
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            # Nếu tài khoản tồn tại nhưng không đăng nhập được, vấn đề là ở mật khẩu
+            errors['password'] = ['Mật khẩu không chính xác']
         except UserAccount.DoesNotExist:
-            pass
+            # Nếu tài khoản không tồn tại
+            errors['username'] = ['Tài khoản không tồn tại']
         
         return Response({
             'message': 'Thông tin đăng nhập không hợp lệ',
-            'status': status.HTTP_400_BAD_REQUEST
+            'status': status.HTTP_400_BAD_REQUEST,
+            'errors': errors
         }, status=status.HTTP_400_BAD_REQUEST)
     
     refresh = RefreshToken.for_user(user)
