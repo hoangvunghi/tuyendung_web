@@ -22,9 +22,9 @@ from .models import (
     SavedPostEntity
 )
 from .serializers import (
-    EnterpriseDetailSerializer, EnterpriseSerializer, PostEnterpriseSerializer, PostSerializer,
+    EnterpriseDetailSerializer, EnterpriseSerializer, PostDetailSerializer, PostEnterpriseSerializer, PostSerializer,
     FieldSerializer, PositionSerializer, CriteriaSerializer,
-    PostUpdateSerializer, PostEnterpriseForEmployerSerializer, SavedPostSerializer
+    PostUpdateSerializer, PostEnterpriseForEmployerSerializer, SavedPostSerializer, PostListSerializer
 )
 from profiles.models import Cv
 from profiles.serializers import CvSerializer, CvStatusSerializer
@@ -2473,11 +2473,11 @@ def delete_post(request, pk):
 def get_post_detail(request, pk):
     """Chi tiết bài đăng"""
     try:
-        from django.db.models import Count
+        from django.db.models import Count, Q
         from profiles.models import Cv
         
         post = PostEntity.objects.select_related('enterprise').get(pk=pk)
-        serializer = PostSerializer(post)
+        serializer = PostDetailSerializer(post)
         data = serializer.data
         
         # Thêm thông tin ảnh của doanh nghiệp
@@ -2522,6 +2522,41 @@ def get_post_detail(request, pk):
                 data['latest_application_date'] = None
         else:
             data['latest_application_date'] = None
+            
+        # Lấy danh sách bài đăng liên quan
+        # Ưu tiên theo thứ tự: cùng lĩnh vực, cùng vị trí, cùng thành phố, cùng doanh nghiệp
+        related_posts_query = PostEntity.objects.filter(
+            is_active=True, 
+            deadline__gt=timezone.now()
+        ).exclude(id=post.id)
+        
+        # Query các bài đăng có cùng lĩnh vực
+        field_related = related_posts_query.filter(field=post.field)
+        
+        # Query các bài đăng có cùng vị trí
+        position_related = related_posts_query.filter(position=post.position)
+        
+        # Query các bài đăng có cùng thành phố
+        city_related = related_posts_query.filter(city=post.city)
+        
+        # Query các bài đăng có cùng doanh nghiệp
+        enterprise_related = related_posts_query.filter(enterprise=post.enterprise)
+        
+        # Tạo danh sách các bài đăng liên quan, ưu tiên theo thứ tự đã định
+        related_posts = list(field_related[:4]) + list(position_related.exclude(id__in=[p.id for p in field_related])[:3]) + list(city_related.exclude(
+            id__in=[p.id for p in field_related] + [p.id for p in position_related]
+        )[:2]) + list(enterprise_related.exclude(
+            id__in=[p.id for p in field_related] + [p.id for p in position_related] + [p.id for p in city_related]
+        )[:2])
+        
+        # Giới hạn tối đa 7 bài đăng liên quan
+        related_posts = related_posts[:10]
+        
+        # Serialize các bài đăng liên quan
+        related_posts_serializer = PostListSerializer(related_posts, many=True, context={'request': request})
+        data['related_posts'] = related_posts_serializer.data
+        data['field'] = post.field.name;
+        
         return Response({
             'message': 'Post details retrieved successfully',
             'status': status.HTTP_200_OK,

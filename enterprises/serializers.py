@@ -126,6 +126,89 @@ class PostSerializer(serializers.ModelSerializer):
                 pass
         
         return False
+class PostDetailSerializer(serializers.ModelSerializer):
+    position = serializers.PrimaryKeyRelatedField(queryset=PositionEntity.objects.all())
+    enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
+    enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
+    is_saved = serializers.SerializerMethodField()
+    is_enterprise_premium = serializers.SerializerMethodField()
+    matches_criteria = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PostEntity
+        fields = [
+            'id', 'title', 'description', 'required', 'interest',
+            'type_working', 'salary_min', 'salary_max', 'is_salary_negotiable',
+            'quantity', 'city', 'district', 'position', 'created_at',
+            'deadline', 'is_active', 'enterprise', 'enterprise_name', 'enterprise_logo',
+            'is_saved', 'is_enterprise_premium', 'matches_criteria', 'experience', 'level', 'time_working'
+        ]
+        read_only_fields = ['created_at', 'is_active', 'is_saved', 'is_enterprise_premium', 'matches_criteria']
+
+    def get_is_saved(self, obj):
+        """Kiểm tra xem bài đăng có được lưu bởi người dùng hiện tại không"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedPostEntity.objects.filter(user=request.user, post=obj).exists()
+        return False
+
+    def get_is_enterprise_premium(self, obj):
+        """Kiểm tra xem doanh nghiệp có phải là premium không"""
+        return obj.enterprise.user.is_premium
+        
+    def get_matches_criteria(self, obj):
+        """Kiểm tra xem bài đăng có phù hợp với tiêu chí của người dùng không"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                criteria = CriteriaEntity.objects.get(user=request.user)
+                score = 0
+                
+                # City (4 điểm)
+                if criteria.city and obj.city and criteria.city.lower() == obj.city.lower():
+                    score += 4
+                    
+                # Experience (3 điểm)
+                if criteria.experience and obj.experience and criteria.experience.lower() == obj.experience.lower():
+                    score += 3
+                    
+                # Type of working (3 điểm)
+                if criteria.type_working and obj.type_working and criteria.type_working.lower() == obj.type_working.lower():
+                    score += 3
+                    
+                # Scales (2 điểm)
+                if criteria.scales and obj.enterprise and obj.enterprise.scale and criteria.scales.lower() == obj.enterprise.scale.lower():
+                    score += 2
+                    
+                # Field (5 điểm)
+                if criteria.field:
+                    field_id = criteria.field.id if hasattr(criteria.field, 'id') else criteria.field
+                    
+                    # Kiểm tra field trực tiếp
+                    if obj.field and ((hasattr(obj.field, 'id') and obj.field.id == field_id) or obj.field == field_id):
+                        score += 5
+                    # Kiểm tra field qua position
+                    elif obj.position and obj.position.field and ((hasattr(obj.position.field, 'id') and obj.position.field.id == field_id) or obj.position.field == field_id):
+                        score += 5
+                
+                # Position (5 điểm)
+                if criteria.position:
+                    position_id = criteria.position.id if hasattr(criteria.position, 'id') else criteria.position
+                    
+                    if obj.position and ((hasattr(obj.position, 'id') and obj.position.id == position_id) or obj.position == position_id):
+                        score += 5
+                
+                # Salary (3 điểm)
+                if criteria.salary_min and obj.salary_min and obj.salary_min >= criteria.salary_min:
+                    score += 3
+                
+                # Công việc phù hợp khi điểm đạt tối thiểu 7 điểm
+                return score >= 7
+                
+            except CriteriaEntity.DoesNotExist:
+                pass
+        
+        return False
 
 class PostEnterpriseSerializer(serializers.ModelSerializer):
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
@@ -175,3 +258,30 @@ class SavedPostSerializer(serializers.ModelSerializer):
             'user': {'write_only': True},
             'post': {'write_only': True}
         }
+
+class PostListSerializer(serializers.ModelSerializer):
+    """Serializer để hiển thị danh sách bài đăng liên quan ngắn gọn"""
+    position_name = serializers.CharField(source='position.name', read_only=True)
+    enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
+    enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
+    is_saved = serializers.SerializerMethodField()
+    is_enterprise_premium = serializers.SerializerMethodField()
+    
+    def get_is_saved(self, obj):
+        """Kiểm tra xem bài đăng có được lưu bởi người dùng hiện tại không"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedPostEntity.objects.filter(user=request.user, post=obj).exists()
+        return False
+    
+    def get_is_enterprise_premium(self, obj):
+        """Kiểm tra xem doanh nghiệp có phải là premium không"""
+        return obj.enterprise.user.is_premium
+    
+    class Meta:
+        model = PostEntity
+        fields = [
+            'id', 'title', 'type_working', 'salary_min', 'salary_max', 
+            'is_salary_negotiable', 'city', 'position_name', 'enterprise_name', 
+            'enterprise_logo', 'deadline', 'is_saved', 'experience', 'is_enterprise_premium'
+        ]

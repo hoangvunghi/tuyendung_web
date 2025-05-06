@@ -481,7 +481,8 @@ def create_cv(request):
         if not request.user.can_apply_job():
             return Response({
                 'message': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày',
-                'status': status.HTTP_400_BAD_REQUEST
+                'status': status.HTTP_400_BAD_REQUEST,
+                'errors': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         data = request.data.copy()
@@ -525,7 +526,7 @@ def create_cv(request):
                 'data': serializer.data
             }, status=status.HTTP_201_CREATED)
         return Response({
-            'message': 'Failed to create CV',
+            'message': 'Có lỗi xảy ra khi tạo CV',
             'status': status.HTTP_400_BAD_REQUEST,
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
