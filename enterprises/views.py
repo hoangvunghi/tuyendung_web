@@ -1502,8 +1502,6 @@ def search_enterprises(request):
 @permission_classes([AllowAny])
 def search_posts(request):
     time_start = datetime.now()
-    
-    # Lấy các tham số và tạo cache key
     params = {}
     for key in ['q', 'city', 'position', 'experience', 'type_working', 'scales', 'field', 'salary_min', 'salary_max', 'negotiable', 'all']:
         value = request.query_params.get(key, '')
@@ -1524,70 +1522,145 @@ def search_posts(request):
     time_params = datetime.now()
     print(f"Parameters processing time: {time_params - time_start} seconds")
     
-    # Kiểm tra cache
     cached_data = cache.get(cache_key)
     if cached_data is not None:
         time_end = datetime.now()
         print(f"Cache hit! Time taken: {time_end - time_start} seconds")
         return Response(cached_data)
-    
-    # Bắt đầu xây dựng query (chưa thực thi cho đến khi cần thiết)
     query = PostEntity.objects.filter(
         is_active=True,
         deadline__gte=datetime.now()
     )
     
     # Áp dụng bộ lọc tìm kiếm từ params nếu có (chưa thực thi truy vấn)
-    if params.get('q'):
-        search_term = params.get('q')
-        query = query.filter(
-            Q(title__icontains=search_term) |
-            Q(description__icontains=search_term) |
-            Q(required__icontains=search_term) |
-            Q(enterprise__company_name__icontains=search_term)
-        )
-
-    if params.get('city'):
-        query = query.filter(city__iexact=params.get('city'))
-
-    if params.get('experience'):
-        query = query.filter(experience__iexact=params.get('experience'))
-
-    if params.get('type_working'):
-        query = query.filter(type_working__iexact=params.get('type_working'))
-
-    if params.get('scales'):
-        query = query.filter(enterprise__scale__iexact=params.get('scales'))
-
-    if params.get('position'):
-        position_param = params.get('position')
-        if position_param.isdigit():
-            query = query.filter(position__id=int(position_param))
-        else:
-            query = query.filter(position__name__icontains=position_param)
-
-    if params.get('field'):
-        field_param = params.get('field')
-        if field_param.isdigit():
+    if params.get("q") != None:
+        if len(params.get('q')) > 0:
+            search_term = params.get('q')
             query = query.filter(
+                Q(title__icontains=search_term) |
+                Q(description__icontains=search_term) |
+                Q(required__icontains=search_term) |
+                Q(enterprise__company_name__icontains=search_term)
+            )
+    print("--------------------------------")
+    print("query có q:")
+    print(query)
+    print("--------------------------------")
+    print("params.get('q'):")
+    print(params.get('q'))
+    print("--------------------------------")
+    if params.get("city"):
+        if len(params.get('city')) > 0:
+            query = query.filter(city__iexact=params.get('city'))
+            print("--------------------------------")
+            print("query có city:")
+            print("params.get('city'):")
+            print(params.get('city'))
+            print("len(params.get('city')):")
+            print(len(params.get('city')))
+            print("--------------------------------")
+            print(query)
+            print("--------------------------------")
+    if params.get("experience"):
+        if len(params.get('experience')) > 0:
+            print("params.get('experience'):")
+            print(params.get('experience'))
+            print("len(params.get('experience')):")
+            print(len(params.get('experience')))
+            print("--------------------------------")
+            query = query.filter(experience__iexact=params.get('experience'))
+    print("--------------------------------")
+    print("query có experience:")
+    print(query)
+    print("--------------------------------")
+    if params.get("type_working"):
+        if len(params.get('type_working')) > 0:
+            print("params.get('type_working'):")
+            print(params.get('type_working'))
+            print("len(params.get('type_working')):")
+            print(len(params.get('type_working')))
+            print("--------------------------------")
+            query = query.filter(type_working__iexact=params.get('type_working'))
+    print("--------------------------------")
+    print("query có type_working:")
+    print(query)
+    print("--------------------------------")
+    if params.get("scales"):
+        if len(params.get('scales')) > 0:
+            print("params.get('scales'):")
+            print(params.get('scales'))
+            print("len(params.get('scales')):")
+            print(len(params.get('scales')))
+            print("--------------------------------")
+            query = query.filter(enterprise__scale__iexact=params.get('scales'))
+    print("--------------------------------")
+    print("query có scales:")
+    print(query)
+    print("--------------------------------")
+    if params.get("position"):
+        if len(params.get('position')) > 0:
+            print("params.get('position'):")
+            print(params.get('position'))
+            print("len(params.get('position')):")
+            print(len(params.get('position')))
+            print("--------------------------------")
+            position_param = params.get('position')
+            if position_param.isdigit():
+                query = query.filter(position__id=int(position_param))
+            else:
+                query = query.filter(position__name__icontains=position_param)
+    print("--------------------------------")
+    print("query có position:")
+    print(query)
+    print("--------------------------------")
+    if params.get("field"):
+        if len(params.get('field')) > 0:
+            print("params.get('field'):")
+            print(params.get('field'))
+            print("len(params.get('field')):")
+            print(len(params.get('field')))
+            print("--------------------------------")
+            field_param = params.get('field')
+            if field_param.isdigit():
+                query = query.filter(
                 Q(field__id=int(field_param)) |
                 Q(position__field__id=int(field_param))
             )
-        else:
-            query = query.filter(
-                Q(field__name__icontains=field_param) |
-                Q(position__field__name__icontains=field_param)
-            )
-
-    if params.get('salary_min'):
-        query = query.filter(salary_min__gte=int(params.get('salary_min')))
-
-    if params.get('salary_max'):
-        query = query.filter(salary_max__lte=int(params.get('salary_max')))
-
-    if params.get('negotiable') == 'true':
-        query = query.filter(is_salary_negotiable=True)
-    
+            else:
+                query = query.filter(
+                    Q(field__name__icontains=field_param) |
+                    Q(position__field__name__icontains=field_param)
+                )
+            print("--------------------------------")
+            print("query có field:")
+            print(query)
+            print("--------------------------------")
+    if params.get("salary_min"):
+        if len(params.get('salary_min')) > 0:
+            query = query.filter(salary_min__gte=int(params.get('salary_min')))
+        print("--------------------------------")
+        print("params.get('salary_min'):")
+        print(params.get('salary_min'))
+        print("len(params.get('salary_min')):")
+        print(len(params.get('salary_min')))
+        print("--------------------------------")
+        print("query có salary_min:")
+        print(query)
+        print("--------------------------------")
+    if params.get("salary_max"):
+        if len(params.get('salary_max')) > 0:
+            query = query.filter(salary_max__lte=int(params.get('salary_max')))
+            print("--------------------------------")   
+            print("query có salary_max:")
+            print(query)
+            print("--------------------------------")
+    if params.get("negotiable"):
+        if len(params.get('negotiable')) > 0:
+            query = query.filter(is_salary_negotiable=True)
+            print("--------------------------------")
+            print("query có negotiable:")
+            print(query)
+            print("--------------------------------")
     time_query_build = datetime.now()
     print(f"Query building time: {time_query_build - time_params} seconds")
     
@@ -1597,7 +1670,10 @@ def search_posts(request):
         'field', 
         'enterprise'
     )
-    
+    print("--------------------------------")
+    print("filtered_query:")
+    print(filtered_query)
+    print("--------------------------------")
     # Chỉ lấy các trường cần thiết cho việc tính điểm và sắp xếp
     # Dùng values() để chuyển đổi QuerySet sang dictionary để xử lý nhanh hơn
     post_data = list(filtered_query.values(
@@ -1606,29 +1682,43 @@ def search_posts(request):
         'enterprise_id', 'position_id', 'field_id',
         'enterprise__scale', 'position__field_id'
     ))
-    
+
     time_initial_query = datetime.now()
     print(f"Initial query execution time: {time_initial_query - time_query_build} seconds")
-    
+    print("--------------------------------")
+    print("post_data:")
+    print(post_data)
+    print("--------------------------------")
     # Nếu không có kết quả lọc và all=true, lấy tất cả bài đăng
     if len(post_data) == 0:
+        print("--------------------------------")
+        print("len(post_data) == 0")
+        print("--------------------------------")
         # nếu q= thì tiếp tục còn không thì trả về rỗng
-        if params.get('q'):
-            return Response({
-                'message': 'Data retrieved successfully',
-                'status': status.HTTP_200_OK,
-                'data': {
-                    'links': {
-                        'next': None,
-                        'previous': None,
-                    },
-                    'total': 0,
-                    'page': int(params.get('page', 1)),
-                    'total_pages': 0,
-                    'page_size': int(params.get('page_size', 10)),
-                    'results': []
-                }
-            })
+        if params.get('q') != None:
+            if len(params.get('q')) !=0:
+                print("--------------------------------")
+                print("params.get('q'):")
+                print(params.get('q'))
+                print()
+                print("--------------------------------")
+                print("đã trả về khi len(post_data) == 0")
+                print("--------------------------------")
+                return Response({
+                    'message': 'Data retrieved successfully',
+                    'status': status.HTTP_200_OK,
+                    'data': {
+                        'links': {
+                            'next': None,
+                            'previous': None,
+                        },
+                        'total': 0,
+                        'page': int(params.get('page', 1)),
+                        'total_pages': 0,
+                        'page_size': int(params.get('page_size', 10)),
+                        'results': []
+                    }
+                })
         # Thực hiện query lại để lấy tất cả bài đăng active
         if params.get('all') == 'true':
             post_data = list(PostEntity.objects.filter(
@@ -1649,7 +1739,10 @@ def search_posts(request):
             user_criteria = CriteriaEntity.objects.select_related('field', 'position').get(user=user)
         except CriteriaEntity.DoesNotExist:
             pass
-    
+    print("--------------------------------")
+    print("user_criteria:")
+    print(user_criteria)
+    print("--------------------------------")
     # Tối ưu thông tin premium cho các doanh nghiệp
     enterprise_ids = {post['enterprise_id'] for post in post_data if post['enterprise_id'] is not None}
     
@@ -1730,7 +1823,7 @@ def search_posts(request):
             if user_criteria.salary_min and post['salary_min'] and post['salary_min'] >= user_criteria.salary_min:
                 score += 3
         
-        # Tính điểm dựa trên các tham số tìm kiếm
+        # Tính điể''m dựa trên các tham số tìm kiếm
         if params.get('city') and post['city'] and post['city'].lower() == params.get('city').lower():
             score += 4
         
@@ -1774,10 +1867,16 @@ def search_posts(request):
     
     # Lấy danh sách ID đã sắp xếp
     sorted_post_ids = [post['id'] for post in filtered_posts]
-    
+    print("--------------------------------")
+    print("sorted_post_ids:")
+    print(sorted_post_ids)
+    print("--------------------------------")
     # Nếu không có kết quả, trả về rỗng
     if not sorted_post_ids:
         # Trả về response rỗng với định dạng phân trang
+        print("--------------------------------")
+        print("not sorted_post_ids")
+        print("--------------------------------")
         empty_data = {
             'message': 'Data retrieved successfully',
             'status': status.HTTP_200_OK,
