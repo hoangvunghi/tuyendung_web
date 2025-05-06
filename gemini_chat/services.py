@@ -55,6 +55,109 @@ class GeminiChatService:
         ]
         
         self.model_name = "gemini-2.0-flash"
+        
+        # Định nghĩa danh sách tỉnh thành
+        self.cities = [
+            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
+            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
+            "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
+            "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
+            "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
+            "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
+            "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
+            "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
+            "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
+            "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
+            "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
+            "hậu giang", "thừa thiên huế"
+        ]
+        
+        # Định nghĩa biến thể tên tỉnh thành
+        self.cities_variants = {
+            # Hồ Chí Minh
+            "hcm": "hồ chí minh",
+            "tphcm": "hồ chí minh",
+            "tp hcm": "hồ chí minh",
+            "sài gòn": "hồ chí minh",
+            "sg": "hồ chí minh",
+            "thành phố hồ chí minh": "hồ chí minh",
+            # Hà Nội
+            "hn": "hà nội",
+            "hà nội": "hà nội",
+            "ha noi": "hà nội",
+            "thủ đô": "hà nội",
+            # Đà Nẵng
+            "đà nẵng": "đà nẵng",
+            "da nang": "đà nẵng",
+            "đn": "đà nẵng",
+            # Hải Phòng
+            "hải phòng": "hải phòng",
+            "hai phong": "hải phòng",
+            "hp": "hải phòng",
+            # Cần Thơ
+            "cần thơ": "cần thơ",
+            "can tho": "cần thơ",
+            "ct": "cần thơ",
+            # Vũng Tàu
+            "vũng tàu": "vũng tàu",
+            "vung tau": "vũng tàu",
+            "bà rịa vũng tàu": "vũng tàu",
+            # Các tỉnh thành khác
+            "bình dương": "bình dương",
+            "đồng nai": "đồng nai",
+            "long an": "long an",
+            "quảng ninh": "quảng ninh",
+            "huế": "huế",
+            "thừa thiên huế": "huế",
+            "nha trang": "nha trang",
+            "khánh hòa": "khánh hòa",
+            "đà lạt": "đà lạt",
+            "lâm đồng": "lâm đồng",
+            "hải dương": "hải dương",
+            "hưng yên": "hưng yên",
+            "bắc ninh": "bắc ninh",
+            "vĩnh phúc": "vĩnh phúc",
+            "thái nguyên": "thái nguyên",
+            "bắc giang": "bắc giang",
+            "lạng sơn": "lạng sơn",
+            "cao bằng": "cao bằng",
+            "hà giang": "hà giang",
+            "lào cai": "lào cai",
+            "yên bái": "yên bái",
+            "sơn la": "sơn la",
+            "hòa bình": "hòa bình",
+            "thanh hóa": "thanh hóa",
+            "nghệ an": "nghệ an",
+            "hà tĩnh": "hà tĩnh",
+            "quảng bình": "quảng bình",
+            "quảng trị": "quảng trị",
+            "quảng nam": "quảng nam",
+            "quảng ngãi": "quảng ngãi",
+            "bình định": "bình định",
+            "phú yên": "phú yên",
+            "ninh thuận": "ninh thuận",
+            "bình thuận": "bình thuận",
+            "kon tum": "kon tum",
+            "gia lai": "gia lai",
+            "đắk lắk": "đắk lắk",
+            "đắk nông": "đắk nông",
+            "bình phước": "bình phước",
+            "tây ninh": "tây ninh",
+            "tiền giang": "tiền giang",
+            "bến tre": "bến tre",
+            "trà vinh": "trà vinh",
+            "vĩnh long": "vĩnh long",
+            "đồng tháp": "đồng tháp",
+            "an giang": "an giang",
+            "kiên giang": "kiên giang",
+            "sóc trăng": "sóc trăng",
+            "bạc liêu": "bạc liêu",
+            "cà mau": "cà mau",
+            "hậu giang": "hậu giang",
+            "thành phố": "",
+            "tp": "",
+            "tỉnh": ""
+        }
     
     def get_system_prompt(self, user):
         """Tạo system prompt dựa trên vai trò của user"""
@@ -243,24 +346,89 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 try:
                     # Cải thiện tìm kiếm thành phố với các biến thể tên
                     city_variants = {
+                        # Hồ Chí Minh
                         "hcm": "hồ chí minh",
                         "tphcm": "hồ chí minh",
                         "tp hcm": "hồ chí minh",
                         "sài gòn": "hồ chí minh",
                         "sg": "hồ chí minh",
+                        "thành phố hồ chí minh": "hồ chí minh",
+                        # Hà Nội
                         "hn": "hà nội",
                         "hà nội": "hà nội",
                         "ha noi": "hà nội",
+                        "thủ đô": "hà nội",
+                        # Đà Nẵng
                         "đà nẵng": "đà nẵng",
                         "da nang": "đà nẵng",
                         "đn": "đà nẵng",
+                        # Hải Phòng
                         "hải phòng": "hải phòng",
                         "hai phong": "hải phòng",
                         "hp": "hải phòng",
+                        # Cần Thơ
                         "cần thơ": "cần thơ",
                         "can tho": "cần thơ",
+                        "ct": "cần thơ",
+                        # Vũng Tàu
                         "vũng tàu": "vũng tàu",
                         "vung tau": "vũng tàu",
+                        "bà rịa vũng tàu": "vũng tàu",
+                        # Các tỉnh thành khác
+                        "bình dương": "bình dương",
+                        "đồng nai": "đồng nai",
+                        "long an": "long an",
+                        "quảng ninh": "quảng ninh",
+                        "huế": "huế",
+                        "thừa thiên huế": "huế",
+                        "nha trang": "nha trang",
+                        "khánh hòa": "khánh hòa",
+                        "đà lạt": "đà lạt",
+                        "lâm đồng": "lâm đồng",
+                        "hải dương": "hải dương",
+                        "hưng yên": "hưng yên",
+                        "bắc ninh": "bắc ninh",
+                        "vĩnh phúc": "vĩnh phúc",
+                        "thái nguyên": "thái nguyên",
+                        "bắc giang": "bắc giang",
+                        "lạng sơn": "lạng sơn",
+                        "cao bằng": "cao bằng",
+                        "hà giang": "hà giang",
+                        "lào cai": "lào cai",
+                        "yên bái": "yên bái",
+                        "sơn la": "sơn la",
+                        "hòa bình": "hòa bình",
+                        "thanh hóa": "thanh hóa",
+                        "nghệ an": "nghệ an",
+                        "hà tĩnh": "hà tĩnh",
+                        "quảng bình": "quảng bình",
+                        "quảng trị": "quảng trị",
+                        "quảng nam": "quảng nam",
+                        "quảng ngãi": "quảng ngãi",
+                        "bình định": "bình định",
+                        "phú yên": "phú yên",
+                        "ninh thuận": "ninh thuận",
+                        "bình thuận": "bình thuận",
+                        "kon tum": "kon tum",
+                        "gia lai": "gia lai",
+                        "đắk lắk": "đắk lắk",
+                        "đắk nông": "đắk nông",
+                        "bình phước": "bình phước",
+                        "tây ninh": "tây ninh",
+                        "tiền giang": "tiền giang",
+                        "bến tre": "bến tre",
+                        "trà vinh": "trà vinh",
+                        "vĩnh long": "vĩnh long",
+                        "đồng tháp": "đồng tháp",
+                        "an giang": "an giang",
+                        "kiên giang": "kiên giang",
+                        "sóc trăng": "sóc trăng",
+                        "bạc liêu": "bạc liêu",
+                        "cà mau": "cà mau",
+                        "hậu giang": "hậu giang",
+                        "thành phố": "",
+                        "tp": "",
+                        "tỉnh": ""
                     }
                     
                     # Chuẩn hóa thành phố (chuẩn hóa chữ thường, xóa khoảng trắng thừa)
@@ -810,6 +978,9 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 content=message_content
             )
             
+            # Chuyển đổi message_content sang chữ thường để xử lý tìm kiếm dễ dàng hơn
+            message_lower = message_content.lower()
+            
             # Lấy toàn bộ nội dung trò chuyện trước đó để phân tích ngữ cảnh đầy đủ
             try:
                 previous_messages = GeminiChatMessage.objects.filter(
@@ -832,17 +1003,54 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Ví dụ: "các công việc tại thành phố hồ chí minh"
             city_job_special_patterns = [
                 r"(các |những |)(việc|việc làm|công việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
-                r"(các |những |)(công việc|việc làm|việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*"
+                r"(các |những |)(công việc|việc làm|việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
+                r"(các |những |)(công việc|việc làm|việc) (gì |nào |)(tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
+                r"(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)(việc|việc làm|công việc) (gì|nào)"
             ]
             
             direct_city_search = False
             for pattern in city_job_special_patterns:
-                match = re.search(pattern, message_content.lower())
+                match = re.search(pattern, message_lower)
                 if match:
-                    city_name = match.group(5) if len(match.groups()) >= 5 else None
+                    city_name = None
+                    # Xác định index của nhóm chứa tên thành phố dựa vào pattern
+                    if "(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)" in pattern:
+                        city_name = match.group(3) if len(match.groups()) >= 3 else None
+                    else:
+                        city_name = match.group(5) if len(match.groups()) >= 5 else None
+                        # Nếu không tìm thấy ở nhóm 5, thử với nhóm 4
+                        if not city_name and len(match.groups()) >= 4:
+                            city_name = match.group(4)
+                    
                     if city_name and len(city_name.strip()) > 0:
                         direct_city_search = True
-                        # Tiếp tục tìm kiếm thông thường
+                        city_name = city_name.strip().lower()
+                        
+                        # Chuẩn hóa tên thành phố
+                        normalized_city = None
+                        
+                        # Kiểm tra trong danh sách biến thể
+                        for city_variant, city_norm in self.cities_variants.items():
+                            if city_variant in city_name:
+                                normalized_city = city_norm if city_norm else city_name
+                                break
+                                
+                        # Nếu không tìm thấy, kiểm tra trong danh sách thành phố chính
+                        if not normalized_city:
+                            for known_city in self.cities:
+                                if known_city in city_name:
+                                    normalized_city = known_city
+                                    break
+                        
+                        # Nếu tìm thấy thành phố hợp lệ, thực hiện tìm kiếm
+                        if normalized_city:
+                            return self.search_job_posts(
+                                query="",
+                                city=normalized_city,
+                                experience=None,
+                                position_id=None,
+                                limit=8
+                            )
             
             # Thử truy vấn cơ sở dữ liệu với ngữ cảnh đầy đủ
             database_data = None
@@ -877,13 +1085,41 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Xử lý đặc biệt cho tìm kiếm theo thành phố không có kết quả
             if direct_city_search and not database_data:
                 for pattern in city_job_special_patterns:
-                    match = re.search(pattern, message_content.lower())
+                    match = re.search(pattern, message_lower)
                     if match:
-                        city_name = match.group(5) if len(match.groups()) >= 5 else None
+                        city_name = None
+                        # Xác định index của nhóm chứa tên thành phố dựa vào pattern
+                        if "(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)" in pattern:
+                            city_name = match.group(3) if len(match.groups()) >= 3 else None
+                        else:
+                            city_name = match.group(5) if len(match.groups()) >= 5 else None
+                            # Nếu không tìm thấy ở nhóm 5, thử với nhóm 4
+                            if not city_name and len(match.groups()) >= 4:
+                                city_name = match.group(4)
+                        
                         if city_name and len(city_name.strip()) > 0:
                             city_name = city_name.strip().lower()
                             self.logger.info(f"Xử lý đặc biệt cho truy vấn thành phố: {city_name}")
-                            response_content = f"Tôi rất tiếc, hiện tại cơ sở dữ liệu của JobHub chưa có thông tin về công việc tại {city_name.title()}. Vui lòng thử lại sau hoặc tìm kiếm theo từ khóa khác. Bạn cũng có thể tìm kiếm việc làm theo ngành nghề, mức lương mong muốn hoặc kinh nghiệm. Tôi luôn sẵn sàng hỗ trợ bạn!"
+                            
+                            # Chuẩn hóa tên thành phố
+                            normalized_city = None
+                            for city_variant, city_norm in self.cities_variants.items():
+                                if city_variant in city_name and city_norm:
+                                    normalized_city = city_norm
+                                    break
+                            
+                            if not normalized_city:
+                                for known_city in self.cities:
+                                    if known_city in city_name:
+                                        normalized_city = known_city
+                                        break
+                            
+                            if normalized_city:
+                                city_display = normalized_city.title()
+                            else:
+                                city_display = city_name.title()
+                                
+                            response_content = f"Tôi rất tiếc, hiện tại cơ sở dữ liệu của JobHub chưa có thông tin về công việc tại {city_display}. Vui lòng thử lại sau hoặc tìm kiếm theo từ khóa khác. Bạn cũng có thể tìm kiếm việc làm theo ngành nghề, mức lương mong muốn hoặc kinh nghiệm. Tôi luôn sẵn sàng hỗ trợ bạn!"
             
             # Nếu không có dữ liệu database hoặc xử lý bị lỗi, sử dụng Gemini API
             if not database_data and not response_content:
@@ -1102,7 +1338,16 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
             cities = [
                 "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
                 "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
-                "thành phố", "tỉnh", "tp", "hcm", "hn"
+                "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
+                "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
+                "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
+                "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
+                "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
+                "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
+                "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
+                "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
+                "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
+                "hậu giang", "thừa thiên huế"
             ]
             
             # Phát hiện từ khóa về công nghệ/lĩnh vực
@@ -1256,7 +1501,7 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
         return formatted_history
 
     def _process_database_queries(self, message_content, user):
-        """Phân tích tin nhắn để xác định nếu cần truy vấn database và trả về kết quả phù hợp"""
+        """Xử lý truy vấn cơ sở dữ liệu từ tin nhắn người dùng"""
         try:
             message_lower = message_content.lower()
             
@@ -1367,8 +1612,7 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                     
                     # Xác định thành phố
                     city = None
-                    cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
-                    for c in cities:
+                    for c in self.cities:
                         if c in message_lower:
                             city = c.title()
                             break
@@ -1405,10 +1649,6 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
             city_job_patterns = [
                 r"việc làm (ở|tại) (.*?)(có|không| |$)",
                 r"công việc (ở|tại) (.*?)(có|không| |$)",
-                r"tuyển dụng (ở|tại) (.*?)(có|không| |$)",
-                r"(.*?) đang tuyển (những |các |)gì",
-                r"tìm việc (ở|tại) (.*?)",
-                r"hãy tìm việc (làm |)(ở|tại) (.*?)"
             ]
             
             for pattern in city_job_patterns:
@@ -1429,7 +1669,20 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                             continue
                             
                         # Kiểm tra xem đây có phải là tên thành phố không
-                        cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
+                        cities = [
+                            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
+                            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
+                            "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
+                            "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
+                            "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
+                            "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
+                            "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
+                            "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
+                            "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
+                            "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
+                            "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
+                            "hậu giang", "thừa thiên huế"
+                        ]
                         
                         # Chuẩn hóa thành phố (xóa khoảng trắng thừa, chữ thường)
                         city = city.strip().lower()
@@ -1560,33 +1813,10 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 
             # PHẦN 10: TÌM KIẾM DỰA TRÊN ĐỊA ĐIỂM 
             # Kiểm tra nếu tin nhắn chỉ chứa tên thành phố hoặc địa điểm
-            cities_variants = {
-                "hcm": "hồ chí minh",
-                "tphcm": "hồ chí minh",
-                "tp hcm": "hồ chí minh",
-                "sài gòn": "hồ chí minh",
-                "sg": "hồ chí minh",
-                "hn": "hà nội",
-                "hà nội": "hà nội",
-                "ha noi": "hà nội",
-                "đà nẵng": "đà nẵng",
-                "da nang": "đà nẵng",
-                "đn": "đà nẵng",
-                "hải phòng": "hải phòng",
-                "hai phong": "hải phòng",
-                "hp": "hải phòng",
-                "cần thơ": "cần thơ",
-                "can tho": "cần thơ",
-                "vũng tàu": "vũng tàu",
-                "vung tau": "vũng tàu",
-                "thành phố": "",
-                "tp": "",
-                "tỉnh": ""
-            }
             
             # Kiểm tra thành phố trong trường hợp tin nhắn chỉ chứa tên thành phố
             found_city = None
-            for city_name, normalized_name in cities_variants.items():
+            for city_name, normalized_name in self.cities_variants.items():
                 if city_name in message_lower and len(message_lower.split()) <= 5:
                     # Nếu tin nhắn chỉ chứa tên thành phố, tìm việc làm ở thành phố đó
                     if normalized_name:
@@ -1620,6 +1850,81 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                     position_id=None,
                     limit=8
                 )
+            
+            # PHẦN 12: TÌM KIẾM KẾT HỢP VỊ TRÍ VIỆC LÀM VÀ TỈNH THÀNH
+            # Nhận dạng mẫu câu kết hợp vị trí việc làm và tỉnh thành
+            position_city_patterns = [
+                r"(việc làm|công việc|tuyển dụng) (.*?) (ở|tại) (.*?)( không| có|$)",
+                r"tìm (việc|việc làm|công việc) (.*?) (ở|tại) (.*?)($| )",
+                r"(.*?) (ở|tại) (.*?)($| )",
+                r"(.*?) (tuyển |cần |tìm |)(.*?) (ở|tại) (.*?)($| )",
+            ]
+            
+            for pattern in position_city_patterns:
+                try:
+                    match = re.search(pattern, message_lower)
+                    if match:
+                        # Phân tích các nhóm từ regex match
+                        groups = match.groups()
+                        position = None
+                        city = None
+                        
+                        # Xác định vị trí và thành phố dựa trên mẫu câu
+                        if len(groups) >= 4 and "tìm" in pattern:
+                            position = groups[1].strip()
+                            city = groups[3].strip()
+                        elif "(.*?) (ở|tại) (.*?)($| )" == pattern:
+                            position = groups[0].strip()
+                            city = groups[2].strip()
+                        elif len(groups) >= 5 and ("tuyển" in pattern or "cần" in pattern or "tìm" in pattern):
+                            position = groups[2].strip()
+                            city = groups[4].strip()
+                        elif len(groups) >= 4:
+                            position = groups[1].strip()
+                            city = groups[3].strip()
+                        
+                        # Kiểm tra tính hợp lệ của thành phố
+                        if city:
+                            city_valid = False
+                            # Kiểm tra trong danh sách biến thể tên thành phố
+                            for city_name, normalized_name in self.cities_variants.items():
+                                if city_name in city:
+                                    city = normalized_name if normalized_name else city
+                                    city_valid = True
+                                    break
+                            
+                            # Kiểm tra trong danh sách các thành phố đã biết
+                            if not city_valid:
+                                for known_city in self.cities:
+                                    if known_city in city:
+                                        city = known_city
+                                        city_valid = True
+                                        break
+                            
+                            # Nếu không tìm thấy thành phố hợp lệ, bỏ qua
+                            if not city_valid:
+                                continue
+                        
+                        # Nếu vị trí quá ngắn hoặc là từ khóa phổ biến, bỏ qua
+                        if position and len(position) <= 2:
+                            continue
+                            
+                        # Lọc các từ không liên quan đến vị trí
+                        ignore_words = ["công việc", "việc làm", "việc", "tuyển dụng", "tìm", "kiếm", "muốn", "cần"]
+                        if position and position in ignore_words:
+                            position = None
+                        
+                        # Thực hiện tìm kiếm với thông tin đã phân tích
+                        return self.search_job_posts(
+                            query=position,
+                            city=city,
+                            experience=None,
+                            position_id=None,
+                            limit=8
+                        )
+                except Exception as pattern_err:
+                    self.logger.error(f"Lỗi khi phân tích mẫu câu vị trí + thành phố: {str(pattern_err)}")
+                    continue
             
             # Không tìm thấy truy vấn database phù hợp
             return None
