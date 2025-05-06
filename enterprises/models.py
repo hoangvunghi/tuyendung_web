@@ -126,6 +126,15 @@ class PostEntity(models.Model):
             models.Index(fields=['position', 'field']),
             models.Index(fields=['enterprise', 'is_active']),
             models.Index(fields=['type_working', 'experience', 'city']),
+            # Các index mới cho tối ưu get_post_detail
+            models.Index(fields=['field', 'is_active', 'deadline'], name='post_field_active_idx'),
+            models.Index(fields=['position', 'is_active', 'deadline'], name='post_position_active_idx'),
+            models.Index(fields=['city', 'is_active', 'deadline'], name='post_city_active_idx'),
+            models.Index(fields=['enterprise', 'is_active', 'deadline'], name='post_enterprise_active_idx'),
+            models.Index(fields=['field', 'position'], name='post_field_position_idx'),
+            models.Index(fields=['field', 'city'], name='post_field_city_idx'),
+            models.Index(fields=['position', 'city'], name='post_position_city_idx'),
+            models.Index(fields=['is_active', 'deadline', 'created_at'], name='post_active_date_created_idx'),
         ]
 
 class CriteriaEntity(models.Model):

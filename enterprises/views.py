@@ -2473,95 +2473,119 @@ def delete_post(request, pk):
 def get_post_detail(request, pk):
     """Chi tiết bài đăng"""
     try:
-        from django.db.models import Count, Q
+        from django.db.models import Count, Q, Prefetch, Case, When, Value, IntegerField
         from profiles.models import Cv
+        from django.core.cache import cache
+        import time
         
-        post = PostEntity.objects.select_related('enterprise').get(pk=pk)
+        # Đo thời gian thực hiện
+        start_time = time.time()
+        
+        # Tạo cache key cụ thể cho từng người dùng vì mỗi người dùng sẽ thấy dữ liệu khác nhau
+        user_id = request.user.id if request.user.is_authenticated else 'anonymous'
+        cache_key = f'post_detail_{pk}_user_{user_id}'
+        
+        # Thử lấy từ cache trước
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            print(f"Cache hit for post {pk}, user {user_id}")
+            print(f"Execution time: {time.time() - start_time:.4f}s (from cache)")
+            return Response(cached_data)
+        
+        # Nếu không có trong cache, thực hiện truy vấn với tối ưu select_related
+        post = PostEntity.objects.select_related(
+            'enterprise', 
+            'enterprise__user',
+            'position',
+            'field'
+        ).get(pk=pk)
+        
         serializer = PostDetailSerializer(post)
         data = serializer.data
         
-        # Thêm thông tin ảnh của doanh nghiệp
+        # Thêm thông tin bổ sung về doanh nghiệp
         data['enterprise_logo'] = post.enterprise.logo_url
         data['user_id'] = post.enterprise.user.id
         data['is_enterprise_premium'] = post.enterprise.user.is_premium
         data['enterprise_address'] = post.enterprise.address
-        # Tính tổng số ứng viên đã ứng tuyển
-        total_applicants = Cv.objects.filter(post=post).count()
         
+        # Tối ưu truy vấn đếm ứng viên bằng cách tạo index và sử dụng pk thay vì object
+        total_applicants = Cv.objects.filter(post_id=pk).count()
+        
+        # Xử lý quyền xem thông tin ứng viên - sử dụng IDs để so sánh thay vì objects
         if request.user.is_authenticated:
-            # Nếu là chủ doanh nghiệp hoặc có quyền xem số lượng ứng viên
-            if (post.enterprise.user == request.user) or (request.user.is_premium):
+            is_owner = post.enterprise.user_id == request.user.id
+            if is_owner or request.user.is_premium:
                 data['total_applicants'] = total_applicants
                 data['can_view_applicants'] = True
             else:
                 data['can_view_applicants'] = False
-                # Nếu là người dùng không có quyền, ẩn số lượng ứng viên
-                if total_applicants > 0:
-                    data['has_applicants'] = True
-                else:
-                    data['has_applicants'] = False
+                data['has_applicants'] = total_applicants > 0
+            
+            # Kiểm tra quyền chat
+            data['can_chat_with_employer'] = not request.user.is_employer() and request.user.can_chat_with_employers()
+            
+            # Lấy ngày ứng tuyển gần nhất - chỉ truy vấn các trường cần thiết
+            latest_application = Cv.objects.filter(
+                post_id=pk, 
+                user_id=request.user.id
+            ).order_by('-created_at').only('created_at').first()
+            
+            data['latest_application_date'] = latest_application.created_at.strftime('%d/%m/%Y') if latest_application else None
         else:
             # Người dùng chưa đăng nhập
             data['can_view_applicants'] = False
-            if total_applicants > 0:
-                data['has_applicants'] = True
-            else:
-                data['has_applicants'] = False
-                
-        # Kiểm tra quyền chat
-        if request.user.is_authenticated and not request.user.is_employer():
-            data['can_chat_with_employer'] = request.user.can_chat_with_employers()
-        else:
+            data['has_applicants'] = total_applicants > 0
             data['can_chat_with_employer'] = False
-        # lấy ngày ứng tuyển gần nhất của user đang đăng nhập
-        if request.user.is_authenticated:
-            latest_application = Cv.objects.filter(post=post, user=request.user).order_by('-created_at').first()
-            if latest_application:
-                data['latest_application_date'] = latest_application.created_at.strftime('%d/%m/%Y')
-            else:
-                data['latest_application_date'] = None
-        else:
             data['latest_application_date'] = None
             
-        # Lấy danh sách bài đăng liên quan
-        # Ưu tiên theo thứ tự: cùng lĩnh vực, cùng vị trí, cùng thành phố, cùng doanh nghiệp
+        # Lấy danh sách bài đăng liên quan với một truy vấn hiệu quả
+        # Thêm annotation để sắp xếp theo độ liên quan và sử dụng ID để lọc
         related_posts_query = PostEntity.objects.filter(
             is_active=True, 
             deadline__gt=timezone.now()
-        ).exclude(id=post.id)
+        ).exclude(id=post.id).select_related(
+            'enterprise', 
+            'field',
+            'position'
+        )
         
-        # Query các bài đăng có cùng lĩnh vực
-        field_related = related_posts_query.filter(field=post.field)
+        # Tính điểm liên quan cho mỗi bài đăng sử dụng Case/When để tránh nhiều truy vấn
+        related_posts_query = related_posts_query.annotate(
+            relevance_score=Case(
+                When(field_id=post.field_id, then=Value(4)),  # Ưu tiên cùng lĩnh vực
+                When(position_id=post.position_id, then=Value(3)),  # Sau đó đến cùng vị trí
+                When(city=post.city, then=Value(2)),  # Tiếp đến là cùng thành phố
+                When(enterprise_id=post.enterprise_id, then=Value(1)),  # Cuối cùng là cùng doanh nghiệp
+                default=Value(0),
+                output_field=IntegerField()
+            )
+        ).filter(relevance_score__gt=0).order_by('-relevance_score', '-created_at')[:10]
         
-        # Query các bài đăng có cùng vị trí
-        position_related = related_posts_query.filter(position=post.position)
+        # Thực hiện truy vấn và lấy kết quả
+        related_posts = list(related_posts_query)
         
-        # Query các bài đăng có cùng thành phố
-        city_related = related_posts_query.filter(city=post.city)
-        
-        # Query các bài đăng có cùng doanh nghiệp
-        enterprise_related = related_posts_query.filter(enterprise=post.enterprise)
-        
-        # Tạo danh sách các bài đăng liên quan, ưu tiên theo thứ tự đã định
-        related_posts = list(field_related[:4]) + list(position_related.exclude(id__in=[p.id for p in field_related])[:3]) + list(city_related.exclude(
-            id__in=[p.id for p in field_related] + [p.id for p in position_related]
-        )[:2]) + list(enterprise_related.exclude(
-            id__in=[p.id for p in field_related] + [p.id for p in position_related] + [p.id for p in city_related]
-        )[:2])
-        
-        # Giới hạn tối đa 7 bài đăng liên quan
-        related_posts = related_posts[:10]
-        
-        # Serialize các bài đăng liên quan
+        # Serialize kết quả
         related_posts_serializer = PostListSerializer(related_posts, many=True, context={'request': request})
         data['related_posts'] = related_posts_serializer.data
-        data['field'] = post.field.name;
         
-        return Response({
+        # Thông tin field
+        data['field'] = post.field.name if post.field else None
+        
+        # Tạo response để cache và trả về
+        response_data = {
             'message': 'Post details retrieved successfully',
             'status': status.HTTP_200_OK,
             'data': data
-        })
+        }
+        
+        # Cache kết quả trong 5 phút
+        cache.set(cache_key, response_data, 60 * 5)  
+        
+        # In thời gian thực hiện để theo dõi hiệu suất
+        print(f"Execution time: {time.time() - start_time:.4f}s (from database)")
+        
+        return Response(response_data)
     except PostEntity.DoesNotExist:
         return Response({
             'message': 'Bài đăng không tồn tại',

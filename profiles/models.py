@@ -54,6 +54,13 @@ class Cv(models.Model):
     class Meta:
         verbose_name = 'CV'
         verbose_name_plural = 'CV'
+        indexes = [
+            models.Index(fields=['post', 'user'], name='cv_post_user_idx'),
+            models.Index(fields=['post', 'status'], name='cv_post_status_idx'),
+            models.Index(fields=['user', 'created_at'], name='cv_user_time_idx'),
+            models.Index(fields=['post'], name='cv_post_idx'),
+            models.Index(fields=['created_at'], name='cv_time_idx'),
+        ]
 
 # profiles/models.py
 class CvView(models.Model):
