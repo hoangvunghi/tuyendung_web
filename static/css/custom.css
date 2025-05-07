@@ -1,38 +1,54 @@
 /* Custom styles for admin interface */
 :root {
-    --primary-color: rgb(168, 85, 247);
-    --primary-hover: rgb(147, 51, 234);
+    --thang-long-scarlet: #F32409;
+    --thang-long-indigo: #000066;
+    --thang-long-mid-blue: #0623A4;
+    --thang-long-light-blue: #0044FF;
+    --thang-long-cultured-white: #F5F5F7;
+    
+    --primary-color: var(--thang-long-scarlet);
+    --primary-hover: #D61F08;
+    --secondary-color: var(--thang-long-indigo);
+    --secondary-hover: #000044;
+    --accent-color: var(--thang-long-mid-blue);
+    --accent-hover: #051B8C;
+    --light-color: var(--thang-long-light-blue);
+    --light-hover: #0033CC;
+    --background-color: var(--thang-long-cultured-white);
 }
 
 /* Custom font for Vietnamese */
 body {
     font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+    background-color: var(--background-color);
 }
 
 /* Sidebar customization */
 .unfold-sidebar {
-    background-color: #fff;
+    background-color: var(--secondary-color);
     border-right: 1px solid rgba(0,0,0,0.1);
 }
 
 .unfold-nav-item {
     border-radius: 8px;
     margin: 2px 8px;
+    color: var(--background-color);
 }
 
 .unfold-nav-item:hover {
-    background-color: rgba(168, 85, 247, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .unfold-nav-item--active {
-    background-color: rgba(168, 85, 247, 0.2);
-    color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--background-color);
 }
 
 /* Header customization */
 .unfold-header {
-    background-color: #fff;
+    background-color: var(--secondary-color);
     border-bottom: 1px solid rgba(0,0,0,0.1);
+    color: var(--background-color);
 }
 
 /* Card customization */
@@ -40,6 +56,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
+    background-color: var(--background-color);
 }
 
 .unfold-card:hover {
@@ -50,6 +67,7 @@ body {
 .unfold-btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
+    color: var(--background-color);
 }
 
 .unfold-btn-primary:hover {
@@ -57,14 +75,26 @@ body {
     border-color: var(--primary-hover);
 }
 
+.unfold-btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: var(--background-color);
+}
+
+.unfold-btn-secondary:hover {
+    background-color: var(--secondary-hover);
+    border-color: var(--secondary-hover);
+}
+
 /* Table customization */
 .unfold-table th {
     font-weight: 600;
-    color: #374151;
+    color: var(--secondary-color);
+    background-color: var(--background-color);
 }
 
 .unfold-table tr:hover {
-    background-color: rgba(168, 85, 247, 0.05);
+    background-color: rgba(6, 35, 164, 0.05);
 }
 
 /* Badge customization */
@@ -75,34 +105,35 @@ body {
 }
 
 .unfold-badge-success {
-    background-color: #10B981;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--background-color);
 }
 
 .unfold-badge-warning {
-    background-color: #F59E0B;
-    color: white;
+    background-color: var(--accent-color);
+    color: var(--background-color);
 }
 
 .unfold-badge-danger {
-    background-color: #EF4444;
-    color: white;
+    background-color: var(--secondary-color);
+    color: var(--background-color);
 }
 
 /* Form customization */
 .unfold-input {
     border-radius: 8px;
-    border: 1px solid #D1D5DB;
+    border: 1px solid var(--accent-color);
+    background-color: var(--background-color);
 }
 
 .unfold-input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 2px rgba(243, 36, 9, 0.2);
 }
 
 /* Dashboard stats */
 .unfold-stat-card {
-    background: white;
+    background: var(--background-color);
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -115,14 +146,31 @@ body {
 }
 
 .unfold-stat-label {
-    color: #6B7280;
+    color: var(--secondary-color);
     font-size: 0.875rem;
 }
 
 /* Chart customization */
 .unfold-chart {
-    background: white;
+    background: var(--background-color);
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+}
+
+.gradient-secondary {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-hover) 100%);
+}
+
+.gradient-accent {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+}
+
+.gradient-light {
+    background: linear-gradient(135deg, var(--light-color) 0%, var(--light-hover) 100%);
 } 

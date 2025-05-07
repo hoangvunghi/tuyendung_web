@@ -9,18 +9,22 @@
     :root {
       --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --primary-color: rgb(168, 85, 247);
-      --info-color: rgb(59, 130, 246);
-      --success-color: rgb(34, 197, 94);
-      --warning-color: rgb(251, 191, 36); 
-      --error-color: rgb(239, 68, 68);
-      --indigo-color: rgb(99, 102, 241);
-      --orange-color: rgb(234, 88, 12);
-      --purple-color: rgb(139, 92, 246);
+      
+      --thang-long-scarlet: #F32409;
+      --thang-long-indigo: #000066;
+      --thang-long-mid-blue: #0623A4;
+      --thang-long-light-blue: #0044FF;
+      --thang-long-cultured-white: #F5F5F7;
+      
+      --primary-color: var(--thang-long-scarlet);
+      --secondary-color: var(--thang-long-indigo);
+      --accent-color: var(--thang-long-mid-blue);
+      --light-color: var(--thang-long-light-blue);
+      --background-color: var(--thang-long-cultured-white);
     }
     
     .dashboard-wrapper {
-      background-color: rgba(249, 250, 251, 0.5);
+      background-color: var(--background-color);
       border-radius: 12px;
       padding: 1.5rem;
       margin: 1rem 0;
@@ -34,7 +38,7 @@
     
     .dashboard-header-icon {
       background-color: var(--primary-color);
-      color: white;
+      color: var(--background-color);
       border-radius: 50%;
       width: 46px;
       height: 46px;
@@ -49,7 +53,7 @@
       margin: 0;
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--color-unfold-heading);
+      color: var(--secondary-color);
     }
     
     .dashboard-stats {
@@ -60,18 +64,11 @@
     }
     
     .stat-card {
-      background-color: white;
+      background: var(--background-color);
       border-radius: 12px;
       padding: 1.5rem;
       box-shadow: var(--card-shadow);
       transition: all 0.3s ease;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow: hidden;
-      border: 1px solid rgba(229, 231, 235, 0.5);
     }
     
     .stat-card:hover {
@@ -79,48 +76,72 @@
       box-shadow: var(--hover-shadow);
     }
     
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 6px;
-      height: 100%;
-      background-color: currentColor;
+    .stat-card.primary {
+      border-left: 4px solid var(--primary-color);
     }
     
-    .stat-icon {
-      position: relative;
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      display: inline-block;
+    .stat-card.secondary {
+      border-left: 4px solid var(--secondary-color);
     }
     
-    .stat-icon::after {
-      content: '';
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: currentColor;
-      opacity: 0.2;
-      top: 0;
-      left: 0;
-      z-index: -1;
+    .stat-card.accent {
+      border-left: 4px solid var(--accent-color);
+    }
+    
+    .stat-card.light {
+      border-left: 4px solid var(--light-color);
     }
     
     .stat-value {
-      font-size: 2.25rem;
-      font-weight: 700;
-      margin: 0.5rem 0;
-      line-height: 1;
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card.primary .stat-value {
+      color: var(--primary-color);
+    }
+    
+    .stat-card.secondary .stat-value {
+      color: var(--secondary-color);
+    }
+    
+    .stat-card.accent .stat-value {
+      color: var(--accent-color);
+    }
+    
+    .stat-card.light .stat-value {
+      color: var(--light-color);
     }
     
     .stat-label {
-      font-size: 1rem;
-      color: #64748b;
-      margin-top: 0.5rem;
-      font-weight: 500;
+      color: var(--secondary-color);
+      font-size: 0.875rem;
+      opacity: 0.8;
+    }
+    
+    .stat-icon {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      opacity: 0.2;
+    }
+    
+    .stat-card.primary .stat-icon {
+      color: var(--primary-color);
+    }
+    
+    .stat-card.secondary .stat-icon {
+      color: var(--secondary-color);
+    }
+    
+    .stat-card.accent .stat-icon {
+      color: var(--accent-color);
+    }
+    
+    .stat-card.light .stat-icon {
+      color: var(--light-color);
     }
     
     .dashboard-charts {
