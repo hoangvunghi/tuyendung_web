@@ -622,6 +622,15 @@ UNFOLD = {
                         } if "enterprises" in apps.app_configs else None,
                     },
                     {
+                        "title": _("Doanh nghiệp chưa duyệt"),
+                        "icon": "business",
+                        "link": lambda request=None: reverse_lazy("admin:enterprises_enterpriseentity_changelist") + "?is_active=0",
+                        "badge": lambda request: {
+                            "value": apps.get_model("enterprises", "EnterpriseEntity").objects.filter(is_active=False).count(),
+                            "attrs": {"class": "bg-red-500 text-white"},
+                        } if "enterprises" in apps.app_configs else None,
+                    },
+                    {
                         "title": _("Lĩnh vực"),
                         "icon": "category",
                         "link": get_admin_url("admin:enterprises_fieldentity_changelist"),

@@ -15,10 +15,11 @@ from django.db import models
 from unfold.admin import ModelAdmin
 from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
 from base.admin import BaseAdminClass
+from django.utils.html import format_html
 
 @admin.register(EnterpriseEntity)
 class EnterpriseAdmin(BaseAdminClass):
-    list_display = ('company_name', 'address', 'phone_number', 'email_company', 'is_active')
+    list_display = ('company_name', 'address', 'phone_number', 'email_company', 'is_active', 'show_certificate')
     list_filter = ('is_active',)
     search_fields = ('company_name', 'address', 'phone_number', 'email_company')
     list_per_page = 10
@@ -49,6 +50,17 @@ class EnterpriseAdmin(BaseAdminClass):
         return obj.phone_number
     phone_number.short_description = 'Số điện thoại'
     
+    def show_certificate(self, obj):
+        if obj.business_certificate_url:
+            if obj.business_certificate_url.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                return format_html(
+                    '<a href="{0}" target="_blank"><img src="{0}" style="max-width:120px;max-height:80px;" /></a>',
+                    obj.business_certificate_url
+                )
+            else:
+                return format_html('<a href="{0}" target="_blank">Xem file</a>', obj.business_certificate_url)
+        return "Chưa có"
+    show_certificate.short_description = "Chứng nhận KD"
 
 @admin.register(FieldEntity)
 class FieldAdmin(BaseAdminClass):
