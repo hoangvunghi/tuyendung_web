@@ -89,6 +89,9 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
 
 # Social Auth Pipeline
 SOCIAL_AUTH_PIPELINE = (
+    # Lưu email vào session để sử dụng sau này
+    'accounts.pipeline.save_email_to_session',
+    
     # Lấy thông tin từ social provider
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
@@ -119,7 +122,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 # Social Auth settings
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'
-SOCIAL_AUTH_LOGIN_ERROR_URL = '/api/auth/login-error/'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/api/auth/error/'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True

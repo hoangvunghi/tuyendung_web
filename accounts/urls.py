@@ -3,7 +3,7 @@ from .views import (
     login, register, token_refresh, forgot_password_view, 
     reset_password_view, social_auth_token,
     complete_google_profile, set_role_for_user, get_user_info,
-    delete_premium
+    delete_premium, social_auth_error_view
 )
 from . import views
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path('social-token/', social_auth_token, name='social-auth-token'),
     path('complete-google-profile/', complete_google_profile, name='complete-google-profile'),
     path('auth/social/complete', views.social_auth_complete_redirect, name='social_auth_complete_redirect'),
+    path('auth/error/', social_auth_error_view, name='social_auth_error_view'),
     path('set-role/', set_role_for_user, name='set_user_role'),
     path('users/<int:user_id>/info/', get_user_info, name='get_user_info'),
     path('delete-premium/', delete_premium, name='delete_premium'),

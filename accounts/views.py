@@ -738,6 +738,47 @@ def google_oauth2_login_callback(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def social_auth_error_view(request):
+    """
+    View hiển thị thông báo lỗi và hướng dẫn người dùng khi xảy ra lỗi trong quá trình xác thực Social
+    """
+    error_type = request.GET.get('error_type', '')
+    error_msg = request.GET.get('error_msg', 'Unknown error')
+    redirect_url = f"{settings.FRONTEND_URL}/auth/error?error_type={error_type}&error_msg={error_msg}"
+    
+    logging.error(f"Social Auth Error: {error_type} - {error_msg}")
+    
+    # Nếu lỗi là AuthAlreadyAssociated, tìm cách xử lý
+    if error_type == 'AuthAlreadyAssociated':
+        try:
+            # Lấy email từ session
+            email = request.session.get('email')
+            
+            if email:
+                # Tìm user theo email
+                try:
+                    user = UserAccount.objects.get(email=email)
+                    logging.info(f"Found user for AuthAlreadyAssociated: {user.email}")
+                    
+                    # Tạo token cho user
+                    refresh = RefreshToken.for_user(user)
+                    refresh["is_active"] = user.is_active
+                    role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
+                    refresh["role"] = role
+                    
+                    # Redirect về frontend với token
+                    redirect_url = f"{settings.FRONTEND_URL}?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}&role={role}&email={user.email}"
+                    logging.info(f"Redirecting user to: {redirect_url}")
+                    return redirect(redirect_url)
+                except UserAccount.DoesNotExist:
+                    logging.error(f"No user found with email: {email}")
+        except Exception as e:
+            logging.error(f"Error handling AuthAlreadyAssociated: {str(e)}")
+    
+    return redirect(redirect_url)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def social_auth_token(request):
     """
     View để lấy JWT token sau khi đăng nhập thành công với social auth

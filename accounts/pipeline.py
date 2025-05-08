@@ -63,39 +63,61 @@ def social_auth_exception(backend, details, response, *args, **kwargs):
     """
     logger.info(f"Starting social_auth_exception handling")
     
-    # Kiểm tra social auth hiện tại
-    if kwargs.get('social') is not None:
-        social = kwargs.get('social')
-        if social.provider == backend.name:
-            logger.info(f"User already authenticated with this backend")
-            return {'user': social.user, 'is_new': False}
+    # Lấy thông tin ngoại lệ
+    if 'exception' not in kwargs:
+        return None
+        
+    exception = kwargs['exception']
+    logger.info(f"Exception type: {type(exception).__name__}")
     
-    # Kiểm tra nếu đã có ngoại lệ
-    if 'exception' in kwargs and isinstance(kwargs['exception'], AuthAlreadyAssociated):
-        exception = kwargs['exception']
+    # Xử lý trường hợp AuthAlreadyAssociated
+    if isinstance(exception, AuthAlreadyAssociated):
         email = details.get('email')
         logger.info(f"Handling AuthAlreadyAssociated for email {email}")
         
-        if not email:
-            return None
+        # Nếu trong ngoại lệ có thông tin về social auth 
+        if hasattr(exception, 'social') and exception.social:
+            social = exception.social
+            logger.info(f"Found social account: {social.provider} for user: {social.user.email}")
+            return {'user': social.user, 'is_new': False}
             
+        # Tìm social auth đang tồn tại với uid này
+        uid = kwargs.get('uid')
+        if uid:
+            try:
+                social = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                logger.info(f"Found existing social auth uid: {uid}, user: {social.user.email}")
+                return {'user': social.user, 'is_new': False}
+            except UserSocialAuth.DoesNotExist:
+                logger.info(f"No existing social auth found for uid: {uid}")
+                
         # Tìm user theo email
-        try:
-            user = User.objects.get(email=email)
-            logger.info(f"Found existing user with email {email} - allowing login")
-            
-            # Nếu tìm thấy người dùng, cho phép đăng nhập với tài khoản đó
-            return {
-                'user': user,
-                'is_new': False
-            }
-        except User.DoesNotExist:
-            logger.error(f"No user found with email {email} despite AuthAlreadyAssociated error")
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                logger.info(f"Found existing user with email {email} - allowing login")
+                
+                # Tìm social auth liên kết với user này
+                try:
+                    socials = UserSocialAuth.objects.filter(user=user)
+                    if socials.exists():
+                        social_info = [f"{s.provider}:{s.uid}" for s in socials]
+                        logger.info(f"User has social auths: {', '.join(social_info)}")
+                except Exception as e:
+                    logger.error(f"Error querying social auths: {str(e)}")
+                
+                # Trả về user đã tìm thấy
+                return {'user': user, 'is_new': False}
+            except User.DoesNotExist:
+                logger.error(f"No user found with email {email} despite AuthAlreadyAssociated error")
+                
+        # Log chi tiết về AuthAlreadyAssociated
+        logger.error(f"AuthAlreadyAssociated details: {vars(exception)}")
+        
+    # Log và re-raise ngoại lệ khác để debug
+    logger.error(f"Exception details: {str(exception)}")
     
-    # Xử lý các ngoại lệ khác
-    if 'exception' in kwargs:
-        logger.error(f"Unhandled social auth exception: {kwargs['exception']}")
-    
+    # Không re-raise exception để tiếp tục pipeline
     return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
@@ -366,3 +388,14 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
     except Exception as e:
         logger.error(f"Error in handle_auth_already_associated: {str(e)}", exc_info=True)
         return None
+
+def save_email_to_session(strategy, details, *args, **kwargs):
+    """
+    Lưu email từ social provider vào session để có thể sử dụng sau này
+    (đặc biệt là khi xử lý lỗi AuthAlreadyAssociated)
+    """
+    email = details.get('email')
+    if email and strategy and hasattr(strategy, 'session_set'):
+        logger.info(f"Saving email to session: {email}")
+        strategy.session_set('email', email)
+    return None
