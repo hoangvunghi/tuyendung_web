@@ -66,6 +66,7 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         try:
             existing_user = User.objects.get(email=email)
             logger.info(f"Found existing user by email: {email}")
+            
             # Kiểm tra xem user này đã liên kết với Google chưa
             if existing_user.social_auth.filter(provider=backend.name).exists():
                 logger.info(f"User {email} already associated with {backend.name}")
@@ -76,37 +77,57 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                     'social_user': social_auth
                 }
             else:
-                # Tạo social auth mới cho user này
+                # Kiểm tra xem uid này đã được sử dụng bởi user khác chưa
+                try:
+                    other_social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                    logger.info(f"Found existing social auth for uid {uid} with user {other_social_auth.user.email}")
+                    return {
+                        'user': other_social_auth.user,
+                        'is_new': False,
+                        'social_user': other_social_auth
+                    }
+                except UserSocialAuth.DoesNotExist:
+                    # Tạo social auth mới cho user này
+                    social_auth = UserSocialAuth.objects.create(
+                        user=existing_user,
+                        provider=backend.name,
+                        uid=uid,
+                        extra_data=details
+                    )
+                    return {
+                        'user': existing_user,
+                        'is_new': False,
+                        'social_user': social_auth
+                    }
+        except User.DoesNotExist:
+            # Kiểm tra xem uid này đã được sử dụng bởi user khác chưa
+            try:
+                other_social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                logger.info(f"Found existing social auth for uid {uid} with user {other_social_auth.user.email}")
+                return {
+                    'user': other_social_auth.user,
+                    'is_new': False,
+                    'social_user': other_social_auth
+                }
+            except UserSocialAuth.DoesNotExist:
+                logger.info(f"Creating new user for email: {email}")
+                # Tạo user mới với email từ Google
+                user = User.objects.create(
+                    email=email,
+                    username=email,
+                    is_active=True
+                )
                 social_auth = UserSocialAuth.objects.create(
-                    user=existing_user,
+                    user=user,
                     provider=backend.name,
                     uid=uid,
                     extra_data=details
                 )
                 return {
-                    'user': existing_user,
-                    'is_new': False,
+                    'user': user,
+                    'is_new': True,
                     'social_user': social_auth
                 }
-        except User.DoesNotExist:
-            logger.info(f"Creating new user for email: {email}")
-            # Tạo user mới với email từ Google
-            user = User.objects.create(
-                email=email,
-                username=email,
-                is_active=True
-            )
-            social_auth = UserSocialAuth.objects.create(
-                user=user,
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': user,
-                'is_new': True,
-                'social_user': social_auth
-            }
 
     except Exception as e:
         logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
