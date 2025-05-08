@@ -186,17 +186,28 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
+    """
+    Custom pipeline to wrap social_user and handle errors
+    """
+    logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}, user: {user}")
     try:
-        # Gọi hàm social_user gốc
         result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
+        logger.info(f"custom_social_user result: {result}")
         return result
     except AuthAlreadyAssociated:
-        # Nếu tài khoản đã liên kết, tìm user hiện tại
-        existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+        logger.warning(f"AuthAlreadyAssociated for uid: {uid}, backend: {backend.name}")
+        existing_user = User.objects.filter(
+            social_auth__provider=backend.name,
+            social_auth__uid=uid
+        ).first()
         if existing_user:
-            # Trả về user hiện tại để pipeline tiếp tục
+            logger.info(f"Found existing user: {existing_user.email}")
             return {
                 'user': existing_user,
                 'is_new': False
             }
-        raise  # Nếu không tìm thấy user, ném lỗi tiếp
+        logger.error(f"No user found for uid: {uid}, backend: {backend.name}")
+        raise
+    except Exception as e:
+        logger.error(f"Error in custom_social_user for uid: {uid}: {str(e)}", exc_info=True)
+        raise
