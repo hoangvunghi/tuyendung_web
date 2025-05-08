@@ -916,7 +916,7 @@ class FinalizeGoogleAuthView(View):
         is_active = request.session.get('is_active', True)
         is_banned = request.session.get('is_banned', False)
 
-        frontend_callback_url = 'http://localhost:5173/auth/google/callback' # URL callback của frontend
+        frontend_callback_url = 'https://tuyendungtlu.site/auth/google/callback' # URL callback của frontend
 
         if access_token and refresh_token and role:
             query_params = urlencode({
