@@ -1118,7 +1118,7 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
     Tạo JWT token và thêm vào session
     """
     if backend.name == 'google-oauth2':
-        logging.info(f"Starting get_token_for_frontend for user: {user.email if user else 'None'}")
+        logging.info("Starting get_token_for_frontend")
         
         # Kiểm tra user có tồn tại không
         if not user:
@@ -1126,6 +1126,11 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
             return None
             
         try:
+            # Kiểm tra email có tồn tại không
+            if not hasattr(user, 'email') or not user.email:
+                logging.error("User has no email attribute")
+                return None
+                
             refresh = RefreshToken.for_user(user)
             refresh["is_active"] = user.is_active
             refresh["is_banned"] = user.is_banned

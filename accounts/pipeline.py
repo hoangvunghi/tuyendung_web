@@ -16,13 +16,22 @@ def create_user_profile(backend, user, response, *args, **kwargs):
         try:
             # Lấy thông tin từ Google
             email = response.get('email', '')
+            if not email:
+                logger.error("No email provided in Google response")
+                return None
+                
             first_name = response.get('given_name', '')
             last_name = response.get('family_name', '')
             google_id = response.get('sub')
             
+            if not google_id:
+                logger.error("No Google ID provided in response")
+                return None
+            
             # Tìm user theo email
             try:
                 existing_user = User.objects.get(email=email)
+                logger.info(f"Found existing user: {email}")
                 # Nếu user đã tồn tại, cập nhật google_id
                 existing_user.social_auth.update_or_create(
                     provider='google-oauth2',
@@ -31,6 +40,7 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                 )
                 user = existing_user
             except User.DoesNotExist:
+                logger.info(f"Creating new user for email: {email}")
                 # Nếu user chưa tồn tại, tạo mới
                 user = User.objects.create(
                     email=email,
@@ -45,6 +55,10 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                     extra_data=response
                 )
             
+            if not user:
+                logger.error("Failed to create or find user")
+                return None
+                
             # Tạo profile nếu chưa có
             if not UserInfo.objects.filter(user=user).exists():
                 UserInfo.objects.create(
@@ -54,14 +68,17 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                     balance=0.00,
                     cv_attachments_url=None
                 )
-            none_role = Role.objects.get(name='none')
-            # nếu mà user không có role thì tạo role none
+                
+            # Tạo role none nếu chưa có
+            none_role, _ = Role.objects.get_or_create(name='none')
             if not UserRole.objects.filter(user=user).exists():
                 UserRole.objects.create(user=user, role=none_role)
+                
             # Tạo token
             refresh = RefreshToken.for_user(user)
             role = user.get_role()
             logger.info(f"User profile created/updated for {user.email}. Role: {role}")
+            
             return {
                 'user': user,
                 'tokens': {
@@ -72,6 +89,7 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                 'is_active': user.is_active,
                 'is_banned': user.is_banned
             }
+            
         except Exception as e:
             logger.error(f"Error in create_user_profile for {response.get('email')}: {str(e)}", exc_info=True)
             return None
