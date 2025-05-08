@@ -7,6 +7,7 @@ from social_core.pipeline.social_auth import social_user
 from social_core.exceptions import AuthAlreadyAssociated
 from social_django.models import UserSocialAuth
 from django.db.utils import IntegrityError
+from django.contrib.auth.hashers import make_password
 
 User = UserAccount
 logger = logging.getLogger(__name__)
@@ -108,11 +109,12 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         except User.DoesNotExist:
             logger.info(f"Creating new user for email: {email}")
             # Tạo user mới với email từ Google
-            username = email.split('@')[0]  # Lấy phần trước @ làm username
+            # Sử dụng email đầy đủ làm username thay vì chỉ lấy phần trước @
             user = User.objects.create(
                 email=email,
-                username=username,
-                is_active=True
+                username=email,  # Sử dụng email đầy đủ làm username
+                is_active=True,
+                password=make_password("12345678")  # Mật khẩu mặc định là 12345678
             )
             social_auth = UserSocialAuth.objects.create(
                 user=user,

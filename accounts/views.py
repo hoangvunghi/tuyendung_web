@@ -702,8 +702,8 @@ def google_oauth2_login_callback(request):
             # Tạo người dùng mới nếu chưa tồn tại
             user = UserAccount.objects.create_user(
                 email=userinfo.get('email'),
-                username=userinfo.get('email'),  # Sử dụng email làm username
-                password="11111121213131",  # Password sẽ không được sử dụng với OAuth
+                username=userinfo.get('email'),  # Sử dụng email đầy đủ làm username
+                password="12345678",  # Mật khẩu mặc định là 12345678 (thay vì 11111121213131)
                 google_id=userinfo.get('id')  # Lưu Google ID
             )
             
