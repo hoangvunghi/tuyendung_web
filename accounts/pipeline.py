@@ -175,17 +175,37 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
+    """
+    Pipeline tùy chỉnh để xử lý social user
+    """
+    logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
+    
     try:
         # Gọi hàm social_user gốc
         result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
-        return result
+        if result and isinstance(result, dict) and 'user' in result:
+            logger.info(f"Successfully got user from social_user: {result['user'].email}")
+            return result
+        logger.warning("social_user did not return expected result")
+        return None
+        
     except AuthAlreadyAssociated:
-        # Nếu tài khoản đã liên kết, tìm user hiện tại
-        existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
-        if existing_user:
-            # Trả về user hiện tại để pipeline tiếp tục
-            return {
-                'user': existing_user,
-                'is_new': False
-            }
-        raise  # Nếu không tìm thấy user, ném lỗi tiếp
+        logger.info(f"AuthAlreadyAssociated for uid: {uid}")
+        try:
+            # Nếu tài khoản đã liên kết, tìm user hiện tại
+            existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            if existing_user:
+                logger.info(f"Found existing user: {existing_user.email}")
+                # Trả về user hiện tại để pipeline tiếp tục
+                return {
+                    'user': existing_user,
+                    'is_new': False
+                }
+            logger.warning(f"No user found for provider: {backend.name}, uid: {uid}")
+            return None
+        except User.DoesNotExist:
+            logger.error(f"User not found for provider: {backend.name}, uid: {uid}")
+            return None
+        except Exception as e:
+            logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+            return None
