@@ -224,38 +224,68 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
     logger.info(f"Starting handle_auth_already_associated for uid: {uid}")
     
     try:
-        # Thử liên kết tài khoản
-        result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
-        logger.info("Successfully associated account")
-        return result
-    except AuthAlreadyAssociated:
-        logger.info("AuthAlreadyAssociated exception caught")
-        # Nếu tài khoản đã được liên kết, tìm user theo email
+        # Kiểm tra xem user đã tồn tại chưa
+        if user:
+            logger.info(f"User already exists: {user.email}")
+            return {
+                'user': user,
+                'is_new': False
+            }
+
+        # Tìm user theo email
         email = details.get('email')
         if email:
             try:
-                # Tìm user theo email
                 existing_user = User.objects.get(email=email)
-                logger.info(f"Found existing user: {email}")
+                logger.info(f"Found existing user by email: {email}")
                 
-                # Tạo token cho user đã liên kết
-                refresh = RefreshToken.for_user(existing_user)
-                role = existing_user.get_role()
-                logger.info(f"Generated tokens for {email} with role: {role}")
-                
-                # Trả về thông tin user và token
-                return {
-                    'user': existing_user,
-                    'tokens': {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token),
-                    },
-                    'role': role,
-                    'is_active': existing_user.is_active,
-                    'is_banned': existing_user.is_banned,
-                    'is_new': False
-                }
+                # Kiểm tra xem user đã liên kết với Google chưa
+                if existing_user.social_auth.filter(provider='google-oauth2').exists():
+                    logger.info(f"User {email} already associated with Google")
+                    return {
+                        'user': existing_user,
+                        'is_new': False
+                    }
+                else:
+                    logger.info(f"User {email} not associated with Google yet")
+                    return {
+                        'user': existing_user,
+                        'is_new': False
+                    }
             except User.DoesNotExist:
-                logger.error(f"User not found for email: {email}")
-                pass
+                logger.info(f"No existing user found for email: {email}")
+
+        # Tìm user theo social auth
+        try:
+            existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            logger.info(f"Found existing user by social auth: {existing_user.email}")
+            return {
+                'user': existing_user,
+                'is_new': False
+            }
+        except User.DoesNotExist:
+            logger.info(f"No existing user found for provider: {backend.name}, uid: {uid}")
+
+        # Nếu không tìm thấy user, tạo mới
+        if not user and not email:
+            logger.error("No email provided in details")
+            return None
+
+        # Tạo user mới
+        user = User.objects.create(
+            email=email,
+            username=email,
+            first_name=details.get('first_name', ''),
+            last_name=details.get('last_name', ''),
+            is_active=True
+        )
+        logger.info(f"Created new user: {email}")
+
+        return {
+            'user': user,
+            'is_new': True
+        }
+
+    except Exception as e:
+        logger.error(f"Error in handle_auth_already_associated: {str(e)}", exc_info=True)
         return None
