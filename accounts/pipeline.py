@@ -56,30 +56,47 @@ def auth_allowed(backend, details, response, *args, **kwargs):
     
     return True
 
-def social_auth_exception(backend, strategy, uid, *args, **kwargs):
-    """Handle AuthAlreadyAssociated exception - Enable sign in with different social backends using the same email."""
+def social_auth_exception(backend, details, response, *args, **kwargs):
+    """
+    Xử lý ngoại lệ AuthAlreadyAssociated - Cho phép đăng nhập với các tài khoản social khác nhau
+    nhưng sử dụng cùng một email.
+    """
+    logger.info(f"Starting social_auth_exception handling")
+    
+    # Kiểm tra social auth hiện tại
     if kwargs.get('social') is not None:
         social = kwargs.get('social')
         if social.provider == backend.name:
-            return social.user
-
-    email = kwargs.get('details', {}).get('email')
-    if email:
+            logger.info(f"User already authenticated with this backend")
+            return {'user': social.user, 'is_new': False}
+    
+    # Kiểm tra nếu đã có ngoại lệ
+    if 'exception' in kwargs and isinstance(kwargs['exception'], AuthAlreadyAssociated):
+        exception = kwargs['exception']
+        email = details.get('email')
+        logger.info(f"Handling AuthAlreadyAssociated for email {email}")
+        
+        if not email:
+            return None
+            
+        # Tìm user theo email
         try:
             user = User.objects.get(email=email)
-            logger.info(f"Found existing user with email {email} during exception handling")
+            logger.info(f"Found existing user with email {email} - allowing login")
             
-            if 'exception' in kwargs and isinstance(kwargs['exception'], AuthAlreadyAssociated):
-                logger.info(f"Handling AuthAlreadyAssociated for email {email}")
-                return user
-                
+            # Nếu tìm thấy người dùng, cho phép đăng nhập với tài khoản đó
+            return {
+                'user': user,
+                'is_new': False
+            }
         except User.DoesNotExist:
-            pass
+            logger.error(f"No user found with email {email} despite AuthAlreadyAssociated error")
     
-    # Nếu không phải lỗi AuthAlreadyAssociated, để social_auth xử lý
+    # Xử lý các ngoại lệ khác
     if 'exception' in kwargs:
         logger.error(f"Unhandled social auth exception: {kwargs['exception']}")
-        raise kwargs['exception']
+    
+    return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
     """Pipeline tùy chỉnh để xử lý social user."""
@@ -93,7 +110,43 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             logger.error("No email provided in details")
             return None
 
-        # Kiểm tra xem social auth đã tồn tại chưa
+        # Nếu đã có user từ các bước trước, sử dụng user đó
+        if user:
+            logger.info(f"Using existing user from previous steps: {user.email}")
+            
+            # Kiểm tra xem social auth đã tồn tại cho user này chưa
+            try:
+                social_auth = UserSocialAuth.objects.get(user=user, provider=backend.name)
+                logger.info(f"User already has social auth for this provider")
+                return {
+                    'user': user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+            except UserSocialAuth.DoesNotExist:
+                # Tạo social auth mới cho user này
+                try:
+                    social_auth = UserSocialAuth.objects.create(
+                        user=user,
+                        provider=backend.name,
+                        uid=uid,
+                        extra_data=details
+                    )
+                    return {
+                        'user': user,
+                        'is_new': False,
+                        'social_user': social_auth
+                    }
+                except IntegrityError:
+                    # Nếu có lỗi integrity, tìm kiếm social auth đã tồn tại
+                    social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                    return {
+                        'user': social_auth.user,
+                        'is_new': False,
+                        'social_user': social_auth
+                    }
+
+        # Tìm kiếm social auth theo uid và provider
         try:
             social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
             logger.info(f"Found existing social auth for uid: {uid}, user: {social_auth.user.email}")
@@ -105,33 +158,12 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         except UserSocialAuth.DoesNotExist:
             logger.info(f"No existing social auth found for uid: {uid}")
 
-        # Nếu đã có user từ các bước trước, sử dụng user đó
-        if user:
-            logger.info(f"Using existing user from previous steps: {user.email}")
-            try:
-                social_auth = UserSocialAuth.objects.create(
-                    user=user,
-                    provider=backend.name,
-                    uid=uid,
-                    extra_data=details
-                )
-                return {
-                    'user': user,
-                    'is_new': False,
-                    'social_user': social_auth
-                }
-            except IntegrityError:
-                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                return {
-                    'user': social_auth.user,
-                    'is_new': False,
-                    'social_user': social_auth
-                }
-
         # Tìm user theo email
         try:
             existing_user = User.objects.get(email=email)
             logger.info(f"Found existing user by email: {email}")
+            
+            # Tạo social auth cho user đã tồn tại
             try:
                 social_auth = UserSocialAuth.objects.create(
                     user=existing_user,
@@ -145,12 +177,14 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                     'social_user': social_auth
                 }
             except IntegrityError:
+                # Nếu có lỗi integrity, tìm kiếm social auth đã tồn tại
                 social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
                 return {
                     'user': social_auth.user,
                     'is_new': False,
                     'social_user': social_auth
                 }
+                
         except User.DoesNotExist:
             logger.info(f"Creating new user for email: {email}")
             # Tạo user mới với email từ Google
@@ -161,12 +195,23 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                 is_active=True,
                 password=make_password("12345678")  # Mật khẩu mặc định là 12345678
             )
+            
+            # Tạo social auth cho user mới
             social_auth = UserSocialAuth.objects.create(
                 user=user,
                 provider=backend.name,
                 uid=uid,
                 extra_data=details
             )
+            
+            # Tạo role 'none' cho user mới
+            try:
+                none_role = Role.objects.get(name='none')
+            except Role.DoesNotExist:
+                none_role = Role.objects.create(name='none')
+            
+            UserRole.objects.create(user=user, role=none_role)
+            
             return {
                 'user': user,
                 'is_new': True,

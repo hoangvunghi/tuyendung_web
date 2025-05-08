@@ -92,16 +92,23 @@ SOCIAL_AUTH_PIPELINE = (
     # Lấy thông tin từ social provider
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.social_user',
-    'accounts.pipeline.auth_allowed',  # Di chuyển auth_allowed xuống sau social_user
+    'social_core.pipeline.social_auth.auth_allowed',
     
-    # Xử lý lỗi
-    'accounts.pipeline.social_auth_exception',  # Xử lý lỗi AuthAlreadyAssociated
+    # Xử lý lỗi trước social_user để có thể bắt lỗi AuthAlreadyAssociated
+    'accounts.pipeline.social_auth_exception',
+    
+    # Gọi social_user sau khi đã xử lý ngoại lệ có thể xảy ra
+    'social_core.pipeline.social_auth.social_user',
     
     # Xử lý user
     'accounts.pipeline.associate_by_email',
     'accounts.pipeline.custom_social_user',
-    'accounts.pipeline.handle_auth_already_associated',
+    
+    # Các bước còn lại
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
     
     # Tạo profile và role
     'accounts.pipeline.create_user_profile',
