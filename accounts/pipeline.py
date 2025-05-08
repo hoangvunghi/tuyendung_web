@@ -17,7 +17,7 @@ def associate_by_email(backend, details, user=None, *args, **kwargs):
     
     if user:
         logger.info(f"User already logged in: {user.email}")
-        return None
+        return {'user': user}
 
     email = details.get('email')
     if not email:
@@ -48,7 +48,8 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             logger.info(f"Found existing social auth for uid: {uid}, user: {social_auth.user.email}")
             return {
                 'user': social_auth.user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_auth
             }
         except UserSocialAuth.DoesNotExist:
             logger.info(f"No existing social auth found for uid: {uid}")
@@ -59,18 +60,30 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                 logger.error(f"User email mismatch: {user.email} != {email}")
                 return None
             logger.info(f"Using existing user: {user.email}")
+            social_auth = user.social_auth.create(
+                provider=backend.name,
+                uid=uid,
+                extra_data=details
+            )
             return {
                 'user': user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_auth
             }
 
         # Tìm user theo email
         try:
             existing_user = User.objects.get(email=email)
             logger.info(f"Found existing user by email: {email}")
+            social_auth = existing_user.social_auth.create(
+                provider=backend.name,
+                uid=uid,
+                extra_data=details
+            )
             return {
                 'user': existing_user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_auth
             }
         except User.DoesNotExist:
             logger.info(f"Creating new user for email: {email}")
@@ -80,9 +93,15 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                 username=email,
                 is_active=True
             )
+            social_auth = user.social_auth.create(
+                provider=backend.name,
+                uid=uid,
+                extra_data=details
+            )
             return {
                 'user': user,
-                'is_new': True
+                'is_new': True,
+                'social_user': social_auth
             }
 
     except Exception as e:
