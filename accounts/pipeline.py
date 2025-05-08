@@ -4,7 +4,7 @@ from profiles.models import UserInfo
 from accounts.models import UserAccount, Role, UserRole
 from rest_framework_simplejwt.tokens import RefreshToken
 from social_core.pipeline.social_auth import social_user
-from social_core.exceptions import AuthAlreadyAssociated
+from social_core.exceptions import AuthAlreadyAssociated, AuthException
 from social_django.models import UserSocialAuth
 from django.db.utils import IntegrityError
 from django.contrib.auth.hashers import make_password
@@ -35,6 +35,51 @@ def associate_by_email(backend, details, user=None, *args, **kwargs):
     except User.DoesNotExist:
         logger.info(f"No existing user found for email: {email}")
         return None
+
+def auth_allowed(backend, details, response, *args, **kwargs):
+    """Ghi đè hàm xử lý lỗi AuthAlreadyAssociated để cho phép đăng nhập với tài khoản có email trùng."""
+    if not backend.auth_allowed(response, details):
+        return False
+    
+    email = details.get('email')
+    if not email:
+        return False
+    
+    # Nếu đã có user với email này, cho phép đăng nhập
+    try:
+        existing_user = User.objects.get(email=email)
+        logger.info(f"Auth allowed: Found existing user with email {email}")
+        return True
+    except User.DoesNotExist:
+        # Không có user với email này, tiếp tục pipeline bình thường
+        pass
+    
+    return True
+
+def social_auth_exception(backend, strategy, uid, *args, **kwargs):
+    """Handle AuthAlreadyAssociated exception - Enable sign in with different social backends using the same email."""
+    if kwargs.get('social') is not None:
+        social = kwargs.get('social')
+        if social.provider == backend.name:
+            return social.user
+
+    email = kwargs.get('details', {}).get('email')
+    if email:
+        try:
+            user = User.objects.get(email=email)
+            logger.info(f"Found existing user with email {email} during exception handling")
+            
+            if 'exception' in kwargs and isinstance(kwargs['exception'], AuthAlreadyAssociated):
+                logger.info(f"Handling AuthAlreadyAssociated for email {email}")
+                return user
+                
+        except User.DoesNotExist:
+            pass
+    
+    # Nếu không phải lỗi AuthAlreadyAssociated, để social_auth xử lý
+    if 'exception' in kwargs:
+        logger.error(f"Unhandled social auth exception: {kwargs['exception']}")
+        raise kwargs['exception']
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
     """Pipeline tùy chỉnh để xử lý social user."""

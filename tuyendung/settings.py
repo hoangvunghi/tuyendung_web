@@ -92,8 +92,11 @@ SOCIAL_AUTH_PIPELINE = (
     # Lấy thông tin từ social provider
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.auth_allowed',
+    'accounts.pipeline.auth_allowed',  # Thay thế auth_allowed mặc định
     'social_core.pipeline.social_auth.social_user',
+    
+    # Xử lý lỗi
+    'accounts.pipeline.social_auth_exception',  # Xử lý lỗi AuthAlreadyAssociated
     
     # Xử lý user
     'accounts.pipeline.associate_by_email',
