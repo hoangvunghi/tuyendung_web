@@ -5,6 +5,7 @@ from accounts.models import UserAccount, Role, UserRole
 from rest_framework_simplejwt.tokens import RefreshToken
 from social_core.pipeline.social_auth import social_user
 from social_core.exceptions import AuthAlreadyAssociated
+from social_django.models import UserSocialAuth
 
 
 User = get_user_model()
@@ -33,6 +34,17 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
     logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
     
     try:
+        # Kiểm tra xem social auth đã tồn tại chưa
+        try:
+            social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+            logger.info(f"Found existing social auth for uid: {uid}")
+            return {
+                'user': social_auth.user,
+                'is_new': False
+            }
+        except UserSocialAuth.DoesNotExist:
+            pass
+
         # Nếu user đã tồn tại, trả về luôn
         if user:
             logger.info(f"User already exists: {user.email}")
@@ -60,8 +72,6 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             user = User.objects.create(
                 email=email,
                 username=email,
-                first_name=details.get('first_name', ''),
-                last_name=details.get('last_name', ''),
                 is_active=True
             )
             return {
@@ -80,11 +90,18 @@ def create_user_profile(backend, user, response, *args, **kwargs):
 
     logger.info(f"Starting create_user_profile for user: {user.email}")
     try:
+        # Lấy thông tin từ response
+        fullname = response.get('name', '')
+        if not fullname:
+            fullname = f"{response.get('given_name', '')} {response.get('family_name', '')}".strip()
+        if not fullname:
+            fullname = user.email
+
         # Tạo UserInfo nếu chưa tồn tại
         UserInfo.objects.get_or_create(
             user=user,
             defaults={
-                'fullname': f"{user.first_name} {user.last_name}".strip() or user.email,
+                'fullname': fullname,
                 'gender': 'male',
                 'balance': 0.00,
                 'cv_attachments_url': None
