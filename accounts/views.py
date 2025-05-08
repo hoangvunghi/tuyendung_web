@@ -33,6 +33,92 @@ from rest_framework.views import APIView
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 UserAccount = get_user_model()
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def delete_premium(request):
+    """
+    API để hủy trạng thái Premium của người dùng (tự động hoặc thủ công)
+    """
+    try:
+        user = request.user
+        
+        # Kiểm tra người dùng có phải Premium không
+        if not user.is_premium:
+            return Response({
+                'message': 'Người dùng không có gói Premium để hủy',
+                'status': status.HTTP_400_BAD_REQUEST
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Import model PremiumHistory
+        from transactions.models import PremiumHistory
+        
+        # Lấy lịch sử Premium đang hoạt động
+        active_history = PremiumHistory.objects.filter(
+            user=user,
+            is_active=True
+        ).order_by('-created_at').first()
+        
+        # Hủy trạng thái Premium
+        user.is_premium = False
+        user.premium_expiry = None
+        user.save()
+        
+        # Cập nhật lịch sử Premium nếu có
+        if active_history:
+            active_history.is_active = False
+            active_history.is_cancelled = True
+            active_history.cancelled_date = timezone.now()
+            active_history.save()
+        
+        return Response({
+            'message': 'Đã hủy gói Premium thành công',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'message': f'Lỗi khi hủy Premium: {str(e)}',
+            'status': status.HTTP_400_BAD_REQUEST
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_info(request, user_id):
+    """Lấy thông tin người dùng theo ID"""
+    try:
+        user = UserAccount.objects.get(id=user_id)
+        
+        # Lấy profile nếu có
+        profile = None
+        try:
+            from profiles.models import UserInfo
+            profile = UserInfo.objects.filter(user=user).first()
+        except Exception as e:
+            print(f"Lỗi khi lấy profile: {e}")
+        
+        # Lấy vai trò
+        role = user.get_role()
+        
+        # Chuẩn bị dữ liệu
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'fullname': user.get_full_name() or user.username,
+            'avatar': profile.avatar_url if profile and hasattr(profile, 'avatar_url') else None,
+            'role': role
+        }
+        
+        return Response({
+            'message': 'User info retrieved successfully',
+            'status': status.HTTP_200_OK,
+            'data': data
+        })
+    except UserAccount.DoesNotExist:
+        return Response({
+            'message': 'User not found',
+            'status': status.HTTP_404_NOT_FOUND
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 def register_function(request, is_recruiter=False):
