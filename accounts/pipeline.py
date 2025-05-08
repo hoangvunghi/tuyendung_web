@@ -288,5 +288,4 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
 
     except Exception as e:
         logger.error(f"Error in handle_auth_already_associated: {str(e)}", exc_info=True)
-        # Trả về None để pipeline dừng lại và hiển thị lỗi
         return None

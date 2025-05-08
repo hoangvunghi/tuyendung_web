@@ -92,6 +92,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
     'accounts.pipeline.associate_by_email',
     'accounts.pipeline.custom_social_user',
     'accounts.pipeline.handle_auth_already_associated',
@@ -101,7 +102,7 @@ SOCIAL_AUTH_PIPELINE = (
 
 # Social Auth settings
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'
-SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://tuyendungtlu.site/login-error'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
