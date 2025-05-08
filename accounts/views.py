@@ -582,14 +582,11 @@ def complete_google_oauth2(request):
     Xử lý callback từ Google OAuth2 khi sử dụng social-auth-app-django.
     Endpoint này được gọi bởi social-auth-app-django sau khi xác thực Google.
     """
-    logging.info("Starting complete_google_oauth2")
     
     # Lấy code từ query params (nếu là GET) hoặc từ request body (nếu là POST)
     code = request.GET.get('code') if request.method == 'GET' else request.data.get('code')
-    state = request.GET.get('state') if request.method == 'GET' else request.data.get('state')
     
     if not code:
-        logging.error("No code provided in request")
         return Response({
             'message': 'Không tìm thấy code trong request',
             'status': status.HTTP_400_BAD_REQUEST
@@ -599,22 +596,21 @@ def complete_google_oauth2(request):
         # Xử lý authentication với social-auth-app-django
         backend = 'google-oauth2'
         
-        # Sử dụng load_strategy và load_backend thay vì viết lại authenticate
-        strategy = load_strategy(request)
-        backend_obj = load_backend(strategy, backend, redirect_uri=None)
+        # Gọi hàm do_auth của social-auth-app-django
+        @psa('social:complete')
+        def authenticate(request, backend):
+            return request.backend.do_auth(code)
         
-        # Thực hiện xác thực với social auth backend
-        user = backend_obj.do_auth(code, state=state)
+        # Thực hiện xác thực
+        user = authenticate(request, backend)
         
         if not user:
-            logging.error("Authentication failed - no user returned")
             return Response({
                 'message': 'Xác thực Google thất bại',
                 'status': status.HTTP_401_UNAUTHORIZED
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         if not user.is_active:
-            logging.error(f"User {user.email} is not active")
             return Response({
                 'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
                 'status': status.HTTP_401_UNAUTHORIZED
@@ -625,7 +621,6 @@ def complete_google_oauth2(request):
         refresh["is_active"] = user.is_active
         role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
         refresh["role"] = role
-        
         # Trả về tokens
         return Response({
             'message': 'Đăng nhập với Google thành công',
@@ -639,7 +634,6 @@ def complete_google_oauth2(request):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        logging.error(f"Error in complete_google_oauth2: {str(e)}", exc_info=True)
         return Response({
             'message': f'Lỗi khi xử lý Google OAuth: {str(e)}',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -701,8 +695,8 @@ def google_oauth2_login_callback(request):
             # Tạo người dùng mới nếu chưa tồn tại
             user = UserAccount.objects.create_user(
                 email=userinfo.get('email'),
-                username=userinfo.get('email'),  # Sử dụng email đầy đủ làm username
-                password="12345678",  # Mật khẩu mặc định là 12345678 (thay vì 11111121213131)
+                username=userinfo.get('email'),  # Sử dụng email làm username
+                password="11111121213131",  # Password sẽ không được sử dụng với OAuth
                 google_id=userinfo.get('id')  # Lưu Google ID
             )
             
@@ -735,72 +729,6 @@ def google_oauth2_login_callback(request):
             'message': 'Lỗi trong quá trình xử lý',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def social_auth_error_view(request):
-    """
-    View hiển thị thông báo lỗi và hướng dẫn người dùng khi xảy ra lỗi trong quá trình xác thực Social
-    """
-    error_type = request.GET.get('error_type', '')
-    error_msg = request.GET.get('error_msg', 'Unknown error')
-    redirect_url = f"{settings.FRONTEND_URL}/auth/error?error_type={error_type}&error_msg={error_msg}"
-    
-    logging.info(f"Social Auth Error: {error_type} - {error_msg}")
-    
-    # Nếu lỗi là AuthAlreadyAssociated, tự động đăng nhập user
-    if error_type == 'AuthAlreadyAssociated':
-        try:
-            # Lấy email từ query param hoặc session
-            email = request.GET.get('email') or request.session.get('auth_already_email') or request.session.get('email')
-            user_id = request.session.get('auth_already_user_id')
-            
-            logging.info(f"AuthAlreadyAssociated details - email: {email}, user_id: {user_id}")
-            
-            # Tìm user từ ID hoặc email
-            user = None
-            if user_id:
-                try:
-                    user = UserAccount.objects.get(id=user_id)
-                    logging.info(f"Found user by ID: {user.id}")
-                except UserAccount.DoesNotExist:
-                    logging.error(f"No user found with ID: {user_id}")
-            
-            if not user and email:
-                try:
-                    user = UserAccount.objects.get(email=email)
-                    logging.info(f"Found user by email: {user.email}")
-                except UserAccount.DoesNotExist:
-                    logging.error(f"No user found with email: {email}")
-            
-            if user:
-                # Tạo token cho user
-                refresh = RefreshToken.for_user(user)
-                refresh["is_active"] = user.is_active
-                refresh["is_banned"] = getattr(user, 'is_banned', False)
-                role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
-                refresh["role"] = role
-                
-                # Tạo URL redirect về frontend với token
-                redirect_url = f"{settings.FRONTEND_URL}?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}&role={role}&email={user.email}"
-                logging.info(f"Redirecting user to frontend with token: {redirect_url}")
-                
-                # Xóa dữ liệu khỏi session để tránh lỗi bảo mật
-                if 'auth_already_user_id' in request.session:
-                    del request.session['auth_already_user_id']
-                if 'auth_already_email' in request.session:
-                    del request.session['auth_already_email']
-                if 'email' in request.session:
-                    del request.session['email']
-                
-                return redirect(redirect_url)
-            else:
-                logging.error("No user found to handle AuthAlreadyAssociated error")
-        except Exception as e:
-            logging.error(f"Error handling AuthAlreadyAssociated: {str(e)}", exc_info=True)
-    
-    logging.info(f"Redirecting to error page: {redirect_url}")
-    return redirect(redirect_url)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -989,7 +917,7 @@ class FinalizeGoogleAuthView(View):
         is_active = request.session.get('is_active', True)
         is_banned = request.session.get('is_banned', False)
 
-        frontend_callback_url = 'https://tuyendungtlu.site/auth/google/callback' # URL callback của frontend
+        frontend_callback_url = 'http://localhost:5173/auth/google/callback' # URL callback của frontend
 
         if access_token and refresh_token and role:
             query_params = urlencode({
@@ -1032,202 +960,3 @@ def set_role_for_user(request):
             },
             'status': status.HTTP_400_BAD_REQUEST
         })
-
-@swagger_auto_schema(
-    method='get',
-    operation_description="Lấy thông tin người dùng theo ID",
-    responses={
-        200: openapi.Response(
-            description="Lấy thông tin người dùng thành công",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
-                    'data': openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'username': openapi.Schema(type=openapi.TYPE_STRING),
-                            'email': openapi.Schema(type=openapi.TYPE_STRING),
-                            'fullname': openapi.Schema(type=openapi.TYPE_STRING),
-                            'avatar': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                            'role': openapi.Schema(type=openapi.TYPE_STRING),
-                        }
-                    )
-                }
-            )
-        ),
-        404: openapi.Response(
-            description="Không tìm thấy người dùng",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
-                }
-            )
-        )
-    },
-    security=[{'Bearer': []}]
-)
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_user_info(request, user_id):
-    """Lấy thông tin người dùng theo ID"""
-    try:
-        user = UserAccount.objects.get(id=user_id)
-        
-        # Lấy profile nếu có
-        profile = None
-        try:
-            from profiles.models import UserInfo
-            profile = UserInfo.objects.filter(user=user).first()
-        except Exception as e:
-            print(f"Lỗi khi lấy profile: {e}")
-        
-        # Lấy vai trò
-        role = user.get_role()
-        
-        # Chuẩn bị dữ liệu
-        data = {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'fullname': user.get_full_name() or user.username,
-            'avatar': profile.avatar_url if profile and hasattr(profile, 'avatar_url') else None,
-            'role': role
-        }
-        
-        return Response({
-            'message': 'User info retrieved successfully',
-            'status': status.HTTP_200_OK,
-            'data': data
-        })
-    except UserAccount.DoesNotExist:
-        return Response({
-            'message': 'User not found',
-            'status': status.HTTP_404_NOT_FOUND
-        }, status=status.HTTP_404_NOT_FOUND)
-
-@swagger_auto_schema(
-    method='post',
-    operation_description="Hủy trạng thái Premium của người dùng (tự động hoặc thủ công)",
-    responses={
-        200: openapi.Response(
-            description="Hủy Premium thành công",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
-                }
-            )
-        ),
-        400: openapi.Response(
-            description="Lỗi khi hủy Premium",
-            schema=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    'message': openapi.Schema(type=openapi.TYPE_STRING),
-                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
-                }
-            )
-        )
-    },
-    security=[{'Bearer': []}]
-)
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def delete_premium(request):
-    """
-    API để hủy trạng thái Premium của người dùng (tự động hoặc thủ công)
-    """
-    try:
-        user = request.user
-        
-        # Kiểm tra người dùng có phải Premium không
-        if not user.is_premium:
-            return Response({
-                'message': 'Người dùng không có gói Premium để hủy',
-                'status': status.HTTP_400_BAD_REQUEST
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Import model PremiumHistory
-        from transactions.models import PremiumHistory
-        
-        # Lấy lịch sử Premium đang hoạt động
-        active_history = PremiumHistory.objects.filter(
-            user=user,
-            is_active=True
-        ).order_by('-created_at').first()
-        
-        # Hủy trạng thái Premium
-        user.is_premium = False
-        user.premium_expiry = None
-        user.save()
-        
-        # Cập nhật lịch sử Premium nếu có
-        if active_history:
-            active_history.is_active = False
-            active_history.is_cancelled = True
-            active_history.cancelled_date = timezone.now()
-            active_history.save()
-        
-        return Response({
-            'message': 'Đã hủy gói Premium thành công',
-            'status': status.HTTP_200_OK
-        }, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        return Response({
-            'message': f'Lỗi khi hủy Premium: {str(e)}',
-            'status': status.HTTP_400_BAD_REQUEST
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-def get_token_for_frontend(backend, user, response, *args, **kwargs):
-    """
-    Tạo JWT token và thêm vào session
-    """
-    if backend.name == 'google-oauth2':
-        logging.info("Starting get_token_for_frontend")
-        
-        # Kiểm tra user có tồn tại không
-        if not user:
-            logging.error("User is None in get_token_for_frontend")
-            return None
-            
-        try:
-            # Kiểm tra email có tồn tại không
-            if not hasattr(user, 'email') or not user.email:
-                logging.error("User has no email attribute")
-                return None
-                
-            refresh = RefreshToken.for_user(user)
-            refresh["is_active"] = user.is_active
-            refresh["is_banned"] = user.is_banned
-            role = "admin" if user.is_superuser else user.get_role()
-            refresh["role"] = role
-            
-            # Lưu token vào session
-            request = kwargs.get('request')
-            if request:
-                request.session['access_token'] = str(refresh.access_token)
-                request.session['refresh_token'] = str(refresh)
-                request.session['user_role'] = role
-                request.session['user_email'] = user.email
-                request.session['is_active'] = user.is_active
-                request.session['is_banned'] = user.is_banned
-                
-            return {
-                'access_token': str(refresh.access_token),
-                'refresh_token': str(refresh),
-                'role': role,
-                'email': user.email,
-                'is_active': user.is_active,
-                'is_banned': user.is_banned
-            }
-            
-        except Exception as e:
-            logging.error(f"Error in get_token_for_frontend: {str(e)}")
-            return None
