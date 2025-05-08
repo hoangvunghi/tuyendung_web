@@ -92,25 +92,20 @@ SOCIAL_AUTH_SANITIZE_REDIRECTS = False
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
 SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
-SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',
-    'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.auth_allowed',
-    'social_core.pipeline.social_auth.social_user',
-    'accounts.pipeline.associate_by_email',
-    'accounts.pipeline.custom_social_user',
-    'accounts.pipeline.create_user_profile',
-    'accounts.pipeline.get_token_for_frontend',
-)
-
-# Social Auth settings
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'  # URL của view callback
+SOCIAL_AUTH_SESSION_EXPIRATION = False
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://tuyendungtlu.site/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
 SOCIAL_AUTH_EMAIL_UNIQUE = True
 SOCIAL_AUTH_EMAIL_REQUIRED = True
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/api/auth/callback/'
+SOCIAL_AUTH_LOGIN_SUCCESS_URL = '/api/auth/callback/'
+SOCIAL_AUTH_DISCONNECT_REDIRECT_URL = '/'
+SOCIAL_AUTH_INACTIVE_USER_URL = '/login-error'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error'
+SOCIAL_AUTH_BACKEND_ERROR_URL = '/login-error'
 
 # Đường dẫn API
 API_URL_PREFIX = '/api'  # Prefix cho tất cả các API endpoints

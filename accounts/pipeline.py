@@ -102,7 +102,12 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
     Tạo JWT token và thêm vào session
     """
     if backend.name == 'google-oauth2':
-        logger.info(f"Starting get_token_for_frontend for user: {user.email}")
+        logger.info("Starting get_token_for_frontend")
+        
+        if not user:
+            logger.error("User is None in get_token_for_frontend")
+            return None
+            
         try:
             refresh = RefreshToken.for_user(user)
             refresh["is_active"] = user.is_active
@@ -110,17 +115,32 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
             role = "admin" if user.is_superuser else user.get_role()
             refresh["role"] = role
             
+            # Lưu token vào session
             strategy = kwargs.get('strategy')
-            if strategy:
+            if strategy and hasattr(strategy, 'session_set'):
                 strategy.session_set('access_token', str(refresh.access_token))
                 strategy.session_set('refresh_token', str(refresh))
                 strategy.session_set('user_role', role)
                 strategy.session_set('user_email', user.email)
+                strategy.session_set('is_active', user.is_active)
+                strategy.session_set('is_banned', user.is_banned)
                 logger.info(f"Tokens saved to session for user: {user.email}")
             else:
-                logger.warning(f"Strategy not found in kwargs for user: {user.email}. Cannot save tokens to session.")
+                logger.warning("Strategy not found or invalid. Cannot save tokens to session.")
+                
+            return {
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+                'role': role,
+                'email': user.email,
+                'is_active': user.is_active,
+                'is_banned': user.is_banned
+            }
+            
         except Exception as e:
-            logger.error(f"Error in get_token_for_frontend for user: {user.email}: {str(e)}", exc_info=True)
+            logger.error(f"Error in get_token_for_frontend: {str(e)}", exc_info=True)
+            return None
+    return None
 
 def associate_by_email(backend, details, user=None, *args, **kwargs):
     """Liên kết tài khoản nếu email đã tồn tại.
