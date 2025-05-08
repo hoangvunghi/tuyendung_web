@@ -106,6 +106,21 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
 
     except Exception as e:
         logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+        # Tạo một social_user mặc định nếu có lỗi
+        try:
+            if user:
+                social_auth = user.social_auth.create(
+                    provider=backend.name,
+                    uid=uid,
+                    extra_data=details
+                )
+                return {
+                    'user': user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+        except Exception as inner_e:
+            logger.error(f"Error creating fallback social_auth: {str(inner_e)}", exc_info=True)
         return None
 
 def create_user_profile(backend, user, response, *args, **kwargs):
