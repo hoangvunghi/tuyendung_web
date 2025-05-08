@@ -94,41 +94,36 @@ def create_user_profile(backend, user, response, *args, **kwargs):
         raise  # Re-raise to halt pipeline and debug
 def get_token_for_frontend(backend, user, response, *args, **kwargs):
     """
-    Create JWT token and add to session
+    Tạo JWT token và thêm vào session
     """
-    if backend.name != 'google-oauth2':
-        logger.info("Backend is not google-oauth2, skipping get_token_for_frontend")
-        return None
-
-    if not user:
-        logger.error("No user provided to get_token_for_frontend")
-        return None
-
     logger.info(f"Starting get_token_for_frontend for user: {user.email}")
     try:
         refresh = RefreshToken.for_user(user)
         refresh["is_active"] = user.is_active
-        refresh["is_banned"] = getattr(user, 'is_banned', False)
+        refresh["is_banned"] = user.is_banned
         role = "admin" if user.is_superuser else user.get_role()
         refresh["role"] = role
-
+        
+        # Lưu token vào session
         strategy = kwargs.get('strategy')
-        if strategy:
+        if strategy and hasattr(strategy, 'session_set'):
             strategy.session_set('access_token', str(refresh.access_token))
             strategy.session_set('refresh_token', str(refresh))
             strategy.session_set('user_role', role)
             strategy.session_set('user_email', user.email)
+            strategy.session_set('is_active', user.is_active)
+            strategy.session_set('is_banned', user.is_banned)
             logger.info(f"Tokens saved to session for user: {user.email}")
         else:
-            logger.warning(f"Strategy not found in kwargs for user: {user.email}. Cannot save tokens to session.")
-
+            logger.warning(f"Strategy not found or invalid for user: {user.email}. Cannot save tokens to session.")
+            
         return {
-            'user': user,
-            'tokens': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            },
-            'role': role
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+            'role': role,
+            'email': user.email,
+            'is_active': user.is_active,
+            'is_banned': user.is_banned
         }
     except Exception as e:
         logger.error(f"Error in get_token_for_frontend for user: {user.email}: {str(e)}", exc_info=True)
