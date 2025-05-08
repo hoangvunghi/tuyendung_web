@@ -87,7 +87,11 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'prompt': 'consent',
 }
 
-# Social Auth Pipeline
+# Thêm cấu hình state
+SOCIAL_AUTH_SANITIZE_REDIRECTS = False
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
+SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',

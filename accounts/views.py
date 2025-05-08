@@ -582,11 +582,14 @@ def complete_google_oauth2(request):
     Xử lý callback từ Google OAuth2 khi sử dụng social-auth-app-django.
     Endpoint này được gọi bởi social-auth-app-django sau khi xác thực Google.
     """
+    logging.info("Starting complete_google_oauth2")
     
     # Lấy code từ query params (nếu là GET) hoặc từ request body (nếu là POST)
     code = request.GET.get('code') if request.method == 'GET' else request.data.get('code')
+    state = request.GET.get('state') if request.method == 'GET' else request.data.get('state')
     
     if not code:
+        logging.error("No code provided in request")
         return Response({
             'message': 'Không tìm thấy code trong request',
             'status': status.HTTP_400_BAD_REQUEST
@@ -599,18 +602,20 @@ def complete_google_oauth2(request):
         # Gọi hàm do_auth của social-auth-app-django
         @psa('social:complete')
         def authenticate(request, backend):
-            return request.backend.do_auth(code)
+            return request.backend.do_auth(code, state=state)
         
         # Thực hiện xác thực
         user = authenticate(request, backend)
         
         if not user:
+            logging.error("Authentication failed - no user returned")
             return Response({
                 'message': 'Xác thực Google thất bại',
                 'status': status.HTTP_401_UNAUTHORIZED
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         if not user.is_active:
+            logging.error(f"User {user.email} is not active")
             return Response({
                 'message': 'Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.',
                 'status': status.HTTP_401_UNAUTHORIZED
@@ -621,6 +626,7 @@ def complete_google_oauth2(request):
         refresh["is_active"] = user.is_active
         role = "admin" if user.is_superuser else user.get_role() if hasattr(user, 'get_role') else 'user'
         refresh["role"] = role
+        
         # Trả về tokens
         return Response({
             'message': 'Đăng nhập với Google thành công',
@@ -634,6 +640,7 @@ def complete_google_oauth2(request):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
+        logging.error(f"Error in complete_google_oauth2: {str(e)}", exc_info=True)
         return Response({
             'message': f'Lỗi khi xử lý Google OAuth: {str(e)}',
             'status': status.HTTP_500_INTERNAL_SERVER_ERROR
