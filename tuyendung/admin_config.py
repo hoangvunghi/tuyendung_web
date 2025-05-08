@@ -392,7 +392,7 @@ UNFOLD = {
         {
             "icon": "home",
             "title": _("Trang chủ"),
-            "link": "http://localhost:5173",
+            "link": "https://tuyendungtlu.site",
         },
         {
             "icon": "bar_chart", 
