@@ -100,30 +100,61 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
     logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
     
     try:
-        # Gọi hàm social_user gốc
-        result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
-        logger.info(f"custom_social_user result: {result}")
-        return result
-    except AuthAlreadyAssociated:
-        logger.info(f"AuthAlreadyAssociated for uid: {uid}")
-        try:
-            # Nếu tài khoản đã liên kết, tìm user hiện tại
-            existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
-            if existing_user:
-                logger.info(f"Found existing user: {existing_user.email}")
-                # Trả về user hiện tại để pipeline tiếp tục
+        # Kiểm tra xem user đã tồn tại chưa
+        if user:
+            logger.info(f"User already exists: {user.email}")
+            return {
+                'user': user,
+                'is_new': False
+            }
+
+        # Tìm user theo email
+        email = details.get('email')
+        if email:
+            try:
+                existing_user = User.objects.get(email=email)
+                logger.info(f"Found existing user by email: {email}")
                 return {
                     'user': existing_user,
                     'is_new': False
                 }
-            logger.warning(f"No user found for provider: {backend.name}, uid: {uid}")
-            return None
+            except User.DoesNotExist:
+                logger.info(f"No existing user found for email: {email}")
+
+        # Tìm user theo social auth
+        try:
+            existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            logger.info(f"Found existing user by social auth: {existing_user.email}")
+            return {
+                'user': existing_user,
+                'is_new': False
+            }
         except User.DoesNotExist:
-            logger.error(f"User not found for provider: {backend.name}, uid: {uid}")
+            logger.info(f"No existing user found for provider: {backend.name}, uid: {uid}")
+
+        # Nếu không tìm thấy user, tạo mới
+        if not user and not email:
+            logger.error("No email provided in details")
             return None
-        except Exception as e:
-            logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
-            return None
+
+        # Tạo user mới
+        user = User.objects.create(
+            email=email,
+            username=email,
+            first_name=details.get('first_name', ''),
+            last_name=details.get('last_name', ''),
+            is_active=True
+        )
+        logger.info(f"Created new user: {email}")
+
+        return {
+            'user': user,
+            'is_new': True
+        }
+
+    except Exception as e:
+        logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+        return None
 
 def get_token_for_frontend(backend, user, response, *args, **kwargs):
     """
