@@ -41,28 +41,14 @@ def associate_by_email(backend, details, user=None, *args, **kwargs):
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
     """Pipeline tùy chỉnh để xử lý social user."""
     logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
+    logger.info(f"Details: {details}")
+    logger.info(f"User: {user}")
     
     try:
         email = details.get('email')
         if not email:
             logger.error("No email provided in details")
-            # Tạo user mặc định nếu không có email
-            user = User.objects.create(
-                username=f"user_{uid}",
-                email=f"user_{uid}@example.com",
-                is_active=True
-            )
-            social_auth = UserSocialAuth.objects.create(
-                user=user,
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': user,
-                'is_new': True,
-                'social_user': social_auth
-            }
+            return None
 
         # Kiểm tra xem social auth đã tồn tại chưa
         try:
@@ -75,37 +61,6 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             }
         except UserSocialAuth.DoesNotExist:
             logger.info(f"No existing social auth found for uid: {uid}")
-
-        # Nếu user đã tồn tại, kiểm tra email có khớp không
-        if user:
-            if user.email != email:
-                logger.error(f"User email mismatch: {user.email} != {email}")
-                # Tạo user mới với email từ Google
-                user = User.objects.create(
-                    email=email,
-                    username=email,
-                    is_active=True
-                )
-            logger.info(f"Using existing user: {user.email}")
-            try:
-                social_auth = UserSocialAuth.objects.create(
-                    user=user,
-                    provider=backend.name,
-                    uid=uid,
-                    extra_data=details
-                )
-                return {
-                    'user': user,
-                    'is_new': False,
-                    'social_user': social_auth
-                }
-            except IntegrityError:
-                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                return {
-                    'user': user,
-                    'is_new': False,
-                    'social_user': social_auth
-                }
 
         # Tìm user theo email
         try:
@@ -160,65 +115,7 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
 
     except Exception as e:
         logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
-        # Tạo một social_user mặc định nếu có lỗi
-        try:
-            if user:
-                try:
-                    social_auth = UserSocialAuth.objects.create(
-                        user=user,
-                        provider=backend.name,
-                        uid=uid,
-                        extra_data=details
-                    )
-                    return {
-                        'user': user,
-                        'is_new': False,
-                        'social_user': social_auth
-                    }
-                except IntegrityError:
-                    social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                    return {
-                        'user': user,
-                        'is_new': False,
-                        'social_user': social_auth
-                    }
-            else:
-                # Tạo user mới nếu không có user
-                user = User.objects.create(
-                    email=f"user_{uid}@example.com",
-                    username=f"user_{uid}",
-                    is_active=True
-                )
-                social_auth = UserSocialAuth.objects.create(
-                    user=user,
-                    provider=backend.name,
-                    uid=uid,
-                    extra_data=details
-                )
-                return {
-                    'user': user,
-                    'is_new': True,
-                    'social_user': social_auth
-                }
-        except Exception as inner_e:
-            logger.error(f"Error creating fallback social_auth: {str(inner_e)}", exc_info=True)
-            # Tạo user và social_auth mặc định cuối cùng
-            user = User.objects.create(
-                email=f"user_{uid}@example.com",
-                username=f"user_{uid}",
-                is_active=True
-            )
-            social_auth = UserSocialAuth.objects.create(
-                user=user,
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': user,
-                'is_new': True,
-                'social_user': social_auth
-            }
+        return None
 
 def create_user_profile(backend, user, response, *args, **kwargs):
     """Pipeline để tạo/cập nhật user profile sau khi đăng nhập Google."""
