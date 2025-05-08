@@ -86,67 +86,21 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'access_type': 'offline',
     'prompt': 'consent',
 }
-
-# Social Auth Pipeline
 SOCIAL_AUTH_PIPELINE = (
-    # Lưu email vào session để sử dụng sau này
-    'accounts.pipeline.save_email_to_session',
-    
-    # Lấy thông tin từ social provider
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
-    
-    # Trích xuất và lưu email từ Google OAuth2
-    'accounts.pipeline.extract_email_from_google',
-    
-    # Gọi social_user - có thể gây lỗi AuthAlreadyAssociated, sẽ được middleware xử lý
-    'social_core.pipeline.social_auth.social_user',
-    
-    # Xử lý user
-    'accounts.pipeline.associate_by_email',
-    'accounts.pipeline.custom_social_user',
-    
-    # Các bước còn lại
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-    
-    # Tạo profile và role
-    'accounts.pipeline.create_user_profile',
-    
-    # Tạo token
-    'accounts.pipeline.get_token_for_frontend',
+    'accounts.pipeline.create_user_profile',      # Pipeline tạo/cập nhật user
+    'accounts.pipeline.get_token_for_frontend',  # Thêm lại pipeline tạo token
 )
 
-# Social Auth settings
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'
-SOCIAL_AUTH_LOGIN_ERROR_URL = '/api/auth/error/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'  # URL của view callback
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://tuyendungtlu.site/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
 SOCIAL_AUTH_EMAIL_UNIQUE = True
 SOCIAL_AUTH_EMAIL_REQUIRED = True
-SOCIAL_AUTH_SANITIZE_REDIRECTS = False
-SOCIAL_AUTH_RAISE_EXCEPTIONS = False
-SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
-SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
-
-# Xử lý lỗi Social Auth
-SOCIAL_AUTH_LOGIN_ERROR_URL = '/api/auth/error/'
-SOCIAL_AUTH_RAISE_EXCEPTIONS = False
-SOCIAL_AUTH_PROCESS_EXCEPTIONS = 'social_core.pipeline.social_auth.social_details'
-
-# Cấu hình redirect URLs 
-SOCIAL_AUTH_DISCONNECT_REDIRECT_URL = '/api/auth/error/'
-SOCIAL_AUTH_NEW_ASSOCIATION_REDIRECT_URL = '/api/auth/error/'
-
-# Thiết lập cho SocialAuthExceptionMiddleware
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Nếu dùng HTTPS
-
-# Lưu trữ thông tin trong session
-SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['email', 'auth_already_user_id', 'auth_already_email']
 
 # Đường dẫn API
 API_URL_PREFIX = '/api'  # Prefix cho tất cả các API endpoints
@@ -212,7 +166,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'accounts.middleware.CustomSocialAuthExceptionMiddleware',  # Middleware tùy chỉnh thay thế SocialAuthExceptionMiddleware
+    'social_django.middleware.SocialAuthExceptionMiddleware', # Middleware tùy chỉnh thay thế SocialAuthExceptionMiddleware
 ]
 # CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'tuyendung.urls'
