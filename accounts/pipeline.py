@@ -92,6 +92,39 @@ def create_user_profile(backend, user, response, *args, **kwargs):
     except Exception as e:
         logger.error(f"Error in create_user_profile for {response.get('email', 'unknown')}: {str(e)}", exc_info=True)
         raise  # Re-raise to halt pipeline and debug
+
+def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
+    """
+    Pipeline tùy chỉnh để xử lý social user
+    """
+    logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
+    
+    try:
+        # Gọi hàm social_user gốc
+        result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
+        logger.info(f"custom_social_user result: {result}")
+        return result
+    except AuthAlreadyAssociated:
+        logger.info(f"AuthAlreadyAssociated for uid: {uid}")
+        try:
+            # Nếu tài khoản đã liên kết, tìm user hiện tại
+            existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            if existing_user:
+                logger.info(f"Found existing user: {existing_user.email}")
+                # Trả về user hiện tại để pipeline tiếp tục
+                return {
+                    'user': existing_user,
+                    'is_new': False
+                }
+            logger.warning(f"No user found for provider: {backend.name}, uid: {uid}")
+            return None
+        except User.DoesNotExist:
+            logger.error(f"User not found for provider: {backend.name}, uid: {uid}")
+            return None
+        except Exception as e:
+            logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+            return None
+
 def get_token_for_frontend(backend, user, response, *args, **kwargs):
     """
     Tạo JWT token và thêm vào session
@@ -128,6 +161,7 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
     except Exception as e:
         logger.error(f"Error in get_token_for_frontend for user: {user.email}: {str(e)}", exc_info=True)
         return None
+
 def associate_by_email(backend, details, user=None, *args, **kwargs):
     """Liên kết tài khoản nếu email đã tồn tại.
     """
@@ -179,35 +213,3 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
             except User.DoesNotExist:
                 pass
         return None
-
-def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
-    """
-    Custom pipeline to wrap social_user and handle errors
-    """
-    logger.info(f"Starting custom_social_user with strategy: {type(strategy)}, backend: {type(backend)}, uid: {uid}, user: {user}")
-    if not hasattr(backend, 'name'):
-        logger.error(f"Backend is not a valid backend object: {backend}. Expected a backend with 'name' attribute.")
-        raise ValueError("Invalid backend object passed to custom_social_user")
-
-    logger.info(f"Processing backend: {backend.name}, uid: {uid}")
-    try:
-        result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
-        logger.info(f"custom_social_user result: {result}")
-        return result
-    except AuthAlreadyAssociated:
-        logger.warning(f"AuthAlreadyAssociated for uid: {uid}, backend: {backend.name}")
-        existing_user = User.objects.filter(
-            social_auth__provider=backend.name,
-            social_auth__uid=uid
-        ).first()
-        if existing_user:
-            logger.info(f"Found existing user: {existing_user.email}")
-            return {
-                'user': existing_user,
-                'is_new': False
-            }
-        logger.error(f"No user found for uid: {uid}, backend: {backend.name}")
-        raise
-    except Exception as e:
-        logger.error(f"Error in custom_social_user for uid: {uid}, backend: {backend.name}: {str(e)}", exc_info=True)
-        raise
