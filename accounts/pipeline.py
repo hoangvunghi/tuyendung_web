@@ -105,7 +105,8 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             logger.info(f"User already exists: {user.email}")
             return {
                 'user': user,
-                'is_new': False
+                'is_new': False,
+                'social_user': user.social_auth.get(provider=backend.name, uid=uid)
             }
 
         # Tìm user theo email
@@ -114,9 +115,15 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
             try:
                 existing_user = User.objects.get(email=email)
                 logger.info(f"Found existing user by email: {email}")
+                social_user, created = existing_user.social_auth.get_or_create(
+                    provider=backend.name,
+                    uid=uid,
+                    defaults={'extra_data': details}
+                )
                 return {
                     'user': existing_user,
-                    'is_new': False
+                    'is_new': False,
+                    'social_user': social_user
                 }
             except User.DoesNotExist:
                 logger.info(f"No existing user found for email: {email}")
@@ -124,10 +131,12 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         # Tìm user theo social auth
         try:
             existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            social_user = existing_user.social_auth.get(provider=backend.name, uid=uid)
             logger.info(f"Found existing user by social auth: {existing_user.email}")
             return {
                 'user': existing_user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_user
             }
         except User.DoesNotExist:
             logger.info(f"No existing user found for provider: {backend.name}, uid: {uid}")
@@ -147,9 +156,17 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         )
         logger.info(f"Created new user: {email}")
 
+        # Tạo social auth cho user mới
+        social_user = user.social_auth.create(
+            provider=backend.name,
+            uid=uid,
+            extra_data=details
+        )
+
         return {
             'user': user,
-            'is_new': True
+            'is_new': True,
+            'social_user': social_user
         }
 
     except Exception as e:
@@ -227,9 +244,15 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         # Kiểm tra xem user đã tồn tại chưa
         if user:
             logger.info(f"User already exists: {user.email}")
+            social_user, created = user.social_auth.get_or_create(
+                provider=backend.name,
+                uid=uid,
+                defaults={'extra_data': details}
+            )
             return {
                 'user': user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_user
             }
 
         # Tìm user theo email
@@ -242,15 +265,23 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
                 # Kiểm tra xem user đã liên kết với Google chưa
                 if existing_user.social_auth.filter(provider='google-oauth2').exists():
                     logger.info(f"User {email} already associated with Google")
+                    social_user = existing_user.social_auth.get(provider=backend.name)
                     return {
                         'user': existing_user,
-                        'is_new': False
+                        'is_new': False,
+                        'social_user': social_user
                     }
                 else:
                     logger.info(f"User {email} not associated with Google yet")
+                    social_user = existing_user.social_auth.create(
+                        provider=backend.name,
+                        uid=uid,
+                        extra_data=details
+                    )
                     return {
                         'user': existing_user,
-                        'is_new': False
+                        'is_new': False,
+                        'social_user': social_user
                     }
             except User.DoesNotExist:
                 logger.info(f"No existing user found for email: {email}")
@@ -258,10 +289,12 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         # Tìm user theo social auth
         try:
             existing_user = User.objects.get(social_auth__provider=backend.name, social_auth__uid=uid)
+            social_user = existing_user.social_auth.get(provider=backend.name, uid=uid)
             logger.info(f"Found existing user by social auth: {existing_user.email}")
             return {
                 'user': existing_user,
-                'is_new': False
+                'is_new': False,
+                'social_user': social_user
             }
         except User.DoesNotExist:
             logger.info(f"No existing user found for provider: {backend.name}, uid: {uid}")
@@ -281,9 +314,17 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         )
         logger.info(f"Created new user: {email}")
 
+        # Tạo social auth cho user mới
+        social_user = user.social_auth.create(
+            provider=backend.name,
+            uid=uid,
+            extra_data=details
+        )
+
         return {
             'user': user,
-            'is_new': True
+            'is_new': True,
+            'social_user': social_user
         }
 
     except Exception as e:
