@@ -56,68 +56,61 @@ def auth_allowed(backend, details, response, *args, **kwargs):
     
     return True
 
-def social_auth_exception(backend, details, response, *args, **kwargs):
+def social_auth_exception(backend, strategy, details, response, uid=None, user=None, social=None, *args, **kwargs):
     """
-    Xử lý ngoại lệ AuthAlreadyAssociated - Cho phép đăng nhập với các tài khoản social khác nhau
-    nhưng sử dụng cùng một email.
+    Xử lý ngoại lệ trong quá trình Social Auth.
+    Hàm này được gọi khi có ngoại lệ xảy ra trong pipeline.
+    Nếu là AuthAlreadyAssociated, tìm user đang tồn tại và đăng nhập.
     """
-    logger.info(f"Starting social_auth_exception handling")
+    logger.info(f"Social Auth Exception Handler được gọi")
     
-    # Lấy thông tin ngoại lệ
+    # Lấy ngoại lệ
     if 'exception' not in kwargs:
+        logger.error("No exception in kwargs")
         return None
-        
-    exception = kwargs['exception']
-    logger.info(f"Exception type: {type(exception).__name__}")
     
-    # Xử lý trường hợp AuthAlreadyAssociated
+    exception = kwargs['exception']
+    logger.info(f"Exception type: {type(exception).__name__}, message: {str(exception)}")
+    
+    # Xử lý AuthAlreadyAssociated
     if isinstance(exception, AuthAlreadyAssociated):
-        email = details.get('email')
-        logger.info(f"Handling AuthAlreadyAssociated for email {email}")
+        logger.info(f"Processing AuthAlreadyAssociated for: {details.get('email', 'no-email')}")
         
-        # Nếu trong ngoại lệ có thông tin về social auth 
-        if hasattr(exception, 'social') and exception.social:
-            social = exception.social
-            logger.info(f"Found social account: {social.provider} for user: {social.user.email}")
-            return {'user': social.user, 'is_new': False}
-            
-        # Tìm social auth đang tồn tại với uid này
-        uid = kwargs.get('uid')
-        if uid:
-            try:
-                social = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                logger.info(f"Found existing social auth uid: {uid}, user: {social.user.email}")
-                return {'user': social.user, 'is_new': False}
-            except UserSocialAuth.DoesNotExist:
-                logger.info(f"No existing social auth found for uid: {uid}")
-                
+        # Nếu có thông tin về social auth gây lỗi
+        if social:
+            logger.info(f"Social auth info: provider={social.provider}, user={social.user.email if social.user else 'None'}")
+            if social.user:
+                # Lưu thông tin user vào session để xử lý ở hàm error view
+                if strategy and hasattr(strategy, 'session_set'):
+                    strategy.session_set('auth_already_user_id', social.user.id)
+                    strategy.session_set('auth_already_email', social.user.email)
+                    logger.info(f"Saved user info to session: {social.user.id}, {social.user.email}")
+                return social.user
+        
         # Tìm user theo email
+        email = details.get('email')
         if email:
             try:
                 user = User.objects.get(email=email)
-                logger.info(f"Found existing user with email {email} - allowing login")
+                logger.info(f"Found existing user with email {email}")
                 
-                # Tìm social auth liên kết với user này
-                try:
-                    socials = UserSocialAuth.objects.filter(user=user)
-                    if socials.exists():
-                        social_info = [f"{s.provider}:{s.uid}" for s in socials]
-                        logger.info(f"User has social auths: {', '.join(social_info)}")
-                except Exception as e:
-                    logger.error(f"Error querying social auths: {str(e)}")
+                # Lưu thông tin user vào session
+                if strategy and hasattr(strategy, 'session_set'):
+                    strategy.session_set('auth_already_user_id', user.id)
+                    strategy.session_set('auth_already_email', user.email)
+                    logger.info(f"Saved user info to session: {user.id}, {user.email}")
                 
-                # Trả về user đã tìm thấy
-                return {'user': user, 'is_new': False}
+                # Redirect về trang lỗi nhưng với thông tin để xử lý đăng nhập
+                redirect_url = f"{strategy.build_absolute_uri('/api/auth/error/')}?error_type=AuthAlreadyAssociated&email={email}"
+                logger.info(f"Redirecting to: {redirect_url}")
+                
+                # Trả về user để social auth không raise exception nữa
+                return user
             except User.DoesNotExist:
-                logger.error(f"No user found with email {email} despite AuthAlreadyAssociated error")
-                
-        # Log chi tiết về AuthAlreadyAssociated
-        logger.error(f"AuthAlreadyAssociated details: {vars(exception)}")
-        
-    # Log và re-raise ngoại lệ khác để debug
-    logger.error(f"Exception details: {str(exception)}")
+                logger.error(f"No user found with email {email}")
     
-    # Không re-raise exception để tiếp tục pipeline
+    # Log chi tiết về exception để debug
+    logger.error(f"Exception details: {vars(exception) if hasattr(exception, '__dict__') else str(exception)}")
     return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):

@@ -129,9 +129,15 @@ SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
 SOCIAL_AUTH_EMAIL_UNIQUE = True
 SOCIAL_AUTH_EMAIL_REQUIRED = True
 SOCIAL_AUTH_SANITIZE_REDIRECTS = False
-SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
 SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
+
+# Xử lý lỗi trong pipeline
+SOCIAL_AUTH_PIPELINE_EXCEPTION_HANDLER = 'accounts.pipeline.social_auth_exception'
+
+# Lưu trữ thông tin trong session
+SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['email', 'auth_already_user_id', 'auth_already_email']
 
 # Đường dẫn API
 API_URL_PREFIX = '/api'  # Prefix cho tất cả các API endpoints
