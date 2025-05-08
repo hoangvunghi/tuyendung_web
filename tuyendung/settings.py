@@ -332,10 +332,6 @@ if DEBUG:
                 'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
                 'style': '{',
             },
-            'simple': {
-                'format': '{levelname} {message}',
-                'style': '{',
-            },
         },
         'handlers': {
             'console': {
@@ -345,7 +341,7 @@ if DEBUG:
         },
         'root': {
             'handlers': ['console'],
-            'level': 'INFO', # Hiển thị log từ mức INFO trở lên
+            'level': 'INFO',
         },
         'loggers': {
             'django': {
@@ -353,31 +349,23 @@ if DEBUG:
                 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
                 'propagate': False,
             },
-            # Thêm logger cho app accounts nếu muốn tinh chỉnh riêng
-            'accounts': { 
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            # Thêm các logger khác
-            'channels': {
-                'handlers': ['console'],
-                'level': 'DEBUG',  # Set to DEBUG for detailed logs
-                'propagate': True,
-            },
-            'notifications': {
+            'accounts': {
                 'handlers': ['console'],
                 'level': 'DEBUG',
                 'propagate': True,
             },
-            'daphne': {
+            'social_django': {
                 'handlers': ['console'],
-                'level': 'INFO',
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'social_core': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
                 'propagate': True,
             },
         },
     }
-
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')

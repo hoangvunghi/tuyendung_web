@@ -189,7 +189,12 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
     """
     Custom pipeline to wrap social_user and handle errors
     """
-    logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}, user: {user}")
+    logger.info(f"Starting custom_social_user with strategy: {type(strategy)}, backend: {type(backend)}, uid: {uid}, user: {user}")
+    if not hasattr(backend, 'name'):
+        logger.error(f"Backend is not a valid backend object: {backend}. Expected a backend with 'name' attribute.")
+        raise ValueError("Invalid backend object passed to custom_social_user")
+
+    logger.info(f"Processing backend: {backend.name}, uid: {uid}")
     try:
         result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
         logger.info(f"custom_social_user result: {result}")
@@ -209,5 +214,5 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         logger.error(f"No user found for uid: {uid}, backend: {backend.name}")
         raise
     except Exception as e:
-        logger.error(f"Error in custom_social_user for uid: {uid}: {str(e)}", exc_info=True)
+        logger.error(f"Error in custom_social_user for uid: {uid}, backend: {backend.name}: {str(e)}", exc_info=True)
         raise
