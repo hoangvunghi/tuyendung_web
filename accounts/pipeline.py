@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 def associate_by_email(backend, details, user=None, *args, **kwargs):
     """Liên kết tài khoản nếu email đã tồn tại."""
     logger.info(f"Starting associate_by_email for email: {details.get('email')}")
+    logger.info(f"Backend: {backend.name}")
+    logger.info(f"Details: {details}")
+    logger.info(f"User: {user}")
+    logger.info(f"Args: {args}")
+    logger.info(f"Kwargs: {kwargs}")
     
     if user:
         logger.info(f"User already logged in: {user.email}")
