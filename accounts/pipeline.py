@@ -8,8 +8,7 @@ from social_core.exceptions import AuthAlreadyAssociated
 from social_django.models import UserSocialAuth
 from django.db.utils import IntegrityError
 
-
-User = get_user_model()
+User = UserAccount
 logger = logging.getLogger(__name__)
 
 def associate_by_email(backend, details, user=None, *args, **kwargs):
@@ -18,8 +17,6 @@ def associate_by_email(backend, details, user=None, *args, **kwargs):
     logger.info(f"Backend: {backend.name}")
     logger.info(f"Details: {details}")
     logger.info(f"User: {user}")
-    logger.info(f"Args: {args}")
-    logger.info(f"Kwargs: {kwargs}")
     
     if user:
         logger.info(f"User already logged in: {user.email}")
@@ -62,61 +59,10 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         except UserSocialAuth.DoesNotExist:
             logger.info(f"No existing social auth found for uid: {uid}")
 
-        # Tìm user theo email từ Google
-        try:
-            existing_user = User.objects.get(email=email)
-            logger.info(f"Found existing user by email: {email}")
-            
-            # Kiểm tra xem user này đã liên kết với Google chưa
-            if existing_user.social_auth.filter(provider=backend.name).exists():
-                logger.info(f"User {email} already associated with {backend.name}")
-                social_auth = existing_user.social_auth.get(provider=backend.name)
-                return {
-                    'user': existing_user,
-                    'is_new': False,
-                    'social_user': social_auth
-                }
-            else:
-                # Kiểm tra xem uid này đã được sử dụng bởi user khác chưa
-                try:
-                    other_social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                    logger.info(f"Found existing social auth for uid {uid} with user {other_social_auth.user.email}")
-                    return {
-                        'user': other_social_auth.user,
-                        'is_new': False,
-                        'social_user': other_social_auth
-                    }
-                except UserSocialAuth.DoesNotExist:
-                    # Tạo social auth mới cho user này
-                    social_auth = UserSocialAuth.objects.create(
-                        user=existing_user,
-                        provider=backend.name,
-                        uid=uid,
-                        extra_data=details
-                    )
-                    return {
-                        'user': existing_user,
-                        'is_new': False,
-                        'social_user': social_auth
-                    }
-        except User.DoesNotExist:
-            # Kiểm tra xem uid này đã được sử dụng bởi user khác chưa
+        # Nếu đã có user từ các bước trước, sử dụng user đó
+        if user:
+            logger.info(f"Using existing user from previous steps: {user.email}")
             try:
-                other_social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-                logger.info(f"Found existing social auth for uid {uid} with user {other_social_auth.user.email}")
-                return {
-                    'user': other_social_auth.user,
-                    'is_new': False,
-                    'social_user': other_social_auth
-                }
-            except UserSocialAuth.DoesNotExist:
-                logger.info(f"Creating new user for email: {email}")
-                # Tạo user mới với email từ Google
-                user = User.objects.create(
-                    email=email,
-                    username=email,
-                    is_active=True
-                )
                 social_auth = UserSocialAuth.objects.create(
                     user=user,
                     provider=backend.name,
@@ -125,9 +71,60 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                 )
                 return {
                     'user': user,
-                    'is_new': True,
+                    'is_new': False,
                     'social_user': social_auth
                 }
+            except IntegrityError:
+                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': social_auth.user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+
+        # Tìm user theo email
+        try:
+            existing_user = User.objects.get(email=email)
+            logger.info(f"Found existing user by email: {email}")
+            try:
+                social_auth = UserSocialAuth.objects.create(
+                    user=existing_user,
+                    provider=backend.name,
+                    uid=uid,
+                    extra_data=details
+                )
+                return {
+                    'user': existing_user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+            except IntegrityError:
+                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': social_auth.user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+        except User.DoesNotExist:
+            logger.info(f"Creating new user for email: {email}")
+            # Tạo user mới với email từ Google
+            username = email.split('@')[0]  # Lấy phần trước @ làm username
+            user = User.objects.create(
+                email=email,
+                username=username,
+                is_active=True
+            )
+            social_auth = UserSocialAuth.objects.create(
+                user=user,
+                provider=backend.name,
+                uid=uid,
+                extra_data=details
+            )
+            return {
+                'user': user,
+                'is_new': True,
+                'social_user': social_auth
+            }
 
     except Exception as e:
         logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
@@ -227,40 +224,46 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
                 logger.error(f"Email mismatch: {user.email} != {email}")
                 return None
             logger.info(f"Using existing user: {user.email}")
-            social_user, created = user.social_auth.get_or_create(
-                provider=backend.name,
-                uid=uid,
-                defaults={'extra_data': details}
-            )
-            return {
-                'user': user,
-                'is_new': False,
-                'social_user': social_user
-            }
+            try:
+                social_user = UserSocialAuth.objects.create(
+                    user=user,
+                    provider=backend.name,
+                    uid=uid,
+                    extra_data=details
+                )
+                return {
+                    'user': user,
+                    'is_new': False,
+                    'social_user': social_user
+                }
+            except IntegrityError:
+                social_user = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': social_user.user,
+                    'is_new': False,
+                    'social_user': social_user
+                }
 
         # Tìm user theo email
         try:
             existing_user = User.objects.get(email=email)
             logger.info(f"Found existing user by email: {email}")
-            
-            # Kiểm tra xem user đã liên kết với Google chưa
-            if existing_user.social_auth.filter(provider=backend.name).exists():
-                logger.info(f"User {email} already associated with {backend.name}")
-                social_user = existing_user.social_auth.get(provider=backend.name)
-                return {
-                    'user': existing_user,
-                    'is_new': False,
-                    'social_user': social_user
-                }
-            else:
-                logger.info(f"User {email} not associated with {backend.name} yet")
-                social_user = existing_user.social_auth.create(
+            try:
+                social_user = UserSocialAuth.objects.create(
+                    user=existing_user,
                     provider=backend.name,
                     uid=uid,
                     extra_data=details
                 )
                 return {
                     'user': existing_user,
+                    'is_new': False,
+                    'social_user': social_user
+                }
+            except IntegrityError:
+                social_user = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': social_user.user,
                     'is_new': False,
                     'social_user': social_user
                 }
