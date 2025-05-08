@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from profiles.models import UserInfo
 from accounts.models import UserAccount, Role, UserRole
 from rest_framework_simplejwt.tokens import RefreshToken
+from social_core.pipeline.social_auth import social_user
+from social_core.exceptions import AuthAlreadyAssociated
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
