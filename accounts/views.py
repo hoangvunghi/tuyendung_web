@@ -599,13 +599,12 @@ def complete_google_oauth2(request):
         # Xử lý authentication với social-auth-app-django
         backend = 'google-oauth2'
         
-        # Gọi hàm do_auth của social-auth-app-django
-        @psa('social:complete')
-        def authenticate(request, backend):
-            return request.backend.do_auth(code, state=state)
+        # Sử dụng load_strategy và load_backend thay vì viết lại authenticate
+        strategy = load_strategy(request)
+        backend_obj = load_backend(strategy, backend, redirect_uri=None)
         
-        # Thực hiện xác thực
-        user = authenticate(request, backend)
+        # Thực hiện xác thực với social auth backend
+        user = backend_obj.do_auth(code, state=state)
         
         if not user:
             logging.error("Authentication failed - no user returned")
