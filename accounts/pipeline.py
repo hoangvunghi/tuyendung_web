@@ -16,49 +16,55 @@ def associate_by_email(backend, details, user=None, *args, **kwargs):
     logger.info(f"Starting associate_by_email for email: {details.get('email')}")
     
     if user:
-        logger.info("User already logged in, skipping association")
+        logger.info(f"User already logged in: {user.email}")
         return None
 
     email = details.get('email')
-    if email:
-        try:
-            existing_user = User.objects.get(email=email)
-            logger.info(f"Found existing user with email: {email}")
-            return {'user': existing_user}
-        except User.DoesNotExist:
-            logger.info(f"No existing user found for email: {email}")
-    return None
+    if not email:
+        logger.error("No email provided in details")
+        return None
+
+    try:
+        existing_user = User.objects.get(email=email)
+        logger.info(f"Found existing user with email: {email}")
+        return {'user': existing_user}
+    except User.DoesNotExist:
+        logger.info(f"No existing user found for email: {email}")
+        return None
 
 def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwargs):
     """Pipeline tùy chỉnh để xử lý social user."""
     logger.info(f"Starting custom_social_user for backend: {backend.name}, uid: {uid}")
     
     try:
+        email = details.get('email')
+        if not email:
+            logger.error("No email provided in details")
+            return None
+
         # Kiểm tra xem social auth đã tồn tại chưa
         try:
             social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
-            logger.info(f"Found existing social auth for uid: {uid}")
+            logger.info(f"Found existing social auth for uid: {uid}, user: {social_auth.user.email}")
             return {
                 'user': social_auth.user,
                 'is_new': False
             }
         except UserSocialAuth.DoesNotExist:
-            pass
+            logger.info(f"No existing social auth found for uid: {uid}")
 
-        # Nếu user đã tồn tại, trả về luôn
+        # Nếu user đã tồn tại, kiểm tra email có khớp không
         if user:
-            logger.info(f"User already exists: {user.email}")
+            if user.email != email:
+                logger.error(f"User email mismatch: {user.email} != {email}")
+                return None
+            logger.info(f"Using existing user: {user.email}")
             return {
                 'user': user,
                 'is_new': False
             }
 
         # Tìm user theo email
-        email = details.get('email')
-        if not email:
-            logger.error("No email provided in details")
-            return None
-
         try:
             existing_user = User.objects.get(email=email)
             logger.info(f"Found existing user by email: {email}")
