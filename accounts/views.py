@@ -1,3 +1,4 @@
+import logging
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -1111,3 +1112,45 @@ def delete_premium(request):
             'message': f'Lỗi khi hủy Premium: {str(e)}',
             'status': status.HTTP_400_BAD_REQUEST
         }, status=status.HTTP_400_BAD_REQUEST)
+
+def get_token_for_frontend(backend, user, response, *args, **kwargs):
+    """
+    Tạo JWT token và thêm vào session
+    """
+    if backend.name == 'google-oauth2':
+        logging.info(f"Starting get_token_for_frontend for user: {user.email if user else 'None'}")
+        
+        # Kiểm tra user có tồn tại không
+        if not user:
+            logging.error("User is None in get_token_for_frontend")
+            return None
+            
+        try:
+            refresh = RefreshToken.for_user(user)
+            refresh["is_active"] = user.is_active
+            refresh["is_banned"] = user.is_banned
+            role = "admin" if user.is_superuser else user.get_role()
+            refresh["role"] = role
+            
+            # Lưu token vào session
+            request = kwargs.get('request')
+            if request:
+                request.session['access_token'] = str(refresh.access_token)
+                request.session['refresh_token'] = str(refresh)
+                request.session['user_role'] = role
+                request.session['user_email'] = user.email
+                request.session['is_active'] = user.is_active
+                request.session['is_banned'] = user.is_banned
+                
+            return {
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+                'role': role,
+                'email': user.email,
+                'is_active': user.is_active,
+                'is_banned': user.is_banned
+            }
+            
+        except Exception as e:
+            logging.error(f"Error in get_token_for_frontend: {str(e)}")
+            return None
