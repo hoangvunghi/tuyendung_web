@@ -382,13 +382,83 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
         logger.error(f"Error in handle_auth_already_associated: {str(e)}", exc_info=True)
         return None
 
-def save_email_to_session(strategy, details, *args, **kwargs):
+def save_email_to_session(strategy, details, backend, response, *args, **kwargs):
     """
     Lưu email từ social provider vào session để có thể sử dụng sau này
     (đặc biệt là khi xử lý lỗi AuthAlreadyAssociated)
     """
     email = details.get('email')
+    
+    # Debug thông tin nhận được
+    logger.info(f"save_email_to_session - Email từ details: {email}")
+    logger.info(f"save_email_to_session - Backend: {backend.__class__.__name__}")
+    logger.info(f"save_email_to_session - Details: {details}")
+    
+    # Lưu email vào session
     if email and strategy and hasattr(strategy, 'session_set'):
         logger.info(f"Saving email to session: {email}")
         strategy.session_set('email', email)
+        
+        # Kiểm tra xem email đã được lưu chưa
+        saved_email = strategy.session_get('email')
+        logger.info(f"Email đã lưu trong session: {saved_email}")
+    else:
+        logger.warning(f"Không thể lưu email vào session: email={email}, strategy={strategy}")
+    
+    # Lấy user từ email nếu có
+    if email:
+        try:
+            from .models import UserAccount
+            user = UserAccount.objects.get(email=email)
+            logger.info(f"Tìm thấy user cho email {email}: {user.id}")
+            
+            # Lưu thông tin user vào session
+            if strategy and hasattr(strategy, 'session_set'):
+                strategy.session_set('user_id', user.id)
+                logger.info(f"Đã lưu user_id vào session: {user.id}")
+        except Exception as e:
+            logger.error(f"Lỗi khi tìm user theo email: {str(e)}")
+    
+    return None
+
+def extract_email_from_google(strategy, details, response, backend, *args, **kwargs):
+    """
+    Trích xuất email từ response của Google OAuth2 và lưu vào session.
+    Hàm này được chạy trước khi social_user để đảm bảo email được lưu vào session.
+    """
+    logger.info(f"extract_email_from_google được gọi")
+    
+    # Debug thông tin
+    logger.info(f"Backend name: {backend.name}")
+    logger.info(f"Details: {details}")
+    
+    # Chỉ xử lý nếu là backend Google
+    if backend.name != 'google-oauth2':
+        logger.info(f"Không phải Google OAuth2, bỏ qua")
+        return None
+    
+    # Lấy email từ details
+    email = details.get('email')
+    logger.info(f"Email từ details: {email}")
+    
+    # Lưu email vào session
+    if email and strategy and hasattr(strategy, 'session_set'):
+        strategy.session_set('email', email)
+        logger.info(f"Lưu email vào session: {email}")
+    
+    # Lấy thông tin từ response
+    if response:
+        logger.info(f"Response keys: {response.keys() if isinstance(response, dict) else 'not a dict'}")
+        
+        # Lấy email từ response nếu có
+        if isinstance(response, dict):
+            if 'email' in response:
+                email = response.get('email')
+                logger.info(f"Email từ response: {email}")
+                
+                # Lưu vào session
+                if email and strategy and hasattr(strategy, 'session_set'):
+                    strategy.session_set('email', email)
+                    logger.info(f"Lưu email từ response vào session: {email}")
+    
     return None

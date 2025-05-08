@@ -97,6 +97,9 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
     
+    # Trích xuất và lưu email từ Google OAuth2
+    'accounts.pipeline.extract_email_from_google',
+    
     # Gọi social_user - có thể gây lỗi AuthAlreadyAssociated, sẽ được middleware xử lý
     'social_core.pipeline.social_auth.social_user',
     
