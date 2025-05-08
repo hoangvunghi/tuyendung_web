@@ -92,8 +92,11 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
-    'accounts.pipeline.create_user_profile',      # Pipeline tạo/cập nhật user
-    'accounts.pipeline.get_token_for_frontend',  # Thêm lại pipeline tạo token
+    'accounts.pipeline.associate_by_email',  # Check for existing user by email
+    'social_core.pipeline.social_auth.social_user',
+    'accounts.pipeline.handle_auth_already_associated',  # Handle already-associated accounts
+    'accounts.pipeline.create_user_profile',  # Create/update user profile
+    'accounts.pipeline.get_token_for_frontend',  # Generate tokens
 )
 
 # Social Auth settings
