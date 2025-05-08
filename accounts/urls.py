@@ -3,7 +3,7 @@ from .views import (
     login, register, token_refresh, forgot_password_view, 
     reset_password_view, social_auth_token,
     complete_google_profile, set_role_for_user, get_user_info,
-    delete_premium, social_auth_error_view
+    delete_premium
 )
 from . import views
 
