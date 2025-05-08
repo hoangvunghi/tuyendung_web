@@ -97,10 +97,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
     
-    # Xử lý lỗi trước social_user để có thể bắt lỗi AuthAlreadyAssociated
-    'accounts.pipeline.social_auth_exception',
-    
-    # Gọi social_user sau khi đã xử lý ngoại lệ có thể xảy ra
+    # Gọi social_user - có thể gây lỗi AuthAlreadyAssociated, sẽ được middleware xử lý
     'social_core.pipeline.social_auth.social_user',
     
     # Xử lý user
@@ -133,8 +130,17 @@ SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
 SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
 
-# Xử lý lỗi trong pipeline
-SOCIAL_AUTH_PIPELINE_EXCEPTION_HANDLER = 'accounts.pipeline.social_auth_exception'
+# Xử lý lỗi Social Auth
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/api/auth/error/'
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+SOCIAL_AUTH_PROCESS_EXCEPTIONS = 'social_core.pipeline.social_auth.social_details'
+
+# Cấu hình redirect URLs 
+SOCIAL_AUTH_DISCONNECT_REDIRECT_URL = '/api/auth/error/'
+SOCIAL_AUTH_NEW_ASSOCIATION_REDIRECT_URL = '/api/auth/error/'
+
+# Thiết lập cho SocialAuthExceptionMiddleware
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # Nếu dùng HTTPS
 
 # Lưu trữ thông tin trong session
 SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['email', 'auth_already_user_id', 'auth_already_email']
@@ -203,7 +209,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'social_django.middleware.SocialAuthExceptionMiddleware',  # Middleware cho social_django
+    'accounts.middleware.CustomSocialAuthExceptionMiddleware',  # Middleware tùy chỉnh thay thế SocialAuthExceptionMiddleware
 ]
 # CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'tuyendung.urls'
