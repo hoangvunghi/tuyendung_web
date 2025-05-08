@@ -87,25 +87,23 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'prompt': 'consent',
 }
 
-# Thêm cấu hình state
-SOCIAL_AUTH_SANITIZE_REDIRECTS = False
-SOCIAL_AUTH_RAISE_EXCEPTIONS = False
-SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
-SOCIAL_AUTH_STRATEGY = 'social_django.strategy.DjangoStrategy'
-SOCIAL_AUTH_SESSION_EXPIRATION = False
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'
+# Social Auth Pipeline
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'accounts.pipeline.create_user_profile',      # Pipeline tạo/cập nhật user
+    'accounts.pipeline.get_token_for_frontend',  # Thêm lại pipeline tạo token
+)
+
+# Social Auth settings
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/api/auth/callback/'  # URL của view callback
 SOCIAL_AUTH_LOGIN_ERROR_URL = 'https://tuyendungtlu.site/login-error'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 SOCIAL_AUTH_USER_MODEL = 'accounts.UserAccount'
 SOCIAL_AUTH_USERNAME_IS_FULL_EMAIL = True
 SOCIAL_AUTH_EMAIL_UNIQUE = True
 SOCIAL_AUTH_EMAIL_REQUIRED = True
-SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/api/auth/callback/'
-SOCIAL_AUTH_LOGIN_SUCCESS_URL = '/api/auth/callback/'
-SOCIAL_AUTH_DISCONNECT_REDIRECT_URL = '/'
-SOCIAL_AUTH_INACTIVE_USER_URL = '/login-error'
-SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error'
-SOCIAL_AUTH_BACKEND_ERROR_URL = '/login-error'
 
 # Đường dẫn API
 API_URL_PREFIX = '/api'  # Prefix cho tất cả các API endpoints
@@ -321,45 +319,61 @@ AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
 AWS_REGION = os.getenv('AWS_REGION')
 
-# Logging Configuration
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+# Basic Logging Configuration (for development)
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+            'simple': {
+                'format': '{levelname} {message}',
+                'style': '{',
+            },
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
         },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO', # Hiển thị log từ mức INFO trở lên
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'debug.log'),
-            'formatter': 'verbose',
-            'mode': 'a',  # Append mode
+        'loggers': {
+            'django': {
+                'handlers': ['console'],
+                'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+                'propagate': False,
+            },
+            # Thêm logger cho app accounts nếu muốn tinh chỉnh riêng
+            'accounts': { 
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            # Thêm các logger khác
+            'channels': {
+                'handlers': ['console'],
+                'level': 'DEBUG',  # Set to DEBUG for detailed logs
+                'propagate': True,
+            },
+            'notifications': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'daphne': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
         },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'accounts': {  # Logger cho app accounts
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    },
-}
+    }
 
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
