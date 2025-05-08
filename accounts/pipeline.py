@@ -72,7 +72,7 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                 )
                 
             # Tạo role none nếu chưa có
-            none_role, _ = Role.objects.get_or_create(name='none')
+            none_role, created = Role.objects.get_or_create(name='none')
             if not UserRole.objects.filter(user=user).exists():
                 UserRole.objects.create(user=user, role=none_role)
                 
