@@ -165,38 +165,52 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
 def associate_by_email(backend, details, user=None, *args, **kwargs):
     """Liên kết tài khoản nếu email đã tồn tại.
     """
+    logger.info(f"Starting associate_by_email for email: {details.get('email')}")
+    
     if user:
-        return None # User đã đăng nhập, không cần làm gì
+        logger.info("User already logged in, skipping association")
+        return None
 
     email = details.get('email')
     if email:
         try:
             existing_user = User.objects.get(email=email)
+            logger.info(f"Found existing user with email: {email}")
             # Kiểm tra xem tài khoản hiện có đã liên kết với Google chưa
             if not existing_user.social_auth.filter(provider='google-oauth2').exists():
+                logger.info(f"Associating existing user {email} with Google")
                 return {'user': existing_user}
+            else:
+                logger.info(f"User {email} already associated with Google")
         except User.DoesNotExist:
-            pass
+            logger.info(f"No existing user found for email: {email}")
     return None
 
 def handle_auth_already_associated(strategy, details, backend, uid, user=None, *args, **kwargs):
     """
     Pipeline xử lý trường hợp tài khoản đã được liên kết
     """
+    logger.info(f"Starting handle_auth_already_associated for uid: {uid}")
+    
     try:
         # Thử liên kết tài khoản
-        return social_user(strategy, details, backend, uid, user, *args, **kwargs)
+        result = social_user(strategy, details, backend, uid, user, *args, **kwargs)
+        logger.info("Successfully associated account")
+        return result
     except AuthAlreadyAssociated:
+        logger.info("AuthAlreadyAssociated exception caught")
         # Nếu tài khoản đã được liên kết, tìm user theo email
         email = details.get('email')
         if email:
             try:
                 # Tìm user theo email
                 existing_user = User.objects.get(email=email)
+                logger.info(f"Found existing user: {email}")
                 
                 # Tạo token cho user đã liên kết
                 refresh = RefreshToken.for_user(existing_user)
                 role = existing_user.get_role()
+                logger.info(f"Generated tokens for {email} with role: {role}")
                 
                 # Trả về thông tin user và token
                 return {
@@ -211,5 +225,6 @@ def handle_auth_already_associated(strategy, details, backend, uid, user=None, *
                     'is_new': False
                 }
             except User.DoesNotExist:
+                logger.error(f"User not found for email: {email}")
                 pass
         return None
