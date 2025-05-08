@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from social_core.pipeline.social_auth import social_user
 from social_core.exceptions import AuthAlreadyAssociated
 from social_django.models import UserSocialAuth
+from django.db.utils import IntegrityError
 
 
 User = get_user_model()
@@ -60,56 +61,9 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                 logger.error(f"User email mismatch: {user.email} != {email}")
                 return None
             logger.info(f"Using existing user: {user.email}")
-            social_auth = user.social_auth.create(
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': user,
-                'is_new': False,
-                'social_user': social_auth
-            }
-
-        # Tìm user theo email
-        try:
-            existing_user = User.objects.get(email=email)
-            logger.info(f"Found existing user by email: {email}")
-            social_auth = existing_user.social_auth.create(
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': existing_user,
-                'is_new': False,
-                'social_user': social_auth
-            }
-        except User.DoesNotExist:
-            logger.info(f"Creating new user for email: {email}")
-            # Tạo user mới
-            user = User.objects.create(
-                email=email,
-                username=email,
-                is_active=True
-            )
-            social_auth = user.social_auth.create(
-                provider=backend.name,
-                uid=uid,
-                extra_data=details
-            )
-            return {
-                'user': user,
-                'is_new': True,
-                'social_user': social_auth
-            }
-
-    except Exception as e:
-        logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
-        # Tạo một social_user mặc định nếu có lỗi
-        try:
-            if user:
-                social_auth = user.social_auth.create(
+            try:
+                social_auth = UserSocialAuth.objects.create(
+                    user=user,
                     provider=backend.name,
                     uid=uid,
                     extra_data=details
@@ -119,6 +73,92 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
                     'is_new': False,
                     'social_user': social_auth
                 }
+            except IntegrityError:
+                # Nếu đã tồn tại, lấy ra social auth hiện có
+                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+
+        # Tìm user theo email
+        try:
+            existing_user = User.objects.get(email=email)
+            logger.info(f"Found existing user by email: {email}")
+            try:
+                social_auth = UserSocialAuth.objects.create(
+                    user=existing_user,
+                    provider=backend.name,
+                    uid=uid,
+                    extra_data=details
+                )
+                return {
+                    'user': existing_user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+            except IntegrityError:
+                # Nếu đã tồn tại, lấy ra social auth hiện có
+                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': existing_user,
+                    'is_new': False,
+                    'social_user': social_auth
+                }
+        except User.DoesNotExist:
+            logger.info(f"Creating new user for email: {email}")
+            # Tạo user mới
+            user = User.objects.create(
+                email=email,
+                username=email,
+                is_active=True
+            )
+            try:
+                social_auth = UserSocialAuth.objects.create(
+                    user=user,
+                    provider=backend.name,
+                    uid=uid,
+                    extra_data=details
+                )
+                return {
+                    'user': user,
+                    'is_new': True,
+                    'social_user': social_auth
+                }
+            except IntegrityError:
+                # Nếu đã tồn tại, lấy ra social auth hiện có
+                social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                return {
+                    'user': user,
+                    'is_new': True,
+                    'social_user': social_auth
+                }
+
+    except Exception as e:
+        logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+        # Tạo một social_user mặc định nếu có lỗi
+        try:
+            if user:
+                try:
+                    social_auth = UserSocialAuth.objects.create(
+                        user=user,
+                        provider=backend.name,
+                        uid=uid,
+                        extra_data=details
+                    )
+                    return {
+                        'user': user,
+                        'is_new': False,
+                        'social_user': social_auth
+                    }
+                except IntegrityError:
+                    social_auth = UserSocialAuth.objects.get(provider=backend.name, uid=uid)
+                    return {
+                        'user': user,
+                        'is_new': False,
+                        'social_user': social_auth
+                    }
         except Exception as inner_e:
             logger.error(f"Error creating fallback social_auth: {str(inner_e)}", exc_info=True)
         return None
