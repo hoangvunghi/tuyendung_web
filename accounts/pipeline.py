@@ -103,10 +103,15 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
         # Kiểm tra xem user đã tồn tại chưa
         if user:
             logger.info(f"User already exists: {user.email}")
+            social_user, created = user.social_auth.get_or_create(
+                provider=backend.name,
+                uid=uid,
+                defaults={'extra_data': details}
+            )
             return {
                 'user': user,
                 'is_new': False,
-                'social_user': user.social_auth.get(provider=backend.name, uid=uid)
+                'social_user': social_user
             }
 
         # Tìm user theo email
@@ -171,6 +176,7 @@ def custom_social_user(strategy, details, backend, uid, user=None, *args, **kwar
 
     except Exception as e:
         logger.error(f"Error in custom_social_user: {str(e)}", exc_info=True)
+        # Trả về None để pipeline dừng lại và hiển thị lỗi
         return None
 
 def get_token_for_frontend(backend, user, response, *args, **kwargs):
