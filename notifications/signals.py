@@ -8,7 +8,9 @@ from .services import NotificationService
 from profiles.models import Cv
 from django.contrib.contenttypes.models import ContentType
 from model_utils import FieldTracker
+import logging
 
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Cv)
 def handle_cv_changes(sender, instance, created, **kwargs):
@@ -50,14 +52,37 @@ def store_old_status(sender, instance, **kwargs):
 def handle_cv_view(sender, instance, created, **kwargs):
     """Xử lý khi CV được xem"""
     if created:
-        NotificationService.create_notification(
-            recipient=instance.cv.user,
-            notification_type='cv_viewed',
-            title='CV của bạn đã được xem',
-            link=f'/job/{instance.cv.post.id}',
-            message=f'CV của bạn đã được {instance.viewer.enterprise.company_name} xem',
-            related_object=instance.cv
-        )
+        # Thêm log để debug
+        logger.info(f"Signal handle_cv_view được gọi: CvView #{instance.id}, CV #{instance.cv.id}")
+        
+        # Tạo và gửi thông báo
+        title = 'CV của bạn đã được xem'
+        message = f'CV của bạn ứng tuyển vị trí {instance.cv.post.title} của công ty {instance.cv.post.enterprise.company_name} đã được xem'
+        link = f'/job/{instance.cv.post.id}'
+        
+        try:
+            # Sử dụng hàm utils để vừa tạo thông báo trong database vừa gửi realtime
+            create_and_send_notification(
+                user=instance.cv.user,
+                notification_type='cv_viewed',
+                title=title,
+                link=link,
+                message=message,
+                related_object=instance.cv
+            )
+            logger.info(f"Đã gửi thông báo realtime cho user {instance.cv.user.id} về việc xem CV #{instance.cv.id}")
+        except Exception as e:
+            logger.error(f"Lỗi khi tạo và gửi thông báo: {str(e)}")
+            
+            # Vẫn cố gắng tạo thông báo qua NotificationService nếu có lỗi
+            NotificationService.create_notification(
+                recipient=instance.cv.user,
+                notification_type='cv_viewed',
+                title=title,
+                link=link,
+                message=message,
+                related_object=instance.cv
+            )
 
 # Signal cho việc đánh dấu CV
 @receiver(signals.post_save, sender='profiles.CvMark')

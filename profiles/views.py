@@ -936,26 +936,25 @@ def view_cv(request, pk):
     cv.is_viewed = True
     cv.save()
     
-    # Tạo thông báo cho ứng viên và gửi realtime
+    # Tạo bản ghi CvView để kích hoạt signal
     try:
-        from notifications.utils import create_and_send_notification
+        from enterprises.models import EnterpriseEntity
+        enterprise = request.user.get_enterprise()
         
-        title = 'CV của bạn đã được xem'
-        message = f'CV của bạn ứng tuyển vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được xem'
-        link = f'/job/{cv.post.id}'
-        
-        create_and_send_notification(
-            user=cv.user,
-            notification_type='cv_viewed',
-            title=title,
-            link=link,
-            message=message,
-            related_object=cv
+        # Tạo CvView để kích hoạt signal
+        CvView.objects.create(
+            cv=cv,
+            viewer=enterprise
         )
+        
+        # Ghi log
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Đã tạo CvView cho CV #{pk}, enterprise #{enterprise.id}")
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
-        logger.error(f"Lỗi khi tạo và gửi thông báo: {str(e)}")
+        logger.error(f"Lỗi khi tạo CvView: {str(e)}")
     
     return Response({
         'message': 'CV marked as viewed',

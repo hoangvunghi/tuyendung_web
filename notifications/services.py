@@ -20,7 +20,7 @@ class NotificationService:
             notification_type='cv_viewed',
             title='CV của bạn đã được xem',
             link=f'/job/{cv.post.id}',
-            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được xem',
+            message=f'CV của bạn Service tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được xem',
             related_object=cv
         )
 
@@ -31,7 +31,7 @@ class NotificationService:
             notification_type='cv_status_changed',
             title='Trạng thái CV đã thay đổi',
             link=f'/job/{cv.post.id}',
-            message=f'CV của bạn tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được chuyển sang trạng thái {NotificationService.translate_status(new_status)}',
+            message=f'CV của bạn Service tới vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được chuyển sang trạng thái {NotificationService.translate_status(new_status)}',
             related_object=cv
         )
     
