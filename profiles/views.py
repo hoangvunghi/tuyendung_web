@@ -921,18 +921,18 @@ def mark_cv(request, pk):
 @permission_classes([IsAuthenticated])
 def view_cv(request, pk):
     cv = get_object_or_404(Cv, id=pk)
-    if cv.post.enterprise != request.user.enterprise:
+    if (cv.is_viewed) :
+        return True;
+    if cv.post.enterprise != request.user.get_enterprise():
         return Response({
             'message': 'You are not authorized to view this CV',
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
     cv.is_viewed = True
     cv.save()
-    serializer = CvSerializer(cv)
     return Response({
-        'message': 'CV view recorded successfully',
+        'message': 'CV marked as viewed',
         'status': status.HTTP_200_OK,
-        'data': serializer.data
     })
 
 
