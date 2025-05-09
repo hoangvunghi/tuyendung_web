@@ -1028,7 +1028,11 @@ def set_role_for_user(request):
     user = request.user
     if user.get_role() == 'none':
         role = request.data.get('role')
-        UserRole.objects.create(user=user, role=role)
+        if role == "candidate":
+            obj_role = Role.objects.get(name="candidate")
+        else:
+            obj_role = Role.objects.get(name="employer")
+        UserRole.objects.create(user=user, role=obj_role)
         return Response({
             'message': 'Cập nhật vai trò thành công',
             'data': {
