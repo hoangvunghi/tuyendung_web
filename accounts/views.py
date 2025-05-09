@@ -1033,7 +1033,7 @@ def set_role_for_user(request):
         else:
             obj_role = Role.objects.get(name="employer")
         # update role for user
-        role_user = UserRole.objects.get(user=user).first()
+        role_user = UserRole.objects.filter(user=user).first()
         role_user.role = obj_role
         role_user.save()
         return Response({
