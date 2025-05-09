@@ -22,6 +22,29 @@ class CustomSocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
         logger.info(f"CustomSocialAuthExceptionMiddleware xử lý lỗi: {type(exception).__name__}")
         logger.info(f"Exception message: {str(exception)}")
         
+        # Xử lý lỗi AttributeError: 'NoneType' object has no attribute 'provider'
+        if isinstance(exception, AttributeError) and "'NoneType' object has no attribute 'provider'" in str(exception):
+            logger.warning("Phát hiện lỗi 'NoneType' object has no attribute 'provider'")
+            # Kiểm tra xem có phải đang xử lý callback OAuth2 không
+            if '/api/auth/complete/google-oauth2/' in request.path:
+                # Lấy thông tin từ session
+                access_token = request.session.get('access_token')
+                refresh_token = request.session.get('refresh_token')
+                user_role = request.session.get('user_role')
+                user_email = request.session.get('user_email')
+                
+                if access_token and refresh_token:
+                    logger.info(f"Tìm thấy tokens trong session. Chuyển hướng về frontend với email: {user_email}")
+                    # Chuyển hướng về frontend với tokens
+                    redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?access_token={access_token}&refresh_token={refresh_token}&role={user_role}&email={user_email}"
+                    return redirect(redirect_url)
+                else:
+                    logger.warning("Không tìm thấy tokens trong session")
+            
+            logger.info("Tiếp tục xử lý mặc định cho lỗi provider")
+            # Chuyển hướng về trang lỗi
+            return redirect(f"{settings.FRONTEND_URL}/auth/error?error=auth_provider_error")
+
         if isinstance(exception, AuthAlreadyAssociated):
             # Lấy thông tin từ session
             email = request.session.get('email')
@@ -102,6 +125,6 @@ class CustomSocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
         refresh["role"] = role
         
         # Tạo URL redirect
-        redirect_url = f"{settings.FRONTEND_URL}?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}&role={role}&email={email}"
+        redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback?access_token={str(refresh.access_token)}&refresh_token={str(refresh)}&role={role}&email={email}&is_active={str(user.is_active).lower()}&is_banned={str(getattr(user, 'is_banned', False)).lower()}"
         logger.info(f"Redirect to: {redirect_url}")
         return redirect(redirect_url) 
