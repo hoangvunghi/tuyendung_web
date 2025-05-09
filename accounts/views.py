@@ -834,8 +834,95 @@ def social_auth_token(request):
         strategy = load_strategy(request)
         backend = load_backend(strategy, 'google-oauth2', redirect_uri=None)
         
-        # Xác thực user với code
-        user = backend.do_auth(code)
+        try:
+            # Xác thực user với code
+            user = backend.do_auth(code)
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'provider'" in str(e):
+                # Truy cập thông tin người dùng từ Google API trực tiếp nếu social-auth gặp lỗi
+                try:
+                    # Lấy access token từ Google
+                    token_url = 'https://oauth2.googleapis.com/token'
+                    token_data = {
+                        'code': code,
+                        'client_id': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY,
+                        'client_secret': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET,
+                        'redirect_uri': f"{settings.BACKEND_URL}/api/social-token/",
+                        'grant_type': 'authorization_code'
+                    }
+                    token_response = requests.post(token_url, data=token_data)
+                    
+                    if token_response.status_code != 200:
+                        return Response({
+                            'message': 'Lỗi khi xác thực với Google',
+                            'status': status.HTTP_400_BAD_REQUEST
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    access_token = token_response.json().get('access_token')
+                    
+                    # Lấy thông tin người dùng từ Google
+                    userinfo_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+                    headers = {'Authorization': f'Bearer {access_token}'}
+                    userinfo_response = requests.get(userinfo_url, headers=headers)
+                    
+                    if userinfo_response.status_code != 200:
+                        return Response({
+                            'message': 'Lỗi khi lấy thông tin người dùng từ Google',
+                            'status': status.HTTP_400_BAD_REQUEST
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    userinfo = userinfo_response.json()
+                    
+                    # Tìm hoặc tạo người dùng
+                    try:
+                        user = UserAccount.objects.get(email=userinfo.get('email'))
+                    except UserAccount.DoesNotExist:
+                        # Tạo người dùng mới nếu chưa tồn tại
+                        user = UserAccount.objects.create_user(
+                            email=userinfo.get('email'),
+                            username=userinfo.get('email'),  # Sử dụng email làm username
+                            password=get_random_string(12),  # Password ngẫu nhiên
+                            google_id=userinfo.get('id')  # Lưu Google ID
+                        )
+                        
+                        # Cập nhật thông tin người dùng
+                        if hasattr(user, 'name') and userinfo.get('name'):
+                            user.name = userinfo.get('name')
+                        elif hasattr(user, 'first_name') and userinfo.get('given_name'):
+                            user.first_name = userinfo.get('given_name')
+                            
+                        if hasattr(user, 'last_name') and userinfo.get('family_name'):
+                            user.last_name = userinfo.get('family_name')
+                            
+                        # Đánh dấu là người dùng được xác thực bởi Google
+                        user.is_active = True
+                        user.save()
+                                            
+                        # Mặc định cấp quyền người dùng là "candidate"
+                        try:
+                            candidate_role, created = Role.objects.get_or_create(name='candidate')
+                            UserRole.objects.create(user=user, role=candidate_role)
+                        except Exception as role_error:
+                            print(f"Lỗi khi gán vai trò: {str(role_error)}")
+                        
+                        # Tạo thông tin profile mặc định
+                        try:
+                            UserInfo.objects.create(
+                                user=user,
+                                fullname=userinfo.get('name', ''),
+                                gender='other'  # Giá trị mặc định
+                            )
+                        except Exception as profile_error:
+                            print(f"Lỗi khi tạo profile: {str(profile_error)}")
+                    
+                except Exception as alt_auth_error:
+                    return Response({
+                        'message': f'Lỗi xác thực thay thế: {str(alt_auth_error)}',
+                        'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            else:
+                # Nếu là lỗi AttributeError khác, tiếp tục raise
+                raise e
         
         if not user:
             return Response({
