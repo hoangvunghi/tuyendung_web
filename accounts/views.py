@@ -1032,7 +1032,10 @@ def set_role_for_user(request):
             obj_role = Role.objects.get(name="candidate")
         else:
             obj_role = Role.objects.get(name="employer")
-        UserRole.objects.create(user=user, role=obj_role)
+        # update role for user
+        role_user = UserRole.objects.get(user=user)
+        role_user.role = obj_role
+        role_user.save()
         return Response({
             'message': 'Cập nhật vai trò thành công',
             'data': {
