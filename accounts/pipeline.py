@@ -35,8 +35,6 @@ def create_user_profile(backend, user, response, *args, **kwargs):
                 user = User.objects.create(
                     email=email,
                     username=email,
-                    first_name=first_name,
-                    last_name=last_name,
                     is_active=True
                 )
                 user.social_auth.create(
