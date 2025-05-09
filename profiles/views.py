@@ -921,15 +921,42 @@ def mark_cv(request, pk):
 @permission_classes([IsAuthenticated])
 def view_cv(request, pk):
     cv = get_object_or_404(Cv, id=pk)
-    if (cv.is_viewed) :
-        return True;
+    if (cv.is_viewed):
+        return Response({
+            'message': 'CV already viewed',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
     if cv.post.enterprise != request.user.get_enterprise():
         return Response({
             'message': 'You are not authorized to view this CV',
             'status': status.HTTP_403_FORBIDDEN
         }, status=status.HTTP_403_FORBIDDEN)
+    
+    # Cập nhật trạng thái CV
     cv.is_viewed = True
     cv.save()
+    
+    # Tạo thông báo cho ứng viên và gửi realtime
+    try:
+        from notifications.utils import create_and_send_notification
+        
+        title = 'CV của bạn đã được xem'
+        message = f'CV của bạn ứng tuyển vị trí {cv.post.title} của công ty {cv.post.enterprise.company_name} đã được xem'
+        link = f'/job/{cv.post.id}'
+        
+        create_and_send_notification(
+            user=cv.user,
+            notification_type='cv_viewed',
+            title=title,
+            link=link,
+            message=message,
+            related_object=cv
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Lỗi khi tạo và gửi thông báo: {str(e)}")
+    
     return Response({
         'message': 'CV marked as viewed',
         'status': status.HTTP_200_OK,
