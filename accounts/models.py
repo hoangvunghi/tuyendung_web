@@ -170,38 +170,38 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
             
         return True
         
-    def can_apply_job(self):
-        """
-        Kiểm tra xem ứng viên có thể ứng tuyển không
-        """
-        if self.is_employer():
-            return False
+    # def can_apply_job(self):
+    #     """
+    #     Kiểm tra xem ứng viên có thể ứng tuyển không
+    #     """
+    #     if self.is_employer():
+    #         return False
             
-        # Nếu không phải premium, cho phép ứng tuyển với giới hạn thấp
-        if not self.is_premium:
-            # Reset counter nếu ngày khác
-            today = timezone.now().date()
-            if self.last_application_date != today:
-                self.job_applications_today = 0
-                self.last_application_date = today
-                self.save(update_fields=['job_applications_today', 'last_application_date'])
+    #     # Nếu không phải premium, cho phép ứng tuyển với giới hạn thấp
+    #     if not self.is_premium:
+    #         # Reset counter nếu ngày khác
+    #         today = timezone.now().date()
+    #         if self.last_application_date != today:
+    #             self.job_applications_today = 0
+    #             self.last_application_date = today
+    #             self.save(update_fields=['job_applications_today', 'last_application_date'])
                 
-            # Người dùng thường chỉ được ứng tuyển 3 công việc mỗi ngày
-            return self.job_applications_today < 3
+    #         # Người dùng thường chỉ được ứng tuyển 3 công việc mỗi ngày
+    #         return self.job_applications_today < 3
             
-        # Người dùng premium được ứng tuyển nhiều hơn
-        package = self.get_premium_package()
-        if not package:
-            return self.job_applications_today < 3
+    #     # Người dùng premium được ứng tuyển nhiều hơn
+    #     package = self.get_premium_package()
+    #     if not package:
+    #         return self.job_applications_today < 3
             
-        # Reset counter nếu ngày khác
-        today = timezone.now().date()
-        if self.last_application_date != today:
-            self.job_applications_today = 0
-            self.last_application_date = today
-            self.save(update_fields=['job_applications_today', 'last_application_date'])
+    #     # Reset counter nếu ngày khác
+    #     today = timezone.now().date()
+    #     if self.last_application_date != today:
+    #         self.job_applications_today = 0
+    #         self.last_application_date = today
+    #         self.save(update_fields=['job_applications_today', 'last_application_date'])
             
-        return self.job_applications_today < package.daily_job_application_limit
+    #     return self.job_applications_today < package.daily_job_application_limit
         
     def can_chat_with_employers(self):
         """

@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UserInfo, Cv
+from .models import UserInfo, Cv,CvView
+from transactions.models import PremiumHistory
 from .serializers import CvPostSerializer, CvUserSerializer, UserInfoSerializer, CvSerializer, CvStatusSerializer
 from base.permissions import IsEnterpriseOwner, IsProfileOwner, IsCvOwner, CanManageCv, AdminAccessPermission
 from base.pagination import CustomPagination
@@ -478,13 +479,25 @@ def get_cv_detail(request, pk):
 def create_cv(request):
     try:
         # Kiểm tra giới hạn ứng tuyển
-        if not request.user.can_apply_job():
-            return Response({
-                'message': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày',
-                'status': status.HTTP_400_BAD_REQUEST,
-                'errors': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # if not request.user.can_apply_job():
+        #     return Response({
+        #         'message': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày',
+        #         'status': status.HTTP_400_BAD_REQUEST,
+        #         'errors': 'Bạn đã đạt giới hạn số lượng ứng tuyển trong ngày'
+        #     }, status=status.HTTP_400_BAD_REQUEST)
         
+        MAX_CV_PER_DAY = 10
+        # lấy gói premium của người dùng
+        premium_package = PremiumHistory.objects.filter(user=request.user,is_active=True).order_by('-start_date').first()
+        if premium_package:
+            MAX_CV_PER_DAY = premium_package.package.daily_job_application_limit
+        if Cv.objects.filter(user=request.user,created_at__date=timezone.now().date()).count() >= MAX_CV_PER_DAY:
+            return Response({
+                'message': 'Bạn đã đạt giới hạn số lượng CV tạo trong ngày',
+                'status': status.HTTP_400_BAD_REQUEST,
+                'errors': 'Bạn đã đạt giới hạn số lượng CV tạo trong ngày'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         data = request.data.copy()
         data['user'] = request.user.id
         
