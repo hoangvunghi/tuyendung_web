@@ -80,7 +80,6 @@ def get_token_for_frontend(backend, user, response, *args, **kwargs):
     Tạo JWT token và thêm vào session
     """
     if backend.name == 'google-oauth2':
-        logger.info(f"Starting get_token_for_frontend for user: {user.email}")
         try:
             refresh = RefreshToken.for_user(user)
             refresh["is_active"] = user.is_active
