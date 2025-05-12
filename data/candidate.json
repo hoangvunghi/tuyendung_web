@@ -1,0 +1,132 @@
+[
+  {
+    "email": "phamthanh@gmail.com",
+    "username": "phamthanh",
+    "full_name": "Phạm Văn Thanh",
+    "phone_number": "0987654321",
+    "password": "12345678",
+    "role": "candidate",
+    "is_active": true,
+    "address": "Hà Đông, Hà Nội",
+    "city": "Hà Nội",
+    "date_of_birth": "1998-05-15",
+    "gender": "male",
+    "avatar_url": "https://res.cloudinary.com/dyjo3qdxo/image/upload/v1744164285/candidate_avatars/ieibyijrxcdww3nh7zyi.jpg",
+    "avatar_public_id": "ieibyijrxcdww3nh7zyi",
+    "introduction": "Tôi là sinh viên mới tốt nghiệp ngành Công nghệ thông tin, mong muốn trở thành một developer chuyên nghiệp.",
+    "profile": {
+      "skills": ["Java", "Python", "HTML/CSS", "SQL"],
+      "experience_years": 1,
+      "education": {
+        "school": "Đại học Bách Khoa Hà Nội",
+        "major": "Công nghệ thông tin",
+        "degree": "Cử nhân",
+        "graduation_year": 2023
+      }
+    }
+  },
+  {
+    "email": "nguyenlinh@gmail.com",
+    "username": "nguyenlinh",
+    "full_name": "Nguyễn Thị Linh",
+    "phone_number": "0912345678",
+    "password": "12345678",
+    "role": "candidate",
+    "is_active": true,
+    "address": "Quận 1, TP.HCM",
+    "city": "Hồ Chí Minh",
+    "date_of_birth": "1995-08-21",
+    "gender": "female",
+    "avatar_url": "https://res.cloudinary.com/dyjo3qdxo/image/upload/v1744164285/candidate_avatars/p5blfvwntsfpnvr1lpyi.jpg",
+    "avatar_public_id": "p5blfvwntsfpnvr1lpyi",
+    "introduction": "Tôi có 3 năm kinh nghiệm làm việc trong lĩnh vực marketing, đặc biệt là digital marketing và social media.",
+    "profile": {
+      "skills": ["Digital Marketing", "Content Creation", "SEO", "Social Media Management"],
+      "experience_years": 3,
+      "education": {
+        "school": "Đại học Kinh tế TP.HCM",
+        "major": "Marketing",
+        "degree": "Cử nhân",
+        "graduation_year": 2020
+      }
+    }
+  },
+  {
+    "email": "tranminh@gmail.com",
+    "username": "tranminh",
+    "full_name": "Trần Minh Đức",
+    "phone_number": "0967890123",
+    "password": "12345678",
+    "role": "candidate",
+    "is_active": true,
+    "address": "Cầu Giấy, Hà Nội",
+    "city": "Hà Nội",
+    "date_of_birth": "1992-11-03",
+    "gender": "male",
+    "avatar_url": "https://res.cloudinary.com/dyjo3qdxo/image/upload/v1744164286/candidate_avatars/hpevslqdyudjzbzstbho.jpg",
+    "avatar_public_id": "hpevslqdyudjzbzstbho",
+    "introduction": "Kỹ sư xây dựng với 5 năm kinh nghiệm trong quản lý dự án và giám sát công trình.",
+    "profile": {
+      "skills": ["Quản lý dự án", "AutoCAD", "Giám sát công trình", "MS Project"],
+      "experience_years": 5,
+      "education": {
+        "school": "Đại học Xây dựng Hà Nội",
+        "major": "Kỹ thuật xây dựng",
+        "degree": "Kỹ sư",
+        "graduation_year": 2018
+      }
+    }
+  },
+  {
+    "email": "lehong@gmail.com",
+    "username": "lehong",
+    "full_name": "Lê Hồng Ngọc",
+    "phone_number": "0923456789",
+    "password": "12345678",
+    "role": "candidate",
+    "is_active": true,
+    "address": "Quận 7, TP.HCM",
+    "city": "Hồ Chí Minh",
+    "date_of_birth": "1997-04-12",
+    "gender": "female",
+    "avatar_url": "https://res.cloudinary.com/dyjo3qdxo/image/upload/v1744164287/candidate_avatars/nlfacdzxpmclczhxqwl2.jpg",
+    "avatar_public_id": "nlfacdzxpmclczhxqwl2",
+    "introduction": "Chuyên viên tài chính với khả năng phân tích dữ liệu mạnh mẽ và kinh nghiệm trong lĩnh vực ngân hàng.",
+    "profile": {
+      "skills": ["Phân tích tài chính", "Excel", "Power BI", "Quản lý danh mục đầu tư"],
+      "experience_years": 2,
+      "education": {
+        "school": "Đại học Kinh tế - Luật TP.HCM",
+        "major": "Tài chính - Ngân hàng",
+        "degree": "Cử nhân",
+        "graduation_year": 2021
+      }
+    }
+  },
+  {
+    "email": "namnguyen@gmail.com",
+    "username": "namnguyen",
+    "full_name": "Nguyễn Văn Nam",
+    "phone_number": "0934567890",
+    "password": "12345678",
+    "role": "candidate",
+    "is_active": true,
+    "address": "Hai Bà Trưng, Hà Nội",
+    "city": "Hà Nội",
+    "date_of_birth": "1994-09-30",
+    "gender": "male",
+    "avatar_url": "https://res.cloudinary.com/dyjo3qdxo/image/upload/v1744164288/candidate_avatars/hdcxaivvizfnqj8owvwz.jpg",
+    "avatar_public_id": "hdcxaivvizfnqj8owvwz",
+    "introduction": "Nhà thiết kế UX/UI với niềm đam mê tạo ra những trải nghiệm người dùng tuyệt vời và giao diện hấp dẫn.",
+    "profile": {
+      "skills": ["UI/UX Design", "Figma", "Adobe XD", "Prototyping", "User Research"],
+      "experience_years": 4,
+      "education": {
+        "school": "Đại học FPT",
+        "major": "Thiết kế đồ họa",
+        "degree": "Cử nhân",
+        "graduation_year": 2019
+      }
+    }
+  }
+] 

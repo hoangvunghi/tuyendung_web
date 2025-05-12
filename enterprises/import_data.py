@@ -3,7 +3,7 @@ import os
 import django
 import sys
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # Thêm đường dẫn của project vào sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -142,21 +142,21 @@ def import_enterprises_from_json(file_path):
                     'is_superuser': item['is_superuser']
                 }
             )
-
-            if created:
-                user.set_password(item['password'])
-                user.save()
+            
+                # user.set_password(item['password'])
+                # user.save()
 
                 # Tạo thông tin cá nhân
-                UserInfo.objects.create(
-                    user=user,
-                    fullname=item['full_name'],
-                    gender='other'
-                )
+            UserInfo.objects.get_or_create(
+                user=user,
+                fullname=item['full_name'],
+                gender='other'
+            )
+            print("Tạo thông tin cá nhân thành công")
 
                 # Gán vai trò employer
-                employer_role = Role.objects.get(name='employer')
-                UserRole.objects.create(user=user, role=employer_role)
+                # employer_role = Role.objects.get(name='employer')
+                # UserRole.objects.create(user=user, role=employer_role)
 
             # Tạo hoặc cập nhật doanh nghiệp
             enterprise, created = EnterpriseEntity.objects.update_or_create(
@@ -318,50 +318,130 @@ def import_premium_packages_from_json(file_path):
             'errors': ['Invalid JSON format']
         }
 
+def import_candidates_from_json(file_path):
+    """
+    Import dữ liệu ứng viên từ file JSON
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        total = len(data)
+        success = 0
+        failed = 0
+        errors = []
+        
+        # Lấy Role ứng viên
+        try:
+            candidate_role = Role.objects.get(name='candidate')
+        except Role.DoesNotExist:
+            return {
+                'error': "Không tìm thấy vai trò 'candidate' trong hệ thống."
+            }
+        
+        for item in data:
+            try:
+                # Tạo hoặc lấy tài khoản người dùng
+                user, user_created = UserAccount.objects.get_or_create(
+                    username=item['username'],
+                    defaults={
+                        'email': item['email'],
+                        'is_active': item['is_active'],
+                    }
+                )
+                
+                if user_created:
+                    # Đặt mật khẩu cho tài khoản mới
+                    user.set_password(item['password'])
+                    user.save()
+                    
+                    # Gán vai trò candidate
+                    UserRole.objects.create(user=user, role=candidate_role)
+                
+                # Tạo hoặc cập nhật thông tin người dùng - chỉ với các trường có trong model UserInfo
+                userinfo, info_created = UserInfo.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'fullname': item['full_name'],
+                        'gender': item['gender'],
+                        # Sử dụng avatar_url làm cv_attachments_url nếu cần
+                        'cv_attachments_url': item.get('avatar_url', '')
+                    }
+                )
+                
+                if not info_created:
+                    # Cập nhật thông tin nếu đã tồn tại
+                    userinfo.fullname = item['full_name']
+                    userinfo.gender = item['gender']
+                    userinfo.cv_attachments_url = item.get('avatar_url', '')
+                    userinfo.save()
+                
+                success += 1
+                print(f"Đã import thành công ứng viên: {item['full_name']}")
+                
+            except Exception as e:
+                failed += 1
+                error_msg = f"Lỗi khi import ứng viên {item.get('full_name', '')}: {str(e)}"
+                errors.append(error_msg)
+                print(error_msg)
+        
+        return {
+            'total': total,
+            'success': success,
+            'failed': failed,
+            'errors': errors
+        }
+    except Exception as e:
+        error_msg = f"Lỗi khi đọc file JSON: {str(e)}"
+        print(error_msg)
+        return {
+            'error': error_msg
+        }
+
 if __name__ == '__main__':
     # Import fields
-    fields_result = import_fields_from_json('data/fields.json')
-    print("\nImport Fields Result:")
-    print(f"Total: {fields_result['total']}")
-    print(f"Success: {fields_result['success']}")
-    print(f"Failed: {fields_result['failed']}")
-    if fields_result['errors']:
-        print("Errors:")
-        for error in fields_result['errors']:
-            print(f"- {error}")
+    # fields_result = import_fields_from_json('data/fields.json')
+    # print("\nImport Fields Result:")
+    # print(f"Total: {fields_result['total']}")
+    # print(f"Success: {fields_result['success']}")
+    # print(f"Failed: {fields_result['failed']}")
+    # if fields_result['errors']:
+    #     print("Errors:")
+    #     for error in fields_result['errors']:
+            # print(f"- {error}")
 
     # Import positions
-    positions_result = import_positions_from_json('data/positions.json')
-    print("\nImport Positions Result:")
-    print(f"Total: {positions_result['total']}")
-    print(f"Success: {positions_result['success']}")
-    print(f"Failed: {positions_result['failed']}")
-    if positions_result['errors']:
-        print("Errors:")
-        for error in positions_result['errors']:
-            print(f"- {error}")
+    # positions_result = import_positions_from_json('data/positions.json')
+    # print("\nImport Positions Result:")
+    # print(f"Total: {positions_result['total']}")
+    # print(f"Success: {positions_result['success']}")
+    # print(f"Failed: {positions_result['failed']}")
+    # if positions_result['errors']:
+    #     print("Errors:")
+    #     for error in positions_result['errors']:
+    #         print(f"- {error}")
 
-    # Import enterprises and recruiters
-    enterprises_result = import_enterprises_from_json('data/enterprises.json')
-    print("\nImport Enterprises and Recruiters Result:")
-    print(f"Total: {enterprises_result['total']}")
-    print(f"Success: {enterprises_result['success']}")
-    print(f"Failed: {enterprises_result['failed']}")
-    if enterprises_result['errors']:
-        print("Errors:")
-        for error in enterprises_result['errors']:
-            print(f"- {error}")
+    # # Import enterprises and recruiters
+    # enterprises_result = import_enterprises_from_json('data/enterprises.json')
+    # print("\nImport Enterprises and Recruiters Result:")
+    # print(f"Total: {enterprises_result['total']}")
+    # print(f"Success: {enterprises_result['success']}")
+    # print(f"Failed: {enterprises_result['failed']}")
+    # if enterprises_result['errors']:
+    #     print("Errors:")
+    #     for error in enterprises_result['errors']:
+    #         print(f"- {error}")
 
     # Import posts
-    posts_result = import_posts_from_json('data/posts.json')
-    print("\nImport Posts Result:")
-    print(f"Total: {posts_result['total']}")
-    print(f"Success: {posts_result['success']}")
-    print(f"Failed: {posts_result['failed']}")
-    if posts_result['errors']:
-        print("Errors:")
-        for error in posts_result['errors']:
-            print(f"- {error}")
+    # posts_result = import_posts_from_json('data/posts.json')
+    # print("\nImport Posts Result:")
+    # print(f"Total: {posts_result['total']}")
+    # print(f"Success: {posts_result['success']}")
+    # print(f"Failed: {posts_result['failed']}")
+    # if posts_result['errors']:
+    #     print("Errors:")
+    #     for error in posts_result['errors']:
+    #         print(f"- {error}")
     
     # # Import premium packages
     # premium_packages_result = import_premium_packages_from_json('data/premium_packages.json')
@@ -372,4 +452,8 @@ if __name__ == '__main__':
     # if premium_packages_result['errors']:
     #     print("Errors:")
     #     for error in premium_packages_result['errors']:
-    #         print(f"- {error}") 
+    #         print(f"- {error}")
+
+    # Thêm dòng này để chạy hàm import candidate
+    candidate_results = import_candidates_from_json('data/candidate.json')
+    print("Kết quả import ứng viên:", candidate_results) 
