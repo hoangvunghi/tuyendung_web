@@ -3,7 +3,7 @@ from .views import (
     login, register, token_refresh, forgot_password_view, 
     reset_password_view, social_auth_token,
     complete_google_profile, set_role_for_user, get_user_info,
-    delete_premium
+    delete_premium,change_password
 )
 from . import views
 
@@ -22,4 +22,5 @@ urlpatterns = [
     path('set-role/', set_role_for_user, name='set_user_role'),
     path('users/<int:user_id>/info/', get_user_info, name='get_user_info'),
     path('delete-premium/', delete_premium, name='delete_premium'),
+    path('change-password/', change_password, name='change_password'),
 ]

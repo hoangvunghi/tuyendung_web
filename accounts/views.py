@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework.permissions import IsAuthenticated
 import logging
-from .serializers import UserSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
+from .serializers import UserSerializer,ForgotPasswordSerializer,ResetPasswordSerializer, ChangePasswordSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -1140,3 +1140,79 @@ def set_role_for_user(request):
             },
             'status': status.HTTP_400_BAD_REQUEST
         })
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Đổi mật khẩu người dùng",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['current_password', 'new_password', 'confirm_password'],
+        properties={
+            'current_password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu hiện tại"),
+            'new_password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Mật khẩu mới"),
+            'confirm_password': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="Xác nhận mật khẩu mới"),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Password changed successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER)
+                }
+            )
+        ),
+        400: openapi.Response(
+            description="Invalid request data",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'status': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'errors': openapi.Schema(type=openapi.TYPE_OBJECT)
+                }
+            )
+        )
+    }
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        user = request.user
+        current_password = serializer.validated_data['current_password']
+        new_password = serializer.validated_data['new_password']
+        
+        # Kiểm tra mật khẩu hiện tại
+        if not user.check_password(current_password):
+            return Response({
+                'message': 'Mật khẩu hiện tại không chính xác',
+                'status': status.HTTP_400_BAD_REQUEST,
+                'errors': {'current_password': ['Mật khẩu hiện tại không chính xác']}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Kiểm tra mật khẩu mới có trùng với mật khẩu hiện tại không
+        if current_password == new_password:
+            return Response({
+                'message': 'Mật khẩu mới không được trùng với mật khẩu hiện tại',
+                'status': status.HTTP_400_BAD_REQUEST,
+                'errors': {'new_password': ['Mật khẩu mới không được trùng với mật khẩu hiện tại']}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cập nhật mật khẩu mới
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({
+            'message': 'Đổi mật khẩu thành công',
+            'status': status.HTTP_200_OK
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        'message': 'Dữ liệu không hợp lệ',
+        'status': status.HTTP_400_BAD_REQUEST,
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
