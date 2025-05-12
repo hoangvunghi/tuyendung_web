@@ -7,11 +7,27 @@ from unfold.admin import ModelAdmin
 from unfold.contrib.forms.widgets import ArrayWidget, WysiwygWidget
 from base.admin import BaseAdminClass
 
+class RoleListFilter(admin.SimpleListFilter):
+    title = 'Vai trò'
+    parameter_name = 'role'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('candidate', 'Ứng viên'),
+            ('employer', 'Nhà tuyển dụng'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'candidate':
+            return queryset.filter(user_roles__role__name='candidate').distinct()
+        if self.value() == 'employer':
+            return queryset.filter(user_roles__role__name='employer').distinct()
+
 @admin.register(UserAccount)
 class UserAccountAdmin(BaseAdminClass):
     list_display = ('username', 'email', 'is_active', 'is_staff', 'is_banned','is_premium','premium_expiry')
-    list_filter = ('is_active', 'is_staff', 'is_banned')
-    search_fields = ('username',)
+    list_filter = (RoleListFilter, 'is_active', 'is_staff', 'is_banned','is_premium','premium_expiry')
+    search_fields = ('username', 'email')
     list_per_page = 10
     list_max_show_all = 100
     list_editable = ('is_active', 'is_staff', 'is_banned','is_premium','premium_expiry')
@@ -49,7 +65,7 @@ class UserRoleAdmin(BaseAdminClass):
 
 @admin.register(Role)
 class RoleAdmin(BaseAdminClass):
-    list_display = ('name',)
+    list_display = ('name', 'created_at')
     list_filter = ('name',)
     search_fields = ('name',)
     list_per_page = 10

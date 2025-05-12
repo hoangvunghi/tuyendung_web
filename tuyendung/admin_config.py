@@ -559,6 +559,30 @@ UNFOLD = {
                             "attrs": {"class": "bg-blue-500 text-white"},
                         } if "accounts" in apps.app_configs else None,
                     },
+                    # tài khoản candidate
+                    {
+                        "title": _("Tài khoản candidate"),
+                        "icon": "person",
+                        "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?role=candidate",
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.filter(
+                                user_roles__role__name="candidate"
+                            ).distinct().count(),
+                            "attrs": {"class": "bg-green-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
+                    },
+                    # tài khoản employer
+                    {
+                        "title": _("Tài khoản employer"),
+                        "icon": "person",
+                        "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?role=employer",
+                        "badge": lambda request: {
+                            "value": apps.get_model("accounts", "UserAccount").objects.filter(
+                                user_roles__role__name="employer"
+                            ).distinct().count(),
+                            "attrs": {"class": "bg-blue-500 text-white"},
+                        } if "accounts" in apps.app_configs else None,
+                    },
                     {
                         "title": _("Tài khoản premium"),
                         "icon": "workspace_premium",
