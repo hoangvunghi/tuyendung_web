@@ -561,7 +561,7 @@ UNFOLD = {
                     },
                     # tài khoản candidate
                     {
-                        "title": _("Tài khoản candidate"),
+                        "title": _("Tài khoản ứng viên"),
                         "icon": "person",
                         "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?role=candidate",
                         "badge": lambda request: {
@@ -573,7 +573,7 @@ UNFOLD = {
                     },
                     # tài khoản employer
                     {
-                        "title": _("Tài khoản employer"),
+                        "title": _("Tài khoản nhà tuyển dụng"),
                         "icon": "person",
                         "link": lambda request=None: reverse_lazy("admin:accounts_useraccount_changelist") + "?role=employer",
                         "badge": lambda request: {
@@ -651,6 +651,23 @@ UNFOLD = {
                         "title": _("Tiêu chí"),
                         "icon": "checklist",
                         "link": get_admin_url("admin:enterprises_criteriaentity_changelist"),
+                    },
+                    {
+                        "title": _("Báo cáo bài đăng"),
+                        "icon": "report",
+                        "link": get_admin_url("admin:enterprises_reportpostentity_changelist"),
+                    },
+                    # bài đăng chưa xử lí
+                    {
+                        "title": _("Bài đăng chưa xử lí"),
+                        "icon": "report",
+                        "link": lambda request=None: reverse_lazy("admin:enterprises_reportpostentity_changelist") + "?status=0",
+                    },
+                    # bài đăng đã xử lí
+                    {
+                        "title": _("Bài đăng đã xử lí"),
+                        "icon": "report",
+                        "link": lambda request=None: reverse_lazy("admin:enterprises_reportpostentity_changelist") + "?status=1",
                     },
                 ]
             },

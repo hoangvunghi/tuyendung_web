@@ -1,6 +1,7 @@
 # enterprises/urls.py
 from django.urls import path
 from . import views
+from .report_views import report_post, get_user_reports
 
 urlpatterns = [
     path('enterprises/user/', views.get_enterprises_by_user, name='get-enterprises-by-user'),
@@ -52,4 +53,7 @@ urlpatterns = [
     path('saved-posts/<int:pk>/delete/', views.delete_saved_post, name='delete_saved_post'),
     path('saved-posts/post/<int:post_id>/delete/', views.delete_saved_post_by_post_id, name='delete_saved_post_by_post_id'),
     path('saved-posts/post/<int:post_id>/check/', views.check_post_saved, name='check_post_saved'),
+    # Report Post URLs
+    path('posts/report/', report_post, name='report_post'),
+    path('user-reports/', get_user_reports, name='get_user_reports'),
 ]

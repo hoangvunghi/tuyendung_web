@@ -10,6 +10,7 @@ class Notification(models.Model):
         ('cv_marked', 'CV được đánh dấu'),
         ('interview_invited', 'Mời phỏng vấn'),
         ('message_received', 'Tin nhắn mới'),
+        ('report_post', 'Báo cáo bài đăng'),
     )
 
     recipient = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)

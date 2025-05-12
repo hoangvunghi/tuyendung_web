@@ -1,13 +1,6 @@
 from django.contrib import admin
 from .models import *
-# Register your models here.
-
-# admin.site.register(EnterpriseEntity)
-# admin.site.register(FieldEntity)
-# admin.site.register(CampaignEntity)
-# admin.site.register(PositionEntity)
-# admin.site.register(PostEntity)
-# admin.site.register(CriteriaEntity)
+from notifications.models import Notification
 
 from django.contrib import admin
 from django.contrib.postgres.fields import ArrayField
@@ -104,10 +97,71 @@ class CriteriaAdmin(BaseAdminClass):
     list_max_show_all = 100
     list_display_links = ('city', 'experience') 
 
+@admin.register(SavedPostEntity)
+class SavedPostEntityAdmin(BaseAdminClass):
+    list_display = ('user', 'post', 'created_at')
+    list_filter = ('user', 'post')
+    search_fields = ('user__username', 'post__title')
+    list_per_page = 10
+    list_max_show_all = 100
+    list_display_links = ('user', 'post')
 
+@admin.register(ReportPostEntity)
+class ReportPostEntityAdmin(ModelAdmin):
+    list_display = ('user', 'post', 'created_at', 'status', 'is_remove')
+    list_filter = ('status', 'is_remove')
+    search_fields = ('user__username', 'post__title', 'reason')
+    readonly_fields = ('created_at', 'modified_at')
+    fields = ('user', 'post', 'reason', 'response', 'status', 'is_remove')
+    
+    def save_model(self, request, obj, form, change):
+        # Nếu is_remove được đánh dấu, cập nhật trạng thái bài đăng
+        if obj.status:
+            remove = False
+            if obj.is_remove:
+                remove = True
+                post = obj.post
+                post.is_active = False
+                post.is_remove_by_admin = True
+                post.save()
+            # tạo notification
+            from django.contrib.contenttypes.models import ContentType
+            report_content_type = ContentType.objects.get_for_model(ReportPostEntity)
+            
+            if remove:
+                Notification.objects.create(
+                    recipient=obj.user,
+                    notification_type='report_post',
+                    title=f'Báo cáo bài đăng {obj.post.title}',
+                    message=f'Bài đăng {obj.post.title} do bạn báo cáo đã bị gỡ',
+                    content_type=report_content_type,
+                    object_id=obj.id,
+                )
+                # tạo notification cho doanh nghiệp
+                Notification.objects.create(
+                    recipient=obj.post.enterprise.user,
+                    notification_type='report_post',
+                    title=f'Báo cáo bài đăng {obj.post.title}',
+                    message=f'Bài đăng {obj.post.title} do bạn báo cáo đã bị gỡ với lí do: {obj.response}',
+                    content_type=report_content_type,
+                    object_id=obj.id,
+                )
+            else:
+                Notification.objects.create(
+                    recipient=obj.user,
+                    notification_type='report_post',
+                    title=f'Báo cáo bài đăng {obj.post.title}',
+                    message=f'Bài đăng {obj.post.title} do bạn báo cáo không vi phạm',
+                    content_type=report_content_type,
+                    object_id=obj.id,
+                )
 
-
-
+        super().save_model(request, obj, form, change)
+    
+    # Bỏ comment để cho phép thêm báo cáo từ admin
+    # def has_add_permission(self, request):
+    #     # Không cho phép thêm báo cáo từ admin
+    #     return False
 
 # # ----
 # from django.db import models

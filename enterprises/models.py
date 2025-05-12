@@ -2,11 +2,16 @@ from datetime import datetime
 from django.db import models
 from accounts.models import UserAccount
 import re
+from rest_framework import serializers
+# from .models import ReportPostEntity, PostEntity
+from accounts.models import UserAccount
+
 def strip_html_tags(text):
     if text:
         clean = re.compile('<.*?>')
         return re.sub(clean, '', text)
     return text
+
 class EnterpriseEntity(models.Model):
     company_name = models.CharField(max_length=255, db_index=True)
     address = models.CharField(max_length=255)
@@ -112,6 +117,7 @@ class PostEntity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     modified_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=False, db_index=True)
+    is_remove_by_admin = models.BooleanField(default=False, db_index=True)
     def __str__(self):
         return self.title
 
@@ -171,3 +177,20 @@ class SavedPostEntity(models.Model):
         indexes = [
             models.Index(fields=['user', 'created_at'], name='saved_post_user_time_idx'),
         ]
+        
+class ReportPostEntity(models.Model):
+    post = models.ForeignKey(PostEntity, on_delete=models.CASCADE, related_name='reports')
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='reports')
+    reason = models.TextField()
+    response = models.TextField(blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=False)
+    is_remove = models.BooleanField(default=False, verbose_name='Gỡ bài đăng')
+    modified_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} reported {self.post.title}"
+
+    class Meta:
+        verbose_name = 'Báo cáo bài đăng'
+        verbose_name_plural = 'Báo cáo bài đăng'

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity, SavedPostEntity
+from .models import EnterpriseEntity, PostEntity, FieldEntity, PositionEntity, CriteriaEntity, SavedPostEntity, ReportPostEntity
 from base.cloudinary_utils import upload_image_to_cloudinary, delete_image_from_cloudinary
 import re
 
@@ -285,3 +285,19 @@ class PostListSerializer(serializers.ModelSerializer):
             'is_salary_negotiable', 'city', 'position_name', 'enterprise_name', 
             'enterprise_logo', 'deadline', 'is_saved', 'experience', 'is_enterprise_premium'
         ]
+
+
+class ReportPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportPostEntity
+        fields = ['id', 'post', 'reason', 'created_at']
+        read_only_fields = ['id', 'created_at']
+        
+    def create(self, validated_data):
+        # Tự động lấy user từ request
+        user = self.context['request'].user
+        validated_data['user'] = user
+        
+        # Tạo báo cáo mới
+        report = ReportPostEntity.objects.create(**validated_data)
+        return report

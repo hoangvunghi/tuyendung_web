@@ -702,6 +702,7 @@ def get_posts(request):
         # Nếu không có trong cache, thực hiện truy vấn để lấy post IDs
         posts = PostEntity.objects.filter(
             is_active=True, 
+            is_remove_by_admin=False,
             deadline__gt=datetime.now()
         ).select_related(
             'position', 
@@ -716,90 +717,7 @@ def get_posts(request):
         posts = posts.order_by('-salary_min')
     elif (sort == '-created_at'):
         posts = posts.order_by('-created_at')
-            
-        # # Lấy danh sách ID bài đăng theo thứ tự cơ bản
-        # post_ids = list(posts.values_list('id', flat=True))
-        
-        # # Cần thông tin enterprise_id để sắp xếp theo premium
-        # post_data = list(posts.values('id', 'enterprise_id', 'created_at'))
-        
-        # # Tìm doanh nghiệp liên quan đến các bài đăng
-        # enterprise_ids = {post['enterprise_id'] for post in post_data}
-        
-        # # Lấy thông tin priority coefficient từ cache
-        # priority_cache_key = 'enterprise_priority_coefficients'
-        # priority_coefficients = cache.get(priority_cache_key, {})
-        
-        # # Chỉ truy vấn các doanh nghiệp chưa có trong cache
-        # missing_enterprise_ids = [eid for eid in enterprise_ids if eid not in priority_coefficients]
-        
-        # if missing_enterprise_ids:
-        #     # Lấy thông tin doanh nghiệp
-        #     enterprises = EnterpriseEntity.objects.filter(
-        #         id__in=missing_enterprise_ids
-        #     ).select_related('user')
-            
-        #     # Map user_id to enterprise_id
-        #     user_to_enterprise = {e.user_id: e.id for e in enterprises}
-            
-        #     # Lấy premium histories hiệu quả với một truy vấn
-        #     premium_histories = PremiumHistory.objects.filter(
-        #         user_id__in=user_to_enterprise.keys(),
-        #         is_active=True,
-        #         is_cancelled=False,
-        #         end_date__gt=timezone.now()
-        #     ).select_related('package')
-            
-        #     # Map user_id to premium_history hiệu quả
-        #     user_premiums = {}
-        #     for ph in premium_histories:
-        #         if ph.user_id not in user_premiums:
-        #             user_premiums[ph.user_id] = ph
-            
-        #     # Tính toán priority coefficients cho các doanh nghiệp thiếu
-        #     for enterprise in enterprises:
-        #         premium = user_premiums.get(enterprise.user_id)
-        #         if premium and premium.package:
-        #             priority_coefficients[enterprise.id] = premium.package.priority_coefficient
-        #         else:
-        #             priority_coefficients[enterprise.id] = 999
-            
-        #     # Lưu vào cache trong 1 giờ
-        #     cache.set(priority_cache_key, priority_coefficients, 60 * 60)
-        
-        # # Sắp xếp post_data theo hệ số ưu tiên
-        # post_data.sort(key=lambda post: (
-        #     priority_coefficients.get(post['enterprise_id'], 999),
-        #     -(post['created_at'].timestamp() if isinstance(post['created_at'], datetime) else 0)
-        # ))
-        
-        # # Lấy ID bài đăng theo thứ tự mới
-        # sorted_ids = [post['id'] for post in post_data]
-        
-        # # Cache danh sách ID đã sắp xếp
-        # cache.set(cache_key, sorted_ids, 60 * 5)  # Cache trong 5 phút
-    # else:
-    #     sorted_ids = cached_post_ids
-
-    # # Lấy dữ liệu posts từ database với các ID đã sắp xếp
-    # if sorted_ids:
-    #     from django.db import models  # Import models namespace
-        
-    #     order_clause = models.Case(
-    #         *[models.When(id=pk, then=models.Value(pos)) for pos, pk in enumerate(sorted_ids)],
-    #         output_field=models.IntegerField()
-    #     )
-        
-    #     ordered_posts = PostEntity.objects.filter(
-    #         id__in=sorted_ids
-    #     ).select_related(
-    #         'position', 
-    #         'enterprise', 
-    #         'field'
-    #     ).order_by(order_clause)
-    # else:
-    #     ordered_posts = PostEntity.objects.none()
-    
+  
     # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
@@ -898,7 +816,7 @@ def get_post_of_user(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_all_posts(request):
-    posts = PostEntity.objects.filter(is_active=True, deadline__gt=datetime.now())
+    posts = PostEntity.objects.filter(is_active=True, is_remove_by_admin=False, deadline__gt=datetime.now())
     
     # Phân trang
     paginator = CustomPagination()
@@ -1519,16 +1437,12 @@ def search_posts(request):
     
     cache_key = f"search_posts_results_{hash(frozenset(params.items()))}"
     
-    time_params = datetime.now()
-    print(f"Parameters processing time: {time_params - time_start} seconds")
-    
     cached_data = cache.get(cache_key)
     if cached_data is not None:
-        time_end = datetime.now()
-        print(f"Cache hit! Time taken: {time_end - time_start} seconds")
         return Response(cached_data)
     query = PostEntity.objects.filter(
         is_active=True,
+        is_remove_by_admin=False,
         deadline__gte=datetime.now()
     )
     
@@ -1542,84 +1456,28 @@ def search_posts(request):
                 Q(required__icontains=search_term) |
                 Q(enterprise__company_name__icontains=search_term)
             )
-    print("--------------------------------")
-    print("query có q:")
-    print(query)
-    print("--------------------------------")
-    print("params.get('q'):")
-    print(params.get('q'))
-    print("--------------------------------")
+
     if params.get("city"):
         if len(params.get('city')) > 0:
             query = query.filter(city__iexact=params.get('city'))
-            print("--------------------------------")
-            print("query có city:")
-            print("params.get('city'):")
-            print(params.get('city'))
-            print("len(params.get('city')):")
-            print(len(params.get('city')))
-            print("--------------------------------")
-            print(query)
-            print("--------------------------------")
     if params.get("experience"):
         if len(params.get('experience')) > 0:
-            print("params.get('experience'):")
-            print(params.get('experience'))
-            print("len(params.get('experience')):")
-            print(len(params.get('experience')))
-            print("--------------------------------")
             query = query.filter(experience__iexact=params.get('experience'))
-    print("--------------------------------")
-    print("query có experience:")
-    print(query)
-    print("--------------------------------")
     if params.get("type_working"):
         if len(params.get('type_working')) > 0:
-            print("params.get('type_working'):")
-            print(params.get('type_working'))
-            print("len(params.get('type_working')):")
-            print(len(params.get('type_working')))
-            print("--------------------------------")
             query = query.filter(type_working__iexact=params.get('type_working'))
-    print("--------------------------------")
-    print("query có type_working:")
-    print(query)
-    print("--------------------------------")
     if params.get("scales"):
         if len(params.get('scales')) > 0:
-            print("params.get('scales'):")
-            print(params.get('scales'))
-            print("len(params.get('scales')):")
-            print(len(params.get('scales')))
-            print("--------------------------------")
             query = query.filter(enterprise__scale__iexact=params.get('scales'))
-    print("--------------------------------")
-    print("query có scales:")
-    print(query)
-    print("--------------------------------")
     if params.get("position"):
         if len(params.get('position')) > 0:
-            print("params.get('position'):")
-            print(params.get('position'))
-            print("len(params.get('position')):")
-            print(len(params.get('position')))
-            print("--------------------------------")
             position_param = params.get('position')
             if position_param.isdigit():
                 query = query.filter(position__id=int(position_param))
             else:
                 query = query.filter(position__name__icontains=position_param)
-    print("--------------------------------")
-    print("query có position:")
-    print(query)
-    print("--------------------------------")
     if params.get("field"):
         if len(params.get('field')) > 0:
-            print("params.get('field'):")
-            print(params.get('field'))
-            print("len(params.get('field')):")
-            print(len(params.get('field')))
-            print("--------------------------------")
             field_param = params.get('field')
             if field_param.isdigit():
                 query = query.filter(
@@ -1631,38 +1489,16 @@ def search_posts(request):
                     Q(field__name__icontains=field_param) |
                     Q(position__field__name__icontains=field_param)
                 )
-            print("--------------------------------")
-            print("query có field:")
-            print(query)
-            print("--------------------------------")
     if params.get("salary_min"):
         if len(params.get('salary_min')) > 0:
             query = query.filter(salary_min__gte=int(params.get('salary_min')))
-        print("--------------------------------")
-        print("params.get('salary_min'):")
-        print(params.get('salary_min'))
-        print("len(params.get('salary_min')):")
-        print(len(params.get('salary_min')))
-        print("--------------------------------")
-        print("query có salary_min:")
-        print(query)
-        print("--------------------------------")
     if params.get("salary_max"):
         if len(params.get('salary_max')) > 0:
             query = query.filter(salary_max__lte=int(params.get('salary_max')))
-            print("--------------------------------")   
-            print("query có salary_max:")
-            print(query)
-            print("--------------------------------")
     if params.get("negotiable"):
         if len(params.get('negotiable')) > 0:
             query = query.filter(is_salary_negotiable=True)
-            print("--------------------------------")
-            print("query có negotiable:")
-            print(query)
-            print("--------------------------------")
     time_query_build = datetime.now()
-    print(f"Query building time: {time_query_build - time_params} seconds")
     
     # Cải thiện hiệu suất bằng select_related trước khi thực hiện truy vấn
     filtered_query = query.select_related(
@@ -1670,10 +1506,6 @@ def search_posts(request):
         'field', 
         'enterprise'
     )
-    print("--------------------------------")
-    print("filtered_query:")
-    print(filtered_query)
-    print("--------------------------------")
     # Chỉ lấy các trường cần thiết cho việc tính điểm và sắp xếp
     # Dùng values() để chuyển đổi QuerySet sang dictionary để xử lý nhanh hơn
     post_data = list(filtered_query.values(
@@ -1684,26 +1516,10 @@ def search_posts(request):
     ))
 
     time_initial_query = datetime.now()
-    print(f"Initial query execution time: {time_initial_query - time_query_build} seconds")
-    print("--------------------------------")
-    print("post_data:")
-    print(post_data)
-    print("--------------------------------")
     # Nếu không có kết quả lọc và all=true, lấy tất cả bài đăng
     if len(post_data) == 0:
-        print("--------------------------------")
-        print("len(post_data) == 0")
-        print("--------------------------------")
-        # nếu q= thì tiếp tục còn không thì trả về rỗng
         if params.get('q') != None:
             if len(params.get('q')) !=0:
-                print("--------------------------------")
-                print("params.get('q'):")
-                print(params.get('q'))
-                print()
-                print("--------------------------------")
-                print("đã trả về khi len(post_data) == 0")
-                print("--------------------------------")
                 return Response({
                     'message': 'Data retrieved successfully',
                     'status': status.HTTP_200_OK,
@@ -1739,10 +1555,6 @@ def search_posts(request):
             user_criteria = CriteriaEntity.objects.select_related('field', 'position').get(user=user)
         except CriteriaEntity.DoesNotExist:
             pass
-    print("--------------------------------")
-    print("user_criteria:")
-    print(user_criteria)
-    print("--------------------------------")
     # Tối ưu thông tin premium cho các doanh nghiệp
     enterprise_ids = {post['enterprise_id'] for post in post_data if post['enterprise_id'] is not None}
     
@@ -1867,16 +1679,10 @@ def search_posts(request):
     
     # Lấy danh sách ID đã sắp xếp
     sorted_post_ids = [post['id'] for post in filtered_posts]
-    print("--------------------------------")
-    print("sorted_post_ids:")
-    print(sorted_post_ids)
-    print("--------------------------------")
+    
     # Nếu không có kết quả, trả về rỗng
     if not sorted_post_ids:
         # Trả về response rỗng với định dạng phân trang
-        print("--------------------------------")
-        print("not sorted_post_ids")
-        print("--------------------------------")
         empty_data = {
             'message': 'Data retrieved successfully',
             'status': status.HTTP_200_OK,
@@ -2029,23 +1835,6 @@ def search_posts(request):
         'data': paged_data
     }
     
-    # Tính toán thời gian tổng
-    time_end = datetime.now()
-    print(f"------------------------")
-    print(f"Parameters processing:  {time_params - time_start} seconds")
-    print(f"Query building:         {time_query_build - time_params} seconds")
-    print(f"Initial data fetch:     {time_initial_query - time_query_build} seconds")
-    print(f"Premium data fetch:     {time_premium_fetch - time_initial_query} seconds")
-    print(f"Post scoring:           {time_scoring - time_premium_fetch} seconds")
-    print(f"Sorting:                {time_sorting - time_scoring} seconds")
-    print(f"Pagination:             {time_pagination - time_sorting} seconds")
-    print(f"Detail data fetch:      {time_fetch_detail - time_pagination} seconds")
-    print(f"Data transformation:    {time_transform - time_fetch_detail} seconds")
-    print(f"Cache & response:       {time_end - time_transform} seconds")
-    print(f"------------------------")
-    print(f"TOTAL SEARCH TIME:      {time_end - time_start} seconds")
-    
-    # Cache kết quả và trả về
     cache.set(cache_key, response_data, 60 * 5)  # Cache trong 5 phút
     return Response(response_data)
 
@@ -2924,6 +2713,7 @@ def toogle_post_status(request, pk):
     try:
         post = PostEntity.objects.get(pk=pk)
         post.is_active = not post.is_active
+        post.is_remove_by_admin = not post.is_remove_by_admin
         post.save()
         return Response({
             'message': 'Cập nhật trạng thái bài đăng thành công',
