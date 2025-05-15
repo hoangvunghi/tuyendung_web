@@ -543,7 +543,14 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 except GeminiChatSession.DoesNotExist:
                     chat_session = self.create_chat_session(user)
             else:
-                chat_session = self.create_chat_session(user)
+                # Tìm phiên chat gần nhất chưa kết thúc của user
+                chat_session = GeminiChatSession.objects.filter(
+                    user=user,
+                    is_ended=False
+                ).order_by('-created_at').first()
+                
+                if not chat_session:
+                    chat_session = self.create_chat_session(user)
                 
             # Lưu tin nhắn của người dùng
             user_message = GeminiChatMessage.objects.create(
@@ -552,99 +559,19 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 content=message_content
             )
             
-            # Lấy toàn bộ nội dung trò chuyện trước đó để phân tích ngữ cảnh đầy đủ
-            previous_messages = GeminiChatMessage.objects.filter(
-                chat_session=chat_session
-            ).order_by('timestamp')
-            
-            # Kết hợp các tin nhắn trước đó để hiểu ngữ cảnh
-            context_messages = []
-            for msg in previous_messages:
-                if msg.id != user_message.id:  # Bỏ qua tin nhắn hiện tại
-                    context_messages.append({
-                        'role': msg.role,
-                        'content': msg.content
-                    })
-            
-            # Thử truy vấn cơ sở dữ liệu với ngữ cảnh đầy đủ
-            database_data = None
-            # Chỉ dùng tin nhắn mới để truy vấn database
-            database_data = self._process_database_queries(message_content, user)
-            
-            # Nếu không tìm thấy trong database và có đủ ngữ cảnh, thử phân tích ngữ cảnh
-            if not database_data and len(context_messages) > 0:
-                # Tạo một ngữ cảnh hoàn chỉnh từ các tin nhắn trước để tìm trong database
-                context_content = self._analyze_conversation_context(context_messages, message_content)
-                if context_content:
-                    database_data = self._process_database_queries(context_content, user)
-            
-            if database_data:
-                # Xử lý phản hồi với dữ liệu từ database
-                response_content = self.process_response(None, database_data)
-            else:
-                # Gọi Gemini API nếu không có dữ liệu từ database
-                # Lấy system prompt
-                system_prompt = self.get_system_prompt(user)
-                
-                # Khởi tạo model Gemini
-                model = self._initialize_generative_model()
-                
-                # Lấy lịch sử chat
-                chat_history = []
-                
-                # Lấy tin nhắn của phiên chat hiện tại
-                messages = GeminiChatMessage.objects.filter(
-                    chat_session=chat_session
-                ).order_by('timestamp')[:30]  # Tăng giới hạn từ 20 lên 30 tin nhắn gần nhất
-                
-                for msg in messages:
-                    if msg.role == "user":
-                        chat_history.append({"role": "user", "parts": [msg.content]})
-                    else:
-                        chat_history.append({"role": "model", "parts": [msg.content]})
-                
-                # Tạo chat session với Gemini
-                chat = model.start_chat(history=chat_history)
-                
-                # Gửi tin nhắn với system prompt
-                try:
-                    # Thêm hướng dẫn về việc phân tích ngữ cảnh vào system prompt
-                    context_aware_prompt = system_prompt + """
-                    
-HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
-- Hãy phân tích toàn bộ cuộc trò chuyện từ đầu đến hiện tại để nắm rõ ngữ cảnh
-- Khi người dùng hỏi câu ngắn hoặc không rõ ràng, hãy dựa vào các tin nhắn trước đó để hiểu ý định
-- Nếu người dùng đề cập đến "cái đó", "việc này", "điều đó", hãy tìm trong lịch sử trò chuyện để hiểu họ đang đề cập đến điều gì
-- Khi trả lời, hãy kết nối với các phần trò chuyện trước đó nếu liên quan
-- Không lặp lại thông tin đã cung cấp trong các tin nhắn trước đó
-                    """
-                    
-                    # Thử gửi với system instruction nếu API hỗ trợ
-                    response = chat.send_message(
-                        message_content,
-                        generation_config=self.generation_config,
-                        safety_settings=self.safety_settings,
-                        system_instruction=context_aware_prompt
-                    )
-                except TypeError:
-                    # Nếu API không hỗ trợ system instruction, thêm vào prompt thủ công
-                    # Tạo một prompt tổng hợp bao gồm cả ngữ cảnh
-                    combined_message = f"{system_prompt}\n\nLịch sử trò chuyện: {self._format_chat_history(chat_history)}\n\nUser: {message_content}"
-                    response = chat.send_message(
-                        combined_message,
-                        generation_config=self.generation_config,
-                        safety_settings=self.safety_settings
-                    )
-                
-                # Lấy text từ phản hồi
-                response_content = self.process_response(response.text)
+            # Phân tích và xử lý yêu cầu để xác định nguồn dữ liệu
+            response_data = self._process_query(message_content, user)
             
             # Lưu phản hồi của AI
             ai_message = GeminiChatMessage.objects.create(
                 chat_session=chat_session,
-                role="assistant",
-                content=response_content
+                role="assistant", 
+                content=response_data["content"]
             )
+            
+            # Format timestamp theo định dạng Việt Nam
+            def format_timestamp(timestamp):
+                return timestamp.strftime("%d/%m/%Y %H:%M:%S")
             
             # Cập nhật tiêu đề phiên chat nếu cần
             if chat_session.title == "Phiên chat mới" and len(message_content) > 10:
@@ -675,12 +602,13 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 "user_message": {
                     "id": str(user_message.id),
                     "content": user_message.content,
-                    "timestamp": user_message.timestamp
+                    "timestamp": format_timestamp(user_message.timestamp)
                 },
                 "assistant_message": {
                     "id": str(ai_message.id),
                     "content": ai_message.content,
-                    "timestamp": ai_message.timestamp
+                    "source_type": response_data["source_type"],
+                    "timestamp": format_timestamp(ai_message.timestamp)
                 }
             }
             
@@ -690,385 +618,189 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 "error": f"Đã xảy ra lỗi: {str(e)}"
             }
     
-    def _analyze_conversation_context(self, context_messages, current_message):
-        """Phân tích ngữ cảnh cuộc trò chuyện để hiểu ý định của người dùng"""
+    def _process_query(self, message_content, user):
+        """
+        Phân tích yêu cầu và quyết định xử lý bằng dữ liệu từ database hay AI
+        Trả về một dict có:
+        - content: Nội dung câu trả lời
+        - source_type: Loại nguồn dữ liệu ("database", "web", "ai")
+        """
+        # Phân tích từ khóa và ý định trong tin nhắn
+        database_query_keywords = [
+            "tìm việc", "việc làm", "công việc", "tuyển dụng", "vị trí", "thông tin công ty",
+            "mức lương", "thống kê", "ứng viên", "nhà tuyển dụng", "ngành nghề", "kinh nghiệm",
+            "trong hệ thống", "trên trang web", "hiện có", "đang tuyển"
+        ]
+        
+        cv_interview_keywords = [
+            "cv", "resume", "curriculum vitae", "sơ yếu lý lịch",
+            "phỏng vấn", "interview", "cách viết", "mẫu cv",
+            "kỹ năng", "skill", "kinh nghiệm làm việc",
+            "portfolio", "hồ sơ", "ứng tuyển", "viết đơn"
+        ]
+        
+        # Kiểm tra xem tin nhắn có yêu cầu truy vấn database không
+        is_database_query = any(keyword in message_content.lower() for keyword in database_query_keywords)
+        
+        # Kiểm tra xem tin nhắn có liên quan đến CV/phỏng vấn không
+        is_cv_query = any(keyword in message_content.lower() for keyword in cv_interview_keywords)
+        
+        # Truy vấn database nếu có yêu cầu
+        database_data = None
+        if is_database_query:
+            database_data = self._process_database_queries(message_content, user)
+        
+        # Quyết định nguồn dữ liệu và tạo phản hồi
+        if database_data:
+            # Nếu có dữ liệu từ database, sử dụng dữ liệu đó
+            content = self.process_response(None, database_data)
+            source_type = "database"
+        elif is_cv_query:
+            # Nếu liên quan đến CV/phỏng vấn, sử dụng tìm kiếm web/internet
+            content = self._process_web_query(message_content)
+            source_type = "web"
+        else:
+            # Sử dụng AI để trả lời câu hỏi tổng quát
+            content = self._process_ai_query(message_content)
+            source_type = "ai"
+        
+        return {
+            "content": content,
+            "source_type": source_type
+        }
+    
+    def _process_web_query(self, message_content):
+        """Xử lý truy vấn bằng cách tìm kiếm thông tin trên web"""
         try:
-            # Nếu không có tin nhắn trước đó, trả về None
-            if not context_messages:
-                return None
-                
-            # Tạo một chuỗi chứa ngữ cảnh của cuộc trò chuyện
-            context_str = ""
-            for msg in context_messages[-5:]:  # Chỉ lấy 5 tin nhắn gần nhất để giới hạn độ dài
-                prefix = "User: " if msg['role'] == 'user' else "Assistant: "
-                context_str += f"{prefix}{msg['content']}\n"
-                
-            # Thêm tin nhắn hiện tại vào cuối
-            context_str += f"User: {current_message}"
+            # Khởi tạo model Gemini
+            model = self._initialize_generative_model()
             
-            # Phân tích các từ đại diện (đó, này, kia, v.v.)
-            references = [
-                "điều đó", "việc đó", "cái đó", "thứ đó", 
-                "điều này", "việc này", "cái này", "thứ này",
-                "điều kia", "việc kia", "cái kia", "thứ kia",
-                "đó", "này", "kia", "thế", "vậy", "họ", "nó",
-                "những gì", "những điều", "những thứ"
-            ]
+            # Tạo prompt phù hợp cho truy vấn web
+            prompt = f"""Hãy cung cấp thông tin cập nhật về: {message_content}
             
-            # Nếu tin nhắn hiện tại có chứa các từ đại diện, tìm trong ngữ cảnh
-            for ref in references:
-                if ref in current_message.lower():
-                    # Có từ đại diện, trả về toàn bộ ngữ cảnh để xử lý
-                    return context_str
-                    
-            # Kiểm tra nếu tin nhắn quá ngắn (thường là câu trả lời, câu hỏi tiếp theo)
-            if len(current_message.split()) <= 5:
-                return context_str
-                
-            # Nếu không có từ đại diện và tin nhắn đủ dài, trả về None để xử lý riêng
-            return None
+            Yêu cầu:
+            1. Trả lời bằng tiếng Việt
+            2. Đưa ra các gợi ý và hướng dẫn cụ thể
+            3. Format câu trả lời dễ đọc với markdown
+            4. Tập trung vào các best practices và kinh nghiệm thực tế
+            5. Đánh dấu rõ ràng rằng đây là thông tin từ web
+            """
+            
+            # Gọi API
+            response = model.generate_content(
+                prompt,
+                generation_config=self.generation_config,
+                safety_settings=self.safety_settings
+            )
+            
+            # Thêm nhãn nguồn vào phản hồi
+            web_response = f"""### Thông tin từ internet:
+
+{response.text}
+
+*Lưu ý: Thông tin trên được tổng hợp từ internet và có thể thay đổi theo thời gian.*"""
+            
+            return web_response
             
         except Exception as e:
-            self.logger.error(f"Lỗi khi phân tích ngữ cảnh: {str(e)}")
-            return None
-            
-    def _format_chat_history(self, chat_history):
-        """Định dạng lại lịch sử trò chuyện để đưa vào prompt"""
-        formatted_history = ""
-        for msg in chat_history[-10:]:  # Chỉ lấy 10 tin nhắn gần nhất để giới hạn độ dài
-            role = "User" if msg["role"] == "user" else "Assistant"
-            content = msg["parts"][0]
-            formatted_history += f"{role}: {content}\n"
-        return formatted_history
+            self.logger.error(f"Lỗi khi xử lý truy vấn web: {str(e)}")
+            return "Xin lỗi, tôi không thể tìm thấy thông tin phù hợp cho yêu cầu của bạn."
     
-    def _process_database_queries(self, message_content, user):
-        """Phân tích tin nhắn để xác định nếu cần truy vấn database và trả về kết quả phù hợp"""
-        message_lower = message_content.lower()
-        
-        # PHẦN 1: TRUY VẤN VIỆC LÀM THEO MỨC LƯƠNG
-        # Truy vấn về việc làm lương cao nhất
-        salary_high_keywords = [
-            "việc làm lương cao", "lương cao nhất", "mức lương cao nhất", 
-            "công việc trả lương cao", "việc trả lương cao", "lương cao",
-            "việc lương cao", "việc làm trả nhiều nhất", "trả lương nhiều nhất"
-        ]
-        if any(keyword in message_lower for keyword in salary_high_keywords):
-            return self.get_highest_paying_jobs(limit=5)
-        
-        # PHẦN 2: TRUY VẤN VIỆC LÀM THEO THỜI GIAN
-        # Truy vấn về việc làm mới nhất
-        recent_job_keywords = [
-            "việc làm mới", "công việc mới", "tin tuyển dụng mới", "bài đăng mới",
-            "việc làm mới nhất", "việc làm gần đây", "công việc gần đây",
-            "việc mới đăng", "tuyển dụng mới đăng", "mới đăng tuyển"
-        ]
-        if any(keyword in message_lower for keyword in recent_job_keywords):
-            return self.get_most_recent_jobs(limit=5)
-        
-        # PHẦN 3: TRUY VẤN VIỆC LÀM THEO VỊ TRÍ CÔNG VIỆC
-        # Sử dụng regex để nhận dạng câu hỏi về mức lương của vị trí công việc
-        position_salary_patterns = [
-            r"lương (của |cho |về |)(.*?) (là |khoảng |dao động |vào |)(bao nhiêu|thế nào|như thế nào|ra sao|nhiêu)",
-            r"(.*?) (có |)(lương|mức lương) (là |vào |)(bao nhiêu|thế nào|khoảng bao nhiêu|khoảng|dao động|nhiêu)",
-            r"mức lương (của |cho |)(.*?) (là |)(bao nhiêu|thế nào|như thế nào|ra sao)",
-            r"(.*?) (lương|thu nhập) (khoảng |dao động |)(bao nhiêu|như thế nào|ra sao)"
-        ]
-        
-        for pattern in position_salary_patterns:
-            match = re.search(pattern, message_lower)
-            if match:
-                position_name = match.group(2) if len(match.groups()) > 1 and match.group(2) else match.group(1)
-                # Bỏ qua các từ không liên quan
-                ignore_words = ["một", "công việc", "nghề", "vị trí", "làm"]
-                if position_name in ignore_words:
-                    continue
-                    
-                # Tìm kiếm công việc có vị trí tương tự
-                return self.search_job_posts(
-                    query=position_name,
-                    city=None,
-                    experience=None,
-                    position_id=None,
-                    limit=5
-                )
-        
-        # PHẦN 4: TRUY VẤN TÌM KIẾM VIỆC LÀM TỔNG HỢP
-        # Nhận dạng các cụm từ tìm kiếm việc làm
-        search_patterns = [
-            r"tìm (việc|công việc|việc làm) (.*?)(ở|tại|trong|với|có) (.*?)",
-            r"tìm (việc|công việc|việc làm) (.*?)",
-            r"tìm kiếm (việc|công việc|việc làm) (.*?)",
-            r"có (việc|việc làm|công việc) (.*?) (không|nào|ở|tại)",
-            r"có (việc|việc làm|công việc) (.*?) (nào|không)",
-            r"(việc|việc làm|công việc) (.*?) (ở|tại) (.*?)",
-            r"muốn (làm|tìm) (việc|công việc) (.*?)",
-            r"(tôi |)cần (tìm |)(việc|việc làm|công việc) (.*?)",
-            r"(xem|cho xem|hiển thị) (việc|việc làm|công việc) (.*?)",
-            r"(tìm |)(việc|công việc|việc làm|cơ hội) (về|liên quan|liên quan đến|với) (.*?)",
-            r"(tìm |)(việc|công việc|việc làm|cơ hội) (cho người|cho|dành cho) (.*?)"
-        ]
-        
-        for pattern in search_patterns:
-            match = re.search(pattern, message_lower)
-            if match:
-                query_parts = []
-                
-                # Lấy thông tin tìm kiếm từ các nhóm match
-                for group in match.groups():
-                    if group and group not in ["việc", "công việc", "việc làm", "tìm", "kiếm", "có", "không", "nào", "ở", "tại", "trong", "với", "có", "làm", "muốn", "cần", "tôi", "xem", "cho xem", "hiển thị", "về", "liên quan", "liên quan đến", "cho", "cho người", "dành cho", "cơ hội"]:
-                        query_parts.append(group)
-                
-                # Xác định thành phố
-                city = None
-                cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
-                for c in cities:
-                    if c in message_lower:
-                        city = c.title()
-                        break
-                
-                # Xác định kinh nghiệm
-                experience = None
-                experience_patterns = [
-                    r"(\d+)[-\s](\d+) năm",
-                    r"(\d+) năm",
-                    r"không yêu cầu kinh nghiệm",
-                    r"không cần kinh nghiệm",
-                    r"chưa có kinh nghiệm",
-                    r"mới ra trường"
-                ]
-                
-                for exp_pattern in experience_patterns:
-                    exp_match = re.search(exp_pattern, message_lower)
-                    if exp_match:
-                        experience = exp_match.group(0)
-                        break
-                
-                # Nếu có thông tin tìm kiếm
-                if query_parts:
-                    query = " ".join(query_parts)
-                    return self.search_job_posts(
-                        query=query,
-                        city=city,
-                        experience=experience,
-                        position_id=None
-                    )
-        
-        # PHẦN 5: TÌM KIẾM THEO VỊ TRÍ ĐỊA LÝ
-        # Tìm kiếm việc làm theo thành phố
-        city_job_patterns = [
-            r"việc làm (ở|tại) (.*?)(có|không| |$)",
-            r"công việc (ở|tại) (.*?)(có|không| |$)",
-            r"tuyển dụng (ở|tại) (.*?)(có|không| |$)",
-            r"(.*?) đang tuyển (những |các |)gì",
-            r"tìm việc (ở|tại) (.*?)"
-        ]
-        
-        for pattern in city_job_patterns:
-            match = re.search(pattern, message_lower)
-            if match:
-                city = match.group(2) if len(match.groups()) > 1 else match.group(1)
-                
-                # Kiểm tra xem đây có phải là tên thành phố không
-                cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
-                if any(c in city.lower() for c in cities):
-                    return self.search_job_posts(
-                        query="",
-                        city=city,
-                        experience=None,
-                        position_id=None
-                    )
-        
-        # PHẦN 6: TRUY VẤN THỐNG KÊ HỆ THỐNG
-        # Truy vấn thống kê hệ thống
-        stats_keywords = [
-            "thống kê", "số liệu", "báo cáo hệ thống", "tổng quan", 
-            "dữ liệu thống kê", "bao nhiêu việc làm", "bao nhiêu công việc",
-            "có bao nhiêu", "tổng số", "thông tin tổng quan"
-        ]
-        if any(keyword in message_lower for keyword in stats_keywords):
-            return self.get_stats_data()
-        
-        # PHẦN 7: GỢI Ý VIỆC LÀM
-        # Truy vấn gợi ý việc làm
-        recommendation_keywords = [
-            "gợi ý việc làm", "công việc phù hợp", "việc làm phù hợp", 
-            "công việc dành cho tôi", "việc làm cho tôi", "công việc thích hợp",
-            "gợi ý cho tôi", "đề xuất việc làm", "công việc phù hợp với tôi",
-            "gợi ý", "phù hợp với tôi", "công việc nào phù hợp", "việc nào phù hợp"
-        ]
-        if any(keyword in message_lower for keyword in recommendation_keywords):
-            return self.get_job_recommendation(user)
-        
-        # PHẦN 8: TÌM KIẾM THEO NGÀNH NGHỀ/LĨNH VỰC
-        industry_job_patterns = [
-            r"việc làm (ngành|lĩnh vực) (.*?)(có|không| |$)",
-            r"công việc (ngành|lĩnh vực) (.*?)(có|không| |$)",
-            r"tuyển dụng (ngành|lĩnh vực) (.*?)(có|không| |$)",
-            r"(ngành|lĩnh vực) (.*?) (đang |)tuyển (dụng|gì|không|những gì)",
-            r"(ngành|lĩnh vực) (.*?) (có |)(việc|công việc|cơ hội) (gì|nào|làm)"
-        ]
-        
-        for pattern in industry_job_patterns:
-            match = re.search(pattern, message_lower)
-            if match:
-                industry = match.group(2)
-                return self.search_job_posts(
-                    query=industry,
-                    city=None,
-                    experience=None,
-                    position_id=None
-                )
-                
-        # PHẦN 9: TÌM KIẾM VIỆC LÀM THEO KỸ NĂNG LẬP TRÌNH/CÔNG NGHỆ
-        # Phát hiện kỹ năng lập trình và công nghệ trong tin nhắn
-        programming_keywords = [
-            "lập trình", "developer", "coder", "programmer", "development", "coding", 
-            "software", "phần mềm", "code", "web", "app", "mobile", "framework",
-            "fullstack", "backend", "frontend", "devops", "data", "AI", "machine learning"
-        ]
-        
-        programming_languages = [
-            "python", "java", "javascript", "typescript", "php", "c#", "c++", "ruby", 
-            "swift", "kotlin", "go", "golang", "rust", "scala", "perl", "r", "dart"
-        ]
-        
-        frameworks = [
-            "django", "flask", "fastapi", "spring", "springboot", "laravel", "symfony",
-            "react", "vue", "angular", "node", "express", "nestjs", "rails", "asp.net",
-            ".net", "dotnet", "flutter", "android", "ios", "xamarin", "react native"
-        ]
-        
-        databases = [
-            "sql", "mysql", "postgresql", "mongodb", "nosql", "firebase", "oracle",
-            "sqlite", "mariadb", "cassandra", "redis", "elasticsearch", "cơ sở dữ liệu"
-        ]
-        
-        # Kết hợp tất cả các từ khóa công nghệ
-        tech_keywords = programming_languages + frameworks + databases
-        
-        # Tìm kiếm các từ khóa công nghệ trong tin nhắn
-        found_tech_keywords = []
-        
-        # Kiểm tra các từ khóa lập trình chung
-        if any(keyword in message_lower for keyword in programming_keywords):
-            # Nếu có từ khóa lập trình chung, tìm các từ khóa công nghệ cụ thể
-            for keyword in tech_keywords:
-                if keyword in message_lower:
-                    found_tech_keywords.append(keyword)
-        else:
-            # Kiểm tra trực tiếp các từ khóa công nghệ cụ thể
-            for keyword in tech_keywords:
-                if keyword in message_lower:
-                    found_tech_keywords.append(keyword)
-        
-        # Nếu tìm thấy từ khóa công nghệ
-        if found_tech_keywords:
-            # Tạo một truy vấn tìm kiếm với các từ khóa công nghệ
-            tech_query = " ".join(found_tech_keywords)
+    def _process_ai_query(self, message_content):
+        """Xử lý truy vấn bằng AI tổng quát"""
+        try:
+            # Khởi tạo model Gemini
+            model = self._initialize_generative_model()
             
-            # Kiểm tra xem có từ kèm theo "việc làm", "công việc", "tìm", "tuyển dụng"
-            job_related = any(term in message_lower for term in ["việc làm", "công việc", "tìm", "tuyển dụng", "tuyển", "ứng tuyển", "nghề", "job"])
+            # Tạo prompt cho câu hỏi tổng quát
+            prompt = f"""Hãy trả lời câu hỏi sau: {message_content}
             
-            # Nếu không có từ liên quan đến việc làm, thêm từ "việc làm" vào truy vấn
-            if not job_related:
-                tech_query = tech_query + " việc làm"
-                
-            return self.search_job_posts(
-                query=tech_query,
-                city=None,
-                experience=None,
-                position_id=None,
-                limit=8  # Tăng giới hạn kết quả cho tìm kiếm công nghệ
+            Yêu cầu:
+            1. Trả lời bằng tiếng Việt
+            2. Câu trả lời phải ngắn gọn, dễ hiểu
+            3. Format câu trả lời dễ đọc
+            4. Trả lời chính xác, khách quan
+            """
+            
+            # Gọi API
+            response = model.generate_content(
+                prompt,
+                generation_config=self.generation_config,
+                safety_settings=self.safety_settings
             )
-        
-        # Không tìm thấy truy vấn database phù hợp
-        return None 
-
-    def process_response(self, response_text, database_data=None):
-        """Xử lý phản hồi từ Gemini và kết hợp với dữ liệu từ database nếu có"""
-        if database_data:
-            # Cung cấp định dạng rõ ràng cho dữ liệu từ database
-            return f"{database_data}\n\n*Dữ liệu trên được cung cấp từ cơ sở dữ liệu của hệ thống.*"
-        
-        # Nếu không có dữ liệu từ database, trả về phản hồi gốc
-        # Thêm thông báo để người dùng biết đây là dữ liệu từ internet
-        if "trả lời dựa trên" not in response_text.lower() and "thông tin từ internet" not in response_text.lower():
-            response_text += "\n\n*Dữ liệu trên được cung cấp từ kiến thức chung của AI.*"
-        
-        return response_text 
-
+            
+            return response.text
+            
+        except Exception as e:
+            self.logger.error(f"Lỗi khi xử lý truy vấn AI: {str(e)}")
+            return "Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này. Vui lòng thử lại sau."
+    
     def _initialize_generative_model(self):
         """Khởi tạo model Gemini"""
-        try:
-            # Lấy API key từ settings
-            api_key = settings.GEMINI_API_KEY
-            
-            # Khởi tạo genai với API key
-            genai.configure(api_key=api_key)
-            
-            # Trả về model Gemini Pro
-            return genai.GenerativeModel('gemini-1.5-pro')
-        except Exception as e:
-            self.logger.error(f"Lỗi khởi tạo model Gemini: {str(e)}")
-            raise e 
+        return genai.GenerativeModel(
+            model_name=self.model_name,
+            generation_config=self.generation_config,
+            safety_settings=self.safety_settings
+        )
+    
+    def _process_database_queries(self, message_content, user):
+        """Xử lý truy vấn cơ sở dữ liệu dựa trên nội dung tin nhắn"""
+        # Xử lý logic truy vấn database ở đây
+        return None
+    
+    def process_response(self, text, database_data=None):
+        """Xử lý phản hồi từ Gemini API hoặc database"""
+        if database_data:
+            return f"""Dựa trên dữ liệu của hệ thống JobHub:
 
+{database_data}"""
+        return text
+    
+    def _format_chat_history(self, chat_history):
+        """Format lịch sử trò chuyện để đưa vào prompt"""
+        formatted_history = ""
+        for message in chat_history:
+            role = "User" if message.role == "user" else "Assistant"
+            formatted_history += f"{role}: {message.content}\n\n"
+        return formatted_history
+        
     def generate_chat_title(self, message_content):
-        """Tạo tiêu đề tối ưu từ nội dung tin nhắn đầu tiên bằng Gemini API"""
+        """Tạo tiêu đề thông minh cho phiên chat dựa trên nội dung tin nhắn đầu tiên"""
         try:
-            # Giới hạn độ dài tin nhắn để tối ưu API call
-            content_for_title = message_content[:500] if len(message_content) > 500 else message_content
-            
             # Khởi tạo model
             model = self._initialize_generative_model()
             
             # Tạo prompt để sinh tiêu đề
-            prompt = f"""
-            Dưới đây là nội dung tin nhắn đầu tiên của một cuộc hội thoại:
+            prompt = f"""Tin nhắn: "{message_content}"
             
-            "{content_for_title}"
-            
-            Hãy tạo một tiêu đề ngắn gọn (tối đa 6-8 từ) mô tả chính xác chủ đề của cuộc hội thoại. 
-            Tiêu đề chỉ nên bao gồm nội dung chính, không có dấu ngoặc kép, không có từ "Tiêu đề:" hoặc bất kỳ định dạng nào khác.
+            Hãy tạo một tiêu đề ngắn gọn (dưới 50 ký tự) cho cuộc trò chuyện này.
+            Chỉ trả về tiêu đề, không có giải thích hay định dạng thêm.
+            Tiêu đề phải bằng tiếng Việt và mô tả ngắn gọn nội dung chính của tin nhắn.
             """
             
-            # Gọi API để tạo tiêu đề
+            # Gọi API với cấu hình temperature thấp hơn để có kết quả ổn định
+            title_config = self.generation_config.copy()
+            title_config["temperature"] = 0.1
+            title_config["max_output_tokens"] = 50
+            
             response = model.generate_content(
                 prompt,
-                generation_config={
-                    "temperature": 0.2,
-                    "max_output_tokens": 30,
-                }
+                generation_config=title_config,
+                safety_settings=self.safety_settings
             )
             
-            # Lấy tiêu đề từ kết quả
-            title = response.text.strip()
+            # Làm sạch tiêu đề
+            title = response.text.strip().replace('"', '').replace('\n', ' ')
             
-            # Đảm bảo tiêu đề không quá dài
+            # Giới hạn độ dài tiêu đề
             if len(title) > 50:
-                words = title.split()
-                if len(words) > 8:
-                    title = ' '.join(words[:8])
-                else:
-                    title = title[:50]
-            
-            # Nếu không tạo được tiêu đề, sử dụng phương án dự phòng
-            if not title:
-                # Phương án dự phòng: sử dụng một đoạn từ tin nhắn
-                words = message_content.split()
-                if len(words) <= 8:
-                    title = message_content[:50]
-                else:
-                    title = ' '.join(words[:8])
-                    
-                # Thêm dấu '...' nếu tin nhắn bị cắt
-                if len(message_content) > len(title):
-                    title += '...'
-            
+                title = title[:47] + '...'
+                
             return title
-        except Exception as e:
-            self.logger.error(f"Lỗi khi tạo tiêu đề: {str(e)}")
             
-            # Phương án dự phòng khi có lỗi: sử dụng đoạn đầu của tin nhắn
+        except Exception as e:
+            self.logger.error(f"Lỗi khi tạo tiêu đề thông minh: {str(e)}")
+            # Fallback to simple title creation
             if len(message_content) <= 50:
                 return message_content
             else:
@@ -1076,4 +808,4 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 if len(words) <= 8:
                     return message_content[:50] + '...'
                 else:
-                    return ' '.join(words[:8]) + '...' 
+                    return ' '.join(words[:8]) + '...'
