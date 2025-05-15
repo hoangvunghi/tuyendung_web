@@ -55,10 +55,21 @@ class GeminiChatService:
         ]
         
         self.model_name = "gemini-2.0-flash"
+        
+        # Cache dữ liệu hệ thống để tái sử dụng
+        self.system_data_cache = None
+        self.cache_last_updated = None
+        self.cache_ttl = 3600  # 1 giờ (thời gian tính bằng giây)
     
     def get_system_prompt(self, user):
-        """Tạo system prompt dựa trên vai trò của user"""
+        """Tạo system prompt dựa trên vai trò của user và dữ liệu hệ thống"""
         current_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
+        # Lấy dữ liệu hệ thống
+        system_data = self.get_system_data()
+        
+        # Format dữ liệu hệ thống thành văn bản
+        system_data_text = self._format_system_data_for_prompt(system_data)
         
         base_prompt = f"""Bạn là trợ lý AI hỗ trợ người dùng trên website tuyển dụng 'JobHub'. Hiện tại là {current_time}.
 
@@ -91,8 +102,12 @@ THÔNG TIN VỀ WEBSITE JobHub:
 - Hỗ trợ cả người tìm việc và nhà tuyển dụng
 - Có các gói dịch vụ premium cho người dùng
 
-Khi có yêu cầu cung cấp thông tin từ database, hãy sử dụng dữ liệu tôi cung cấp. 
-Nếu không có dữ liệu hoặc yêu cầu không liên quan đến dữ liệu của hệ thống, hãy tìm kiếm thông tin phù hợp trên internet."""
+DỮ LIỆU HIỆN TẠI CỦA HỆ THỐNG:
+{system_data_text}
+
+Khi có yêu cầu về thông tin việc làm, vị trí, doanh nghiệp, hãy ưu tiên sử dụng dữ liệu tôi đã cung cấp ở trên.
+Nếu thông tin không có trong dữ liệu đã cung cấp, hãy thông báo cho người dùng rằng dữ liệu không có sẵn.
+Chỉ tìm kiếm thông tin trên internet khi nội dung câu hỏi rõ ràng nằm ngoài phạm vi dữ liệu của hệ thống."""
 
         if user.is_employer():
             employer_prompt = f"""
@@ -143,7 +158,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
     
     def search_job_posts(self, query=None, city=None, experience=None, position_id=None, limit=5):
         """Tìm kiếm việc làm dựa trên các tiêu chí"""
-        from enterprises.models import PostEntity
+        from enterprises.models import PostEntity, PositionEntity
         
         posts = PostEntity.objects.filter(is_active=True)
         
@@ -151,6 +166,17 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         if query and query.strip():
             query_terms = query.split()
             q_object = Q()
+            
+            # Nếu query là vị trí công việc cụ thể, thử tìm vị trí trong database
+            # Ví dụ: "Python Developer" sẽ tìm các vị trí có tên "Python", "Developer" hoặc "Python Developer"
+            try:
+                position_terms = query.lower().split()
+                positions = PositionEntity.objects.all()
+                for position in positions:
+                    if any(term.lower() in position.name.lower() for term in position_terms):
+                        q_object |= Q(position=position)
+            except Exception as e:
+                self.logger.error(f"Lỗi khi tìm vị trí: {str(e)}")
             
             for term in query_terms:
                 q_object |= (
@@ -185,7 +211,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         # Format kết quả
         if not posts:
-            return "Không tìm thấy việc làm phù hợp với tiêu chí của bạn."
+            return f"Không tìm thấy việc làm phù hợp với tiêu chí của bạn. Tiêu chí tìm kiếm: {query or ''}"
         
         results = []
         for post in posts:
@@ -205,7 +231,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             results.append(post_info)
         
         # Format kết quả thành markdown
-        markdown_result = "### Kết quả tìm kiếm việc làm\n\n"
+        markdown_result = f"### Kết quả tìm kiếm việc làm{' cho ' + query if query else ''}\n\n"
         
         for job in results:
             markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
@@ -565,7 +591,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Lưu phản hồi của AI
             ai_message = GeminiChatMessage.objects.create(
                 chat_session=chat_session,
-                role="assistant", 
+                role="assistant",
                 content=response_data["content"]
             )
             
@@ -628,8 +654,39 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         # Kiểm tra các từ khóa trong tin nhắn để xác định loại truy vấn
         message_lower = message_content.lower()
         
+        # Kiểm tra nếu người dùng yêu cầu dữ liệu cơ bản cho Gemini xử lý
+        if any(term in message_lower for term in ["thông tin cơ bản", "dữ liệu cơ bản", "đưa hết thông tin", 
+                                                 "cung cấp dữ liệu", "tất cả thông tin", "tổng quan"]):
+            # Lấy dữ liệu cơ bản và định dạng thành văn bản
+            basic_data = self.get_basic_job_data()
+            
+            # Format dữ liệu thành văn bản markdown
+            markdown_result = "### Dữ liệu cơ bản về việc làm trên hệ thống JobHub\n\n"
+            
+            # Thêm thông tin việc làm gần đây
+            markdown_result += "#### Việc làm mới đăng gần đây:\n\n"
+            for post in basic_data['recent_posts']:
+                markdown_result += f"- **{post['title']}** (ID: {post['id']})\n"
+                markdown_result += f"  - Công ty: {post['company']}\n"
+                markdown_result += f"  - Địa điểm: {post['city']}\n"
+                markdown_result += f"  - Mức lương: {post['salary']}\n"
+                markdown_result += f"  - Vị trí: {post['position']}\n"
+                markdown_result += f"  - Lĩnh vực: {post['field']}\n\n"
+            
+            # Thêm thông tin vị trí công việc
+            markdown_result += "#### Các vị trí công việc hiện có trong hệ thống:\n\n"
+            position_list = ", ".join([position['name'] for position in basic_data['positions']])
+            markdown_result += f"{position_list}\n\n"
+            
+            # Thêm thông tin lĩnh vực
+            markdown_result += "#### Các lĩnh vực hiện có trong hệ thống:\n\n"
+            field_list = ", ".join([field['name'] for field in basic_data['fields']])
+            markdown_result += f"{field_list}\n\n"
+            
+            return markdown_result
+        
         # Kiểm tra nếu người dùng đang tìm kiếm việc làm
-        if any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng"]):
+        elif any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng"]) or "có công việc" in message_lower:
             # Xác định các tham số tìm kiếm từ nội dung tin nhắn
             position_keyword = None
             city_keyword = None
@@ -644,12 +701,32 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 "kỹ sư": "Engineer",
                 "marketing": "Marketing",
                 "sale": "Sales",
-                "kinh doanh": "Sales"
+                "kinh doanh": "Sales",
+                "python": "Python Developer",
+                "backend": "Backend Developer",
+                "python backend": "Python Backend Developer",
+                "lập trình viên python": "Python Developer",
+                "lập trình viên backend": "Backend Developer",
+                "lập trình viên": "Developer"
             }
             
             for key, value in position_patterns.items():
                 if key in message_lower:
                     position_keyword = value
+                    break
+            
+            # Tìm thành phố trong tin nhắn
+            city_patterns = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]
+            for city in city_patterns:
+                if city in message_lower:
+                    city_keyword = city
+                    break
+            
+            # Tìm kinh nghiệm trong tin nhắn
+            experience_patterns = ["fresher", "junior", "senior", "1 năm", "2 năm", "3 năm", "5 năm", "nhiều năm"]
+            for exp in experience_patterns:
+                if exp in message_lower:
+                    experience_keyword = exp
                     break
             
             # Kiểm tra xem người dùng muốn tìm việc trên website hay không
@@ -703,13 +780,22 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         # Kiểm tra xem tin nhắn có liên quan đến CV/phỏng vấn không
         is_cv_query = any(keyword in message_content.lower() for keyword in cv_interview_keywords)
         
+        # Kiểm tra xem tin nhắn có yêu cầu lọc thông tin thông qua Gemini không
+        is_gemini_filter_request = any(term in message_content.lower() for term in [
+            "lọc thông tin", "nhờ lọc", "gemini lọc", "ai lọc", "tổng hợp giúp", "phân loại giúp"
+        ])
+        
         # Truy vấn database nếu có yêu cầu
         database_data = None
         if is_database_query:
             database_data = self._process_database_queries(message_content, user)
         
         # Quyết định nguồn dữ liệu và tạo phản hồi
-        if database_data:
+        if database_data and is_gemini_filter_request:
+            # Sử dụng Gemini để lọc và phân tích dữ liệu từ database
+            content = self._process_gemini_filter(message_content, database_data)
+            source_type = "gemini_filter"
+        elif database_data:
             # Nếu có dữ liệu từ database, sử dụng dữ liệu đó
             content = self.process_response(None, database_data)
             source_type = "database"
@@ -726,6 +812,87 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             "content": content,
             "source_type": source_type
         }
+    
+    def _process_gemini_filter(self, message_content, database_data):
+        """Sử dụng Gemini để lọc và phân tích dữ liệu từ database"""
+        try:
+            # Khởi tạo model Gemini
+            model = self._initialize_generative_model()
+            
+            # Tạo prompt cho Gemini để lọc dữ liệu
+            prompt = f"""Tôi có dữ liệu sau từ hệ thống JobHub:
+
+{database_data}
+
+Người dùng đang yêu cầu: "{message_content}"
+
+Vui lòng phân tích và lọc dữ liệu trên để trả lời yêu cầu của người dùng một cách hữu ích nhất.
+Yêu cầu:
+1. Phân loại và sắp xếp thông tin theo mức độ liên quan
+2. Tóm tắt các điểm quan trọng phù hợp với nhu cầu của người dùng
+3. Đưa ra gợi ý và nhận xét dựa trên dữ liệu
+4. Trả lời bằng tiếng Việt, rõ ràng và dễ hiểu
+5. Format kết quả dễ đọc với markdown
+6. Bắt đầu với 'Dựa trên dữ liệu của hệ thống JobHub, tôi đã phân tích và tổng hợp:'
+"""
+            
+            # Gọi API
+            response = model.generate_content(
+                prompt,
+                generation_config=self.generation_config,
+                safety_settings=self.safety_settings
+            )
+            
+            return response.text
+            
+        except Exception as e:
+            self.logger.error(f"Lỗi khi sử dụng Gemini để lọc dữ liệu: {str(e)}")
+            return f"Xin lỗi, tôi không thể lọc thông tin theo yêu cầu của bạn. Đây là dữ liệu gốc:\n\n{database_data}"
+            
+    def get_basic_job_data(self):
+        """Lấy dữ liệu cơ bản về việc làm trong hệ thống"""
+        from enterprises.models import PostEntity, FieldEntity, PositionEntity
+        
+        # Lấy 10 việc làm mới nhất đang hoạt động
+        recent_posts = PostEntity.objects.filter(is_active=True).order_by('-created_at')[:10]
+        
+        # Lấy các vị trí công việc
+        positions = PositionEntity.objects.all()[:20]
+        
+        # Lấy các lĩnh vực
+        fields = FieldEntity.objects.all()[:20]
+        
+        # Format kết quả
+        basic_data = {
+            'recent_posts': [],
+            'positions': [],
+            'fields': []
+        }
+        
+        for post in recent_posts:
+            basic_data['recent_posts'].append({
+                'id': post.id,
+                'title': post.title,
+                'company': post.enterprise.company_name if post.enterprise else "",
+                'city': post.city,
+                'salary': f"{post.salary_min} - {post.salary_max}" if post.salary_min and post.salary_max else "Thỏa thuận",
+                'position': post.position.name if post.position else "",
+                'field': post.field.name if post.field else ""
+            })
+            
+        for position in positions:
+            basic_data['positions'].append({
+                'id': position.id,
+                'name': position.name
+            })
+            
+        for field in fields:
+            basic_data['fields'].append({
+                'id': field.id,
+                'name': field.name
+            })
+            
+        return basic_data
     
     def _process_web_query(self, message_content):
         """Xử lý truy vấn bằng cách tìm kiếm thông tin trên web"""
@@ -816,7 +983,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             role = "User" if message.role == "user" else "Assistant"
             formatted_history += f"{role}: {message.content}\n\n"
         return formatted_history
-        
+
     def generate_chat_title(self, message_content):
         """Tạo tiêu đề thông minh cho phiên chat dựa trên nội dung tin nhắn đầu tiên"""
         try:
@@ -848,7 +1015,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Giới hạn độ dài tiêu đề
             if len(title) > 50:
                 title = title[:47] + '...'
-                
+            
             return title
             
         except Exception as e:
@@ -861,4 +1028,115 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 if len(words) <= 8:
                     return message_content[:50] + '...'
                 else:
-                    return ' '.join(words[:8]) + '...'
+                    return ' '.join(words[:8]) + '...' 
+
+    def get_system_data(self, force_refresh=False):
+        """Lấy dữ liệu hệ thống từ database và cache lại"""
+        current_time = datetime.now()
+        
+        # Kiểm tra nếu cache đã hết hạn hoặc bị buộc làm mới
+        if (self.system_data_cache is None or 
+            self.cache_last_updated is None or 
+            (current_time - self.cache_last_updated).total_seconds() > self.cache_ttl or 
+            force_refresh):
+            try:
+                # Lấy dữ liệu cơ bản
+                basic_job_data = self.get_basic_job_data()
+                
+                # Lấy dữ liệu thống kê
+                stats_data = self.get_stats_data_raw()
+                
+                # Tổng hợp dữ liệu hệ thống
+                self.system_data_cache = {
+                    "basic_job_data": basic_job_data,
+                    "stats_data": stats_data,
+                    "updated_at": current_time.strftime("%d/%m/%Y %H:%M:%S")
+                }
+                
+                self.cache_last_updated = current_time
+                
+            except Exception as e:
+                self.logger.error(f"Lỗi khi lấy dữ liệu hệ thống: {str(e)}")
+                if self.system_data_cache is None:
+                    self.system_data_cache = {"error": "Không thể lấy dữ liệu hệ thống"}
+        
+        return self.system_data_cache
+        
+    def _format_system_data_for_prompt(self, system_data):
+        """Format dữ liệu hệ thống thành văn bản cho system prompt"""
+        if not system_data or "error" in system_data:
+            return "Không có dữ liệu hệ thống."
+            
+        formatted_text = f"Dữ liệu được cập nhật lúc: {system_data.get('updated_at', 'không xác định')}\n\n"
+        
+        # Format dữ liệu cơ bản về việc làm
+        basic_job_data = system_data.get('basic_job_data', {})
+        if basic_job_data and 'recent_posts' in basic_job_data:
+            formatted_text += "CÁC VIỆC LÀM MỚI ĐĂNG GẦN ĐÂY:\n"
+            for post in basic_job_data['recent_posts'][:5]:  # Chỉ lấy 5 việc làm để giảm kích thước prompt
+                formatted_text += f"- {post['title']} | Công ty: {post['company']} | {post['city']} | {post['salary']} | Vị trí: {post['position']}\n"
+            
+            formatted_text += "\nCÁC VỊ TRÍ CÔNG VIỆC HIỆN CÓ:\n"
+            position_names = [position['name'] for position in basic_job_data.get('positions', [])]
+            formatted_text += ", ".join(position_names[:15]) + "\n"  # Giới hạn số lượng để giảm kích thước prompt
+            
+            formatted_text += "\nCÁC LĨNH VỰC HIỆN CÓ:\n"
+            field_names = [field['name'] for field in basic_job_data.get('fields', [])]
+            formatted_text += ", ".join(field_names[:15]) + "\n"  # Giới hạn số lượng để giảm kích thước prompt
+            
+        # Format dữ liệu thống kê
+        stats_data = system_data.get('stats_data', {})
+        if stats_data:
+            formatted_text += "\nTHỐNG KÊ HỆ THỐNG:\n"
+            formatted_text += f"- Tổng số việc làm đang tuyển: {stats_data.get('active_jobs_count', 'N/A')}\n"
+            formatted_text += f"- Tổng số tin tuyển dụng: {stats_data.get('total_jobs_count', 'N/A')}\n"
+            formatted_text += f"- Số lượng doanh nghiệp: {stats_data.get('enterprise_count', 'N/A')}\n"
+            formatted_text += f"- Số lượng người dùng: {stats_data.get('user_count', 'N/A')}\n"
+            formatted_text += f"- Số lượng ứng viên: {stats_data.get('candidates_count', 'N/A')}\n"
+            formatted_text += f"- Mức lương trung bình: {stats_data.get('avg_min', 'N/A')} - {stats_data.get('avg_max', 'N/A')} triệu VND\n"
+            
+        return formatted_text
+        
+    def get_stats_data_raw(self):
+        """Lấy dữ liệu thống kê hệ thống dạng raw"""
+        from enterprises.models import PostEntity, EnterpriseEntity
+        
+        # Đếm số lượng việc làm đang hoạt động
+        active_jobs_count = PostEntity.objects.filter(is_active=True).count()
+        
+        # Đếm tổng số việc làm
+        total_jobs_count = PostEntity.objects.count()
+        
+        # Đếm số lượng doanh nghiệp
+        enterprise_count = EnterpriseEntity.objects.count()
+        
+        # Đếm số lượng người dùng
+        user_count = UserAccount.objects.count()
+        
+        # Đếm số lượng ứng viên (người dùng có vai trò 'candidate')
+        candidates_count = UserAccount.objects.filter(user_roles__role__name='candidate').count()
+        
+        # Tính mức lương trung bình
+        avg_salary_min = PostEntity.objects.filter(is_active=True, salary_min__isnull=False).values_list('salary_min', flat=True)
+        avg_salary_max = PostEntity.objects.filter(is_active=True, salary_max__isnull=False).values_list('salary_max', flat=True)
+        
+        avg_min = round(sum(avg_salary_min) / len(avg_salary_min)) if avg_salary_min else 0
+        avg_max = round(sum(avg_salary_max) / len(avg_salary_max)) if avg_salary_max else 0
+        
+        # Việc làm theo thành phố
+        city_stats = PostEntity.objects.filter(is_active=True).values('city').annotate(count=Count('city')).order_by('-count')[:5]
+        
+        # Việc làm theo lĩnh vực
+        field_stats = PostEntity.objects.filter(is_active=True).values('field__name').annotate(count=Count('field')).order_by('-count')[:5]
+        
+        return {
+            'active_jobs_count': active_jobs_count,
+            'total_jobs_count': total_jobs_count,
+            'enterprise_count': enterprise_count,
+            'user_count': user_count,
+            'candidates_count': candidates_count,
+            'avg_min': avg_min,
+            'avg_max': avg_max,
+            'city_stats': list(city_stats),
+            'field_stats': list(field_stats)
+        } 
