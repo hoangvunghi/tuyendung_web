@@ -571,7 +571,12 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             
             # Format timestamp theo định dạng Việt Nam
             def format_timestamp(timestamp):
-                return timestamp.strftime("%d/%m/%Y %H:%M:%S")
+                if not timestamp:
+                    return "Không có thời gian"
+                try:
+                    return timestamp.strftime("%d/%m/%Y %H:%M:%S")
+                except Exception:
+                    return "Invalid Date"
             
             # Cập nhật tiêu đề phiên chat nếu cần
             if chat_session.title == "Phiên chat mới" and len(message_content) > 10:
@@ -618,6 +623,59 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 "error": f"Đã xảy ra lỗi: {str(e)}"
             }
     
+    def _process_database_queries(self, message_content, user):
+        """Xử lý truy vấn cơ sở dữ liệu dựa trên nội dung tin nhắn"""
+        # Kiểm tra các từ khóa trong tin nhắn để xác định loại truy vấn
+        message_lower = message_content.lower()
+        
+        # Kiểm tra nếu người dùng đang tìm kiếm việc làm
+        if any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng"]):
+            # Xác định các tham số tìm kiếm từ nội dung tin nhắn
+            position_keyword = None
+            city_keyword = None
+            experience_keyword = None
+            
+            # Tìm vị trí công việc trong tin nhắn
+            position_patterns = {
+                "ba": "Business Analyst", 
+                "business analyst": "Business Analyst",
+                "developer": "Developer",
+                "dev": "Developer",
+                "kỹ sư": "Engineer",
+                "marketing": "Marketing",
+                "sale": "Sales",
+                "kinh doanh": "Sales"
+            }
+            
+            for key, value in position_patterns.items():
+                if key in message_lower:
+                    position_keyword = value
+                    break
+            
+            # Kiểm tra xem người dùng muốn tìm việc trên website hay không
+            if "trên website" in message_lower or "trên web" in message_lower or "trên trang web" in message_lower:
+                # Tìm kiếm việc làm dựa trên các tham số
+                return self.search_job_posts(query=position_keyword, city=city_keyword, experience=experience_keyword)
+        
+        # Kiểm tra nếu tin nhắn liên quan đến việc làm có lương cao
+        elif "lương cao" in message_lower or "mức lương cao" in message_lower:
+            return self.get_highest_paying_jobs()
+        
+        # Kiểm tra nếu tin nhắn liên quan đến việc làm mới đăng
+        elif "mới đăng" in message_lower or "gần đây" in message_lower or "mới nhất" in message_lower:
+            return self.get_most_recent_jobs()
+        
+        # Kiểm tra nếu tin nhắn yêu cầu gợi ý việc làm
+        elif "gợi ý" in message_lower or "đề xuất" in message_lower:
+            return self.get_job_recommendation(user)
+        
+        # Kiểm tra nếu tin nhắn yêu cầu thống kê
+        elif "thống kê" in message_lower or "số liệu" in message_lower:
+            return self.get_stats_data()
+        
+        # Không tìm thấy truy vấn phù hợp
+        return None
+        
     def _process_query(self, message_content, user):
         """
         Phân tích yêu cầu và quyết định xử lý bằng dữ liệu từ database hay AI
@@ -629,7 +687,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         database_query_keywords = [
             "tìm việc", "việc làm", "công việc", "tuyển dụng", "vị trí", "thông tin công ty",
             "mức lương", "thống kê", "ứng viên", "nhà tuyển dụng", "ngành nghề", "kinh nghiệm",
-            "trong hệ thống", "trên trang web", "hiện có", "đang tuyển"
+            "trong hệ thống", "trên trang web", "hiện có", "đang tuyển", "trên website", "trên web"
         ]
         
         cv_interview_keywords = [
@@ -742,11 +800,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             generation_config=self.generation_config,
             safety_settings=self.safety_settings
         )
-    
-    def _process_database_queries(self, message_content, user):
-        """Xử lý truy vấn cơ sở dữ liệu dựa trên nội dung tin nhắn"""
-        # Xử lý logic truy vấn database ở đây
-        return None
     
     def process_response(self, text, database_data=None):
         """Xử lý phản hồi từ Gemini API hoặc database"""
