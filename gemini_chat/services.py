@@ -55,7 +55,7 @@ class GeminiChatService:
         ]
         
         self.model_name = "gemini-2.0-flash"
-        
+    
         # Cache dữ liệu hệ thống để tái sử dụng
         self.system_data_cache = None
         self.cache_last_updated = None
@@ -654,6 +654,20 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         # Kiểm tra các từ khóa trong tin nhắn để xác định loại truy vấn
         message_lower = message_content.lower()
         
+        # Phát hiện các truy vấn về "trên trang web này", "ở trên trang web này"
+        is_website_specific_query = any(term in message_lower for term in [
+            "trên trang web này", "ở trên trang web này", "trên web này", 
+            "trên website này", "trên JobHub", "trên job hub", "trên hệ thống này",
+            "ở đây", "trên đây", "trên trang này"
+        ])
+        
+        # Kiểm tra nếu tin nhắn trước đó đã đề cập đến việc làm và tin nhắn hiện tại hỏi về trang web
+        is_followup_website_query = (
+            len(message_lower.split()) <= 10 and  # Tin nhắn ngắn
+            is_website_specific_query and
+            not any(term in message_lower for term in ["tìm việc", "việc làm", "công việc", "tuyển dụng"])
+        )
+        
         # Kiểm tra nếu người dùng yêu cầu dữ liệu cơ bản cho Gemini xử lý
         if any(term in message_lower for term in ["thông tin cơ bản", "dữ liệu cơ bản", "đưa hết thông tin", 
                                                  "cung cấp dữ liệu", "tất cả thông tin", "tổng quan"]):
@@ -684,6 +698,24 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             markdown_result += f"{field_list}\n\n"
             
             return markdown_result
+        
+        # Xử lý truy vấn về tìm việc làm theo địa điểm
+        elif "tìm" in message_lower and any(city in message_lower for city in ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]):
+            # Xác định thành phố từ tin nhắn
+            city_keyword = None
+            for city in ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]:
+                if city in message_lower:
+                    city_keyword = city
+                    break
+            
+            # Tìm kiếm việc làm theo thành phố
+            return self.search_job_posts(query=None, city=city_keyword)
+        
+        # Xử lý theo dõi truy vấn khi người dùng hỏi "ở trên trang web này" sau một câu hỏi về tìm việc
+        elif is_followup_website_query:
+            # Tìm kiếm việc làm dựa trên nội dung tin nhắn trước và tin nhắn hiện tại
+            # Mặc định tìm kiếm các việc làm mới nhất
+            return self.get_most_recent_jobs()
         
         # Kiểm tra nếu người dùng đang tìm kiếm việc làm
         elif any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng"]) or "có công việc" in message_lower:
@@ -730,7 +762,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                     break
             
             # Kiểm tra xem người dùng muốn tìm việc trên website hay không
-            if "trên website" in message_lower or "trên web" in message_lower or "trên trang web" in message_lower:
+            if is_website_specific_query or "trên website" in message_lower or "trên web" in message_lower or "trên trang web" in message_lower:
                 # Tìm kiếm việc làm dựa trên các tham số
                 return self.search_job_posts(query=position_keyword, city=city_keyword, experience=experience_keyword)
         
@@ -1041,6 +1073,11 @@ Yêu cầu:
             force_refresh):
             try:
                 # Lấy dữ liệu cơ bản
+                all_job = PostEntity.objects.all()
+                all_company = EnterpriseEntity.objects.all()
+                all_position = PositionEntity.objects.all()
+                all_field = FieldEntity.objects.all()
+
                 basic_job_data = self.get_basic_job_data()
                 
                 # Lấy dữ liệu thống kê
@@ -1048,6 +1085,10 @@ Yêu cầu:
                 
                 # Tổng hợp dữ liệu hệ thống
                 self.system_data_cache = {
+                    "all_job": all_job,
+                    "all_company": all_company,
+                    "all_position": all_position,
+                    "all_field": all_field,
                     "basic_job_data": basic_job_data,
                     "stats_data": stats_data,
                     "updated_at": current_time.strftime("%d/%m/%Y %H:%M:%S")
