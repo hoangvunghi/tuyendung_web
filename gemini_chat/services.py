@@ -55,109 +55,6 @@ class GeminiChatService:
         ]
         
         self.model_name = "gemini-2.0-flash"
-        
-        # Định nghĩa danh sách tỉnh thành
-        self.cities = [
-            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
-            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
-            "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
-            "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
-            "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
-            "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
-            "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
-            "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
-            "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
-            "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
-            "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
-            "hậu giang", "thừa thiên huế"
-        ]
-        
-        # Định nghĩa biến thể tên tỉnh thành
-        self.cities_variants = {
-            # Hồ Chí Minh
-            "hcm": "hồ chí minh",
-            "tphcm": "hồ chí minh",
-            "tp hcm": "hồ chí minh",
-            "sài gòn": "hồ chí minh",
-            "sg": "hồ chí minh",
-            "thành phố hồ chí minh": "hồ chí minh",
-            # Hà Nội
-            "hn": "hà nội",
-            "hà nội": "hà nội",
-            "ha noi": "hà nội",
-            "thủ đô": "hà nội",
-            # Đà Nẵng
-            "đà nẵng": "đà nẵng",
-            "da nang": "đà nẵng",
-            "đn": "đà nẵng",
-            # Hải Phòng
-            "hải phòng": "hải phòng",
-            "hai phong": "hải phòng",
-            "hp": "hải phòng",
-            # Cần Thơ
-            "cần thơ": "cần thơ",
-            "can tho": "cần thơ",
-            "ct": "cần thơ",
-            # Vũng Tàu
-            "vũng tàu": "vũng tàu",
-            "vung tau": "vũng tàu",
-            "bà rịa vũng tàu": "vũng tàu",
-            # Các tỉnh thành khác
-            "bình dương": "bình dương",
-            "đồng nai": "đồng nai",
-            "long an": "long an",
-            "quảng ninh": "quảng ninh",
-            "huế": "huế",
-            "thừa thiên huế": "huế",
-            "nha trang": "nha trang",
-            "khánh hòa": "khánh hòa",
-            "đà lạt": "đà lạt",
-            "lâm đồng": "lâm đồng",
-            "hải dương": "hải dương",
-            "hưng yên": "hưng yên",
-            "bắc ninh": "bắc ninh",
-            "vĩnh phúc": "vĩnh phúc",
-            "thái nguyên": "thái nguyên",
-            "bắc giang": "bắc giang",
-            "lạng sơn": "lạng sơn",
-            "cao bằng": "cao bằng",
-            "hà giang": "hà giang",
-            "lào cai": "lào cai",
-            "yên bái": "yên bái",
-            "sơn la": "sơn la",
-            "hòa bình": "hòa bình",
-            "thanh hóa": "thanh hóa",
-            "nghệ an": "nghệ an",
-            "hà tĩnh": "hà tĩnh",
-            "quảng bình": "quảng bình",
-            "quảng trị": "quảng trị",
-            "quảng nam": "quảng nam",
-            "quảng ngãi": "quảng ngãi",
-            "bình định": "bình định",
-            "phú yên": "phú yên",
-            "ninh thuận": "ninh thuận",
-            "bình thuận": "bình thuận",
-            "kon tum": "kon tum",
-            "gia lai": "gia lai",
-            "đắk lắk": "đắk lắk",
-            "đắk nông": "đắk nông",
-            "bình phước": "bình phước",
-            "tây ninh": "tây ninh",
-            "tiền giang": "tiền giang",
-            "bến tre": "bến tre",
-            "trà vinh": "trà vinh",
-            "vĩnh long": "vĩnh long",
-            "đồng tháp": "đồng tháp",
-            "an giang": "an giang",
-            "kiên giang": "kiên giang",
-            "sóc trăng": "sóc trăng",
-            "bạc liêu": "bạc liêu",
-            "cà mau": "cà mau",
-            "hậu giang": "hậu giang",
-            "thành phố": "",
-            "tp": "",
-            "tỉnh": ""
-        }
     
     def get_system_prompt(self, user):
         """Tạo system prompt dựa trên vai trò của user"""
@@ -216,28 +113,13 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
 - Tôi có thể hỗ trợ bạn nâng cấp tài khoản premium"""
             return base_prompt + job_seeker_prompt
     
-    def _get_enterprise_job_posts(self, enterprise, limit=None):
+    def _get_enterprise_job_posts(self, enterprise):
         """Lấy thông tin bài đăng tuyển dụng của doanh nghiệp"""
         if not enterprise:
             return "Không có dữ liệu tin tuyển dụng"
             
-        # Xác định số lượng bài đăng cần lấy dựa trên quy mô doanh nghiệp và có bao nhiêu tin tuyển dụng
-        if not limit:
-            # Đếm số lượng tin tuyển dụng của doanh nghiệp
-            post_count = PostEntity.objects.filter(enterprise=enterprise).count()
-            
-            # Điều chỉnh limit dựa trên số lượng tin
-            if post_count <= 5:
-                limit = post_count  # Hiển thị tất cả nếu chỉ có ít tin
-            elif post_count <= 10:
-                limit = 5  # Giới hạn 5 tin nếu có nhiều hơn 5 nhưng ít hơn 10
-            elif post_count <= 20:
-                limit = 8  # Hiển thị nhiều hơn nếu doanh nghiệp có nhiều tin
-            else:
-                limit = 10  # Giới hạn tối đa 10 tin cho doanh nghiệp lớn
-        
-        # Lấy tin tuyển dụng gần nhất
-        posts = PostEntity.objects.filter(enterprise=enterprise).order_by('-created_at')[:limit]
+        # Lấy 5 bài đăng gần nhất
+        posts = PostEntity.objects.filter(enterprise=enterprise).order_by('-created_at')[:5]
         
         if not posts:
             return "Doanh nghiệp chưa có tin tuyển dụng nào"
@@ -247,11 +129,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Đếm số đơn ứng tuyển
             cv_count = Cv.objects.filter(post=post).count()
             
-            # Định dạng thông tin việc làm
-            post_status = "Đang hiển thị" if post.is_active else "Chưa đăng"
-            deadline_info = f"Hạn nộp: {post.deadline.strftime('%d/%m/%Y')}" if post.deadline else "Không có hạn nộp"
-            
-            # Tạo chuỗi thông tin chi tiết hơn cho mỗi bài đăng
             posts_info.append(f"""
             - Tiêu đề: {post.title}
             - Vị trí: {post.position.name if post.position else ""}
@@ -259,392 +136,140 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             - Lương: {f"Từ {post.salary_min} đến {post.salary_max} triệu" if not post.is_salary_negotiable else "Thỏa thuận"}
             - Thành phố: {post.city}
             - Số lượng ứng viên đã ứng tuyển: {cv_count}
-            - {deadline_info}
-            - Trạng thái: {post_status}
+            - Trạng thái: {"Đang hiển thị" if post.is_active else "Chưa đăng"}
             """)
         
-        # Thêm thông tin tổng hợp về doanh nghiệp
-        total_posts = PostEntity.objects.filter(enterprise=enterprise).count()
-        active_posts = PostEntity.objects.filter(enterprise=enterprise, is_active=True).count()
-        
-        # Tạo kết quả với thông tin tổng quan
-        result = f"### Thông tin tin tuyển dụng của {enterprise.company_name}\n\n"
-        result += f"**Tổng số tin tuyển dụng:** {total_posts} (Đang hiển thị: {active_posts})\n\n"
-        
-        if total_posts > limit:
-            result += f"**Hiển thị {limit} tin tuyển dụng gần đây nhất:**\n\n"
-        else:
-            result += "**Danh sách tất cả tin tuyển dụng:**\n\n"
-            
-        result += "\n".join(posts_info)
-        
-        return result
+        return "Một số tin tuyển dụng gần đây:\n" + "\n".join(posts_info)
     
     def search_job_posts(self, query=None, city=None, experience=None, position_id=None, limit=5):
         """Tìm kiếm việc làm dựa trên các tiêu chí"""
-        try:
-            from enterprises.models import PostEntity
+        from enterprises.models import PostEntity
+        
+        posts = PostEntity.objects.filter(is_active=True)
+        
+        # Lọc theo từ khóa tìm kiếm
+        if query and query.strip():
+            query_terms = query.split()
+            q_object = Q()
             
-            # Xác định giới hạn kết quả phù hợp dựa trên truy vấn
-            if not limit or limit <= 0:
-                limit = 5  # Giá trị mặc định
+            for term in query_terms:
+                q_object |= (
+                    Q(title__icontains=term) | 
+                    Q(description__icontains=term) | 
+                    Q(required__icontains=term) |
+                    Q(interest__icontains=term) |
+                    Q(position__name__icontains=term) |
+                    Q(field__name__icontains=term) |
+                    Q(enterprise__company_name__icontains=term)
+                )
             
-            # Nếu truy vấn quá ngắn và mang tính khái quát, nên giới hạn kết quả để tránh spam
-            if query and len(query.strip()) < 3 and not city and not experience and not position_id:
-                limit = min(limit, 5)  # Giới hạn kết quả nếu từ khóa tìm kiếm quá ngắn
-            
-            # Nếu từ khóa tìm kiếm cụ thể, có thể tăng số lượng kết quả
-            if query and len(query.strip()) >= 6:
-                limit = min(limit, 15)  # Tăng giới hạn cho truy vấn cụ thể
-            
-            # Nếu tìm kiếm có nhiều tiêu chí (city, experience, position), có thể cần nhiều kết quả hơn
-            if city and (experience or position_id):
-                limit = min(limit, 15)  # Tăng giới hạn cho tìm kiếm đa tiêu chí
-            
-            # Bắt đầu truy vấn cơ bản (chỉ lấy bài đăng đang hoạt động)
-            try:
-                posts = PostEntity.objects.filter(is_active=True)
-            except Exception as base_query_err:
-                self.logger.error(f"Lỗi khi bắt đầu truy vấn việc làm: {str(base_query_err)}")
-                return "Không thể kết nối tới cơ sở dữ liệu việc làm. Vui lòng thử lại sau."
-            
-            # Lọc theo từ khóa tìm kiếm
-            if query and query.strip():
-                try:
-                    query_terms = query.split()
-                    q_object = Q()
-                    
-                    # Ưu tiên tìm kiếm chính xác hơn cho các từ khóa
-                    exact_match_weight = 3  # Trọng số cho đúng chính xác
-                    contains_weight = 1     # Trọng số cho chứa một phần
-                    
-                    for term in query_terms:
-                        if len(term) <= 2:  # Bỏ qua từ quá ngắn vì có thể gây nhiễu
-                            continue
-                        
-                        # Tìm kiếm với các trường quan trọng
-                        q_object |= (
-                            Q(title__iexact=term) * exact_match_weight |
-                            Q(title__icontains=term) * contains_weight | 
-                            Q(description__icontains=term) * contains_weight | 
-                            Q(required__icontains=term) * contains_weight |
-                            Q(interest__icontains=term) * contains_weight |
-                            Q(position__name__iexact=term) * exact_match_weight |
-                            Q(position__name__icontains=term) * contains_weight |
-                            Q(field__name__iexact=term) * exact_match_weight |
-                            Q(field__name__icontains=term) * contains_weight |
-                            Q(enterprise__company_name__icontains=term) * contains_weight
-                        )
-                    
-                    posts = posts.filter(q_object)
-                except Exception as query_err:
-                    self.logger.error(f"Lỗi khi lọc theo từ khóa tìm kiếm: {str(query_err)}")
-                    # Nếu lọc từ khóa lỗi, tiếp tục với truy vấn cơ bản
-            
-            # Lọc theo thành phố
-            if city:
-                try:
-                    # Cải thiện tìm kiếm thành phố với các biến thể tên
-                    city_variants = {
-                        # Hồ Chí Minh
-                        "hcm": "hồ chí minh",
-                        "tphcm": "hồ chí minh",
-                        "tp hcm": "hồ chí minh",
-                        "sài gòn": "hồ chí minh",
-                        "sg": "hồ chí minh",
-                        "thành phố hồ chí minh": "hồ chí minh",
-                        # Hà Nội
-                        "hn": "hà nội",
-                        "hà nội": "hà nội",
-                        "ha noi": "hà nội",
-                        "thủ đô": "hà nội",
-                        # Đà Nẵng
-                        "đà nẵng": "đà nẵng",
-                        "da nang": "đà nẵng",
-                        "đn": "đà nẵng",
-                        # Hải Phòng
-                        "hải phòng": "hải phòng",
-                        "hai phong": "hải phòng",
-                        "hp": "hải phòng",
-                        # Cần Thơ
-                        "cần thơ": "cần thơ",
-                        "can tho": "cần thơ",
-                        "ct": "cần thơ",
-                        # Vũng Tàu
-                        "vũng tàu": "vũng tàu",
-                        "vung tau": "vũng tàu",
-                        "bà rịa vũng tàu": "vũng tàu",
-                        # Các tỉnh thành khác
-                        "bình dương": "bình dương",
-                        "đồng nai": "đồng nai",
-                        "long an": "long an",
-                        "quảng ninh": "quảng ninh",
-                        "huế": "huế",
-                        "thừa thiên huế": "huế",
-                        "nha trang": "nha trang",
-                        "khánh hòa": "khánh hòa",
-                        "đà lạt": "đà lạt",
-                        "lâm đồng": "lâm đồng",
-                        "hải dương": "hải dương",
-                        "hưng yên": "hưng yên",
-                        "bắc ninh": "bắc ninh",
-                        "vĩnh phúc": "vĩnh phúc",
-                        "thái nguyên": "thái nguyên",
-                        "bắc giang": "bắc giang",
-                        "lạng sơn": "lạng sơn",
-                        "cao bằng": "cao bằng",
-                        "hà giang": "hà giang",
-                        "lào cai": "lào cai",
-                        "yên bái": "yên bái",
-                        "sơn la": "sơn la",
-                        "hòa bình": "hòa bình",
-                        "thanh hóa": "thanh hóa",
-                        "nghệ an": "nghệ an",
-                        "hà tĩnh": "hà tĩnh",
-                        "quảng bình": "quảng bình",
-                        "quảng trị": "quảng trị",
-                        "quảng nam": "quảng nam",
-                        "quảng ngãi": "quảng ngãi",
-                        "bình định": "bình định",
-                        "phú yên": "phú yên",
-                        "ninh thuận": "ninh thuận",
-                        "bình thuận": "bình thuận",
-                        "kon tum": "kon tum",
-                        "gia lai": "gia lai",
-                        "đắk lắk": "đắk lắk",
-                        "đắk nông": "đắk nông",
-                        "bình phước": "bình phước",
-                        "tây ninh": "tây ninh",
-                        "tiền giang": "tiền giang",
-                        "bến tre": "bến tre",
-                        "trà vinh": "trà vinh",
-                        "vĩnh long": "vĩnh long",
-                        "đồng tháp": "đồng tháp",
-                        "an giang": "an giang",
-                        "kiên giang": "kiên giang",
-                        "sóc trăng": "sóc trăng",
-                        "bạc liêu": "bạc liêu",
-                        "cà mau": "cà mau",
-                        "hậu giang": "hậu giang",
-                        "thành phố": "",
-                        "tp": "",
-                        "tỉnh": ""
-                    }
-                    
-                    # Chuẩn hóa thành phố (chuẩn hóa chữ thường, xóa khoảng trắng thừa)
-                    city_lower = city.lower().strip()
-                    
-                    if city_lower in city_variants:
-                        normalized_city = city_variants[city_lower]
-                        posts = posts.filter(city__icontains=normalized_city)
-                    else:
-                        posts = posts.filter(city__icontains=city_lower)
-                except Exception as city_err:
-                    self.logger.error(f"Lỗi khi lọc theo thành phố: {str(city_err)}")
-                    # Nếu lọc thành phố lỗi, tiếp tục với truy vấn hiện tại
-            
-            # Lọc theo kinh nghiệm
-            if experience:
-                try:
-                    # Mở rộng tìm kiếm kinh nghiệm để tìm chính xác hơn
-                    experience_lower = experience.lower()
-                    
-                    # Xử lý các mẫu kinh nghiệm phổ biến
-                    if "không yêu cầu" in experience_lower or "không cần" in experience_lower:
-                        posts = posts.filter(
-                            Q(experience__icontains="không yêu cầu") | 
-                            Q(experience__icontains="không cần") |
-                            Q(experience__icontains="0 năm") |
-                            Q(experience__icontains="chưa có")
-                        )
-                    elif "mới ra trường" in experience_lower or "mới tốt nghiệp" in experience_lower:
-                        posts = posts.filter(
-                            Q(experience__icontains="mới ra trường") | 
-                            Q(experience__icontains="mới tốt nghiệp") |
-                            Q(experience__icontains="fresh") |
-                            Q(experience__icontains="0 năm") |
-                            Q(experience__icontains="chưa có")
-                        )
-                    elif re.search(r"(\d+)[-\s](\d+) năm", experience_lower):
-                        # Xử lý dạng "1-3 năm"
-                        match = re.search(r"(\d+)[-\s](\d+) năm", experience_lower)
-                        min_exp = int(match.group(1))
-                        max_exp = int(match.group(2))
-                        
-                        # Tìm các tin có kinh nghiệm trong khoảng này
-                        exp_filter = Q()
-                        for i in range(min_exp, max_exp + 1):
-                            exp_filter |= Q(experience__icontains=f"{i} năm")
-                        exp_filter |= Q(experience__icontains=f"{min_exp}-{max_exp} năm")
-                        
-                        posts = posts.filter(exp_filter)
-                    elif re.search(r"(\d+) năm", experience_lower):
-                        # Xử lý dạng "3 năm"
-                        match = re.search(r"(\d+) năm", experience_lower)
-                        years = int(match.group(1))
-                        
-                        # Tìm các tin có kinh nghiệm tương đương hoặc nằm trong khoảng
-                        posts = posts.filter(
-                            Q(experience__icontains=f"{years} năm") |
-                            Q(experience__regex=r"{}[-\s]\d+ năm".format(years))
-                        )
-                    else:
-                        # Trường hợp khác, sử dụng tìm kiếm thông thường
-                        posts = posts.filter(experience__icontains=experience)
-                except Exception as exp_err:
-                    self.logger.error(f"Lỗi khi lọc theo kinh nghiệm: {str(exp_err)}")
-                    # Nếu lọc kinh nghiệm lỗi, tiếp tục với truy vấn hiện tại
-            
-            # Lọc theo vị trí công việc
-            if position_id:
-                try:
-                    posts = posts.filter(position_id=position_id)
-                except Exception as position_err:
-                    self.logger.error(f"Lỗi khi lọc theo vị trí: {str(position_err)}")
-                    # Nếu lọc vị trí lỗi, tiếp tục với truy vấn hiện tại
-            
-            # Đếm tổng số kết quả trước khi giới hạn để thông báo
-            try:
-                total_count = posts.count()
-            except Exception as count_err:
-                self.logger.error(f"Lỗi khi đếm kết quả: {str(count_err)}")
-                total_count = 0  # Mặc định nếu không đếm được
-            
-            # Sắp xếp kết quả (mới nhất trước)
-            try:
-                posts = posts.order_by('-created_at')
-            except Exception as sort_err:
-                self.logger.error(f"Lỗi khi sắp xếp kết quả: {str(sort_err)}")
-                # Nếu không sắp xếp được, tiếp tục với truy vấn hiện tại
-            
-            # Giới hạn số lượng kết quả
-            try:
-                posts = posts[:limit]
-            except Exception as limit_err:
-                self.logger.error(f"Lỗi khi giới hạn kết quả: {str(limit_err)}")
-                # Nếu không giới hạn được, tiếp tục với truy vấn hiện tại
-            
-            # Format kết quả
-            try:
-                if not posts or len(list(posts)) == 0:
-                    return "Không tìm thấy việc làm phù hợp với tiêu chí của bạn."
-                
-                results = []
-                for post in posts:
-                    post_info = {
-                        'id': post.id,
-                        'title': post.title,
-                        'company': post.enterprise.company_name,
-                        'city': post.city,
-                        'salary': f"{post.salary_min} - {post.salary_max} triệu VND" if post.salary_min and post.salary_max else "Thỏa thuận",
-                        'experience': post.experience,
-                        'job_type': post.type_working,
-                        'position': post.position.name if post.position else "",
-                        'field': post.field.name if post.field else "",
-                        'created_at': post.created_at.strftime('%d/%m/%Y'),
-                        'deadline': post.deadline.strftime('%d/%m/%Y') if post.deadline else ""
-                    }
-                    results.append(post_info)
-                
-                # Format kết quả thành markdown
-                markdown_result = "### Kết quả tìm kiếm việc làm\n\n"
-                
-                # Thêm thông tin tìm kiếm vào kết quả
-                search_criteria = []
-                if query and query.strip():
-                    search_criteria.append(f"Từ khóa: '{query}'")
-                if city:
-                    search_criteria.append(f"Thành phố: '{city}'")
-                if experience:
-                    search_criteria.append(f"Kinh nghiệm: '{experience}'")
-                
-                if search_criteria:
-                    markdown_result += f"Tìm kiếm theo: {', '.join(search_criteria)}\n\n"
-                
-                # Thêm thông tin tổng số kết quả tìm được
-                if total_count > len(results):
-                    markdown_result += f"🔍 **Tìm thấy {total_count} kết quả phù hợp.** Hiển thị {len(results)} kết quả đầu tiên.\n\n"
-                else:
-                    markdown_result += f"🔍 **Tìm thấy {len(results)} kết quả phù hợp.**\n\n"
-                
-                for job in results:
-                    markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
-                    markdown_result += f"🏢 **Công ty:** {job['company']}\n"
-                    markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
-                    markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
-                    markdown_result += f"📊 **Kinh nghiệm:** {job['experience']}\n"
-                    markdown_result += f"🔖 **Loại công việc:** {job['job_type']}\n"
-                    markdown_result += f"📌 **Vị trí:** {job['position']}\n"
-                    markdown_result += f"🏭 **Lĩnh vực:** {job['field']}\n"
-                    markdown_result += f"📅 **Ngày đăng:** {job['created_at']}\n"
-                    if job['deadline']:
-                        markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
-                    markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
-                    markdown_result += "---\n\n"
-                
-                return markdown_result.strip()
-            except Exception as format_err:
-                self.logger.error(f"Lỗi khi format kết quả: {str(format_err)}")
-                # Cung cấp phản hồi đơn giản nếu không thể format kết quả
-                try:
-                    count = len(list(posts))
-                    return f"Tìm thấy {count} việc làm phù hợp với yêu cầu của bạn. Tuy nhiên, không thể hiển thị chi tiết do lỗi hệ thống. Vui lòng thử lại sau hoặc sử dụng chức năng tìm kiếm trên trang web."
-                except:
-                    return "Tìm kiếm việc làm đã hoàn tất, nhưng không thể hiển thị kết quả chi tiết do lỗi hệ thống. Vui lòng thử lại sau hoặc sử dụng chức năng tìm kiếm trên trang web."
-        except Exception as e:
-            self.logger.error(f"Lỗi nghiêm trọng khi tìm kiếm việc làm: {str(e)}")
-            return "Không thể tìm kiếm việc làm do lỗi hệ thống. Vui lòng thử lại sau hoặc sử dụng chức năng tìm kiếm trên trang web."
+            posts = posts.filter(q_object)
+        
+        # Lọc theo thành phố
+        if city:
+            posts = posts.filter(city__icontains=city)
+        
+        # Lọc theo kinh nghiệm
+        if experience:
+            posts = posts.filter(experience__icontains=experience)
+        
+        # Lọc theo vị trí công việc
+        if position_id:
+            posts = posts.filter(position_id=position_id)
+        
+        # Sắp xếp kết quả (mới nhất trước)
+        posts = posts.order_by('-created_at')
+        
+        # Giới hạn số lượng kết quả
+        posts = posts[:limit]
+        
+        # Format kết quả
+        if not posts:
+            return "Không tìm thấy việc làm phù hợp với tiêu chí của bạn."
+        
+        results = []
+        for post in posts:
+            post_info = {
+                'id': post.id,
+                'title': post.title,
+                'company': post.enterprise.company_name,
+                'city': post.city,
+                'salary': f"{post.salary_min} - {post.salary_max} triệu VND" if post.salary_min and post.salary_max else "Thỏa thuận",
+                'experience': post.experience,
+                'job_type': post.type_working,
+                'position': post.position.name if post.position else "",
+                'field': post.field.name if post.field else "",
+                'created_at': post.created_at.strftime('%d/%m/%Y'),
+                'deadline': post.deadline.strftime('%d/%m/%Y') if post.deadline else ""
+            }
+            results.append(post_info)
+        
+        # Format kết quả thành markdown
+        markdown_result = "### Kết quả tìm kiếm việc làm\n\n"
+        
+        for job in results:
+            markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
+            markdown_result += f"🏢 **Công ty:** {job['company']}\n"
+            markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
+            markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
+            markdown_result += f"📊 **Kinh nghiệm:** {job['experience']}\n"
+            markdown_result += f"🔖 **Loại công việc:** {job['job_type']}\n"
+            markdown_result += f"📌 **Vị trí:** {job['position']}\n"
+            markdown_result += f"🏭 **Lĩnh vực:** {job['field']}\n"
+            markdown_result += f"📅 **Ngày đăng:** {job['created_at']}\n"
+            if job['deadline']:
+                markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
+            markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
+            markdown_result += "---\n\n"
+        
+        return markdown_result.strip()
     
     def search_candidates(self, query, city=None, experience=None, position_id=None, limit=5):
         """Tìm kiếm ứng viên dựa trên từ khóa và các tiêu chí"""
-        try:
-            # Chỉ dành cho nhà tuyển dụng có quyền premium
+        # Chỉ dành cho nhà tuyển dụng có quyền premium
+        
+        # Tạo query tìm kiếm CV
+        criteria_query = Q()
+        
+        if city:
+            criteria_query |= Q(city=city)
             
-            # Tạo query tìm kiếm CV
-            criteria_query = Q()
+        if experience:
+            criteria_query |= Q(experience=experience)
             
-            if city:
-                criteria_query |= Q(city=city)
-                
-            if experience:
-                criteria_query |= Q(experience=experience)
-                
-            if position_id:
-                criteria_query |= Q(position_id=position_id)
-                
-            # Tìm kiếm tiêu chí phù hợp
-            criteria = CriteriaEntity.objects.filter(criteria_query)
+        if position_id:
+            criteria_query |= Q(position_id=position_id)
             
-            if not criteria:
-                return "Không tìm thấy ứng viên phù hợp với yêu cầu"
-                
-            # Lấy thông tin ứng viên
-            users = UserAccount.objects.filter(criteria__in=criteria).distinct()
+        # Tìm kiếm tiêu chí phù hợp
+        criteria = CriteriaEntity.objects.filter(criteria_query)
+        
+        if not criteria:
+            return "Không tìm thấy ứng viên phù hợp với yêu cầu"
             
-            if not users:
-                return "Không tìm thấy ứng viên phù hợp với yêu cầu"
+        # Lấy thông tin ứng viên
+        users = UserAccount.objects.filter(criteria__in=criteria).distinct()
+        
+        if not users:
+            return "Không tìm thấy ứng viên phù hợp với yêu cầu"
+            
+        results = []
+        for user in users[:limit]:
+            user_info = UserInfo.objects.filter(user=user).first()
+            user_criteria = CriteriaEntity.objects.filter(user=user).first()
+            
+            if user_info:
+                results.append(f"""
+                - Họ tên: {user_info.fullname if user_info.fullname else user.username}
+                - Email: {user.email}
+                - Kinh nghiệm mong muốn: {user_criteria.experience if user_criteria else "Không có thông tin"}
+                - Vị trí mong muốn: {user_criteria.position.name if user_criteria and user_criteria.position else "Không có thông tin"}
+                - Thành phố: {user_criteria.city if user_criteria else "Không có thông tin"}
+                """)
                 
-            results = []
-            for user in users[:limit]:
-                user_info = UserInfo.objects.filter(user=user).first()
-                user_criteria = CriteriaEntity.objects.filter(user=user).first()
-                
-                if user_info:
-                    results.append(f"""
-                    - Họ tên: {user_info.fullname if user_info.fullname else user.username}
-                    - Email: {user.email}
-                    - Kinh nghiệm mong muốn: {user_criteria.experience if user_criteria else "Không có thông tin"}
-                    - Vị trí mong muốn: {user_criteria.position.name if user_criteria and user_criteria.position else "Không có thông tin"}
-                    - Thành phố: {user_criteria.city if user_criteria else "Không có thông tin"}
-                    """)
-                    
-            if not results:
-                return "Không tìm thấy ứng viên phù hợp với yêu cầu"
-                
-            return "Kết quả tìm kiếm ứng viên:\n" + "\n".join(results)
-        except Exception as e:
-            self.logger.error(f"Lỗi khi tìm kiếm ứng viên: {str(e)}")
-            return "Không thể tìm kiếm ứng viên do lỗi hệ thống. Vui lòng thử lại sau."
+        if not results:
+            return "Không tìm thấy ứng viên phù hợp với yêu cầu"
+            
+        return "Kết quả tìm kiếm ứng viên:\n" + "\n".join(results)
     
     def get_job_recommendation(self, user):
         """Gợi ý việc làm dựa trên tiêu chí của người dùng"""
@@ -741,32 +366,11 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         except CriteriaEntity.DoesNotExist:
             return "Bạn chưa cập nhật tiêu chí tìm việc. Vui lòng vào mục 'Tiêu chí tìm việc' để cập nhật."
     
-    def get_highest_paying_jobs(self, limit=10):
+    def get_highest_paying_jobs(self, limit=5):
         """Lấy danh sách việc làm có mức lương cao nhất"""
         from enterprises.models import PostEntity
         
-        # Xác định giới hạn kết quả phù hợp
-        if not limit or limit <= 0:
-            limit = 10  # Giới hạn mặc định là 10 kết quả
-        
-        # Tùy chỉnh giới hạn dựa trên số lượng việc làm có sẵn
-        total_jobs = PostEntity.objects.filter(
-            is_active=True, 
-            salary_max__isnull=False
-        ).count()
-        
-        if total_jobs <= 5:
-            # Nếu ít hơn 5 việc làm, hiển thị tất cả
-            limit = total_jobs
-        elif limit > 20:
-            # Giới hạn tối đa 20 kết quả để tránh quá tải
-            limit = 20
-        
-        # Chỉ lấy những công việc có thông tin lương cụ thể (không null)
-        posts = PostEntity.objects.filter(
-            is_active=True, 
-            salary_max__isnull=False
-        ).order_by('-salary_max', '-salary_min')[:limit]
+        posts = PostEntity.objects.filter(is_active=True).order_by('-salary_max', '-salary_min')[:limit]
         
         if not posts:
             return "Không tìm thấy thông tin về việc làm lương cao nhất."
@@ -791,12 +395,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         # Format kết quả thành markdown
         markdown_result = "### Các công việc có mức lương cao nhất\n\n"
         
-        # Thêm thông tin về giới hạn kết quả
-        if total_jobs > limit:
-            markdown_result += f"🔍 **Hiển thị {limit} trong tổng số {total_jobs} việc làm, sắp xếp theo mức lương cao nhất**\n\n"
-        else:
-            markdown_result += f"🔍 **Hiển thị tất cả {len(results)} việc làm, sắp xếp theo mức lương cao nhất**\n\n"
-        
         for job in results:
             markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
             markdown_result += f"🏢 **Công ty:** {job['company']}\n"
@@ -814,24 +412,10 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         return markdown_result.strip()
     
-    def get_most_recent_jobs(self, limit=10):
+    def get_most_recent_jobs(self, limit=5):
         """Lấy danh sách việc làm mới đăng gần đây"""
         from enterprises.models import PostEntity
         
-        # Xác định giới hạn kết quả phù hợp
-        if not limit or limit <= 0:
-            limit = 10  # Giới hạn mặc định là 10 kết quả
-        
-        # Tùy chỉnh giới hạn dựa trên số lượng việc làm có sẵn
-        total_jobs = PostEntity.objects.filter(is_active=True).count()
-        if total_jobs <= 5:
-            # Nếu ít hơn 5 việc làm, hiển thị tất cả
-            limit = total_jobs
-        elif limit > 20:
-            # Giới hạn tối đa 20 kết quả để tránh quá tải
-            limit = 20
-        
-        # Lấy jobs mới nhất hiện đang active
         posts = PostEntity.objects.filter(is_active=True).order_by('-created_at')[:limit]
         
         if not posts:
@@ -839,9 +423,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         results = []
         for post in posts:
-            # Tính số ngày từ khi đăng bài
-            days_ago = (timezone.now().date() - post.created_at.date()).days
-            
             post_info = {
                 'id': post.id,
                 'title': post.title,
@@ -854,18 +435,12 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 'field': post.field.name if post.field else "",
                 'created_at': post.created_at.strftime('%d/%m/%Y'),
                 'deadline': post.deadline.strftime('%d/%m/%Y') if post.deadline else "",
-                'days_ago': days_ago
+                'days_ago': (timezone.now().date() - post.created_at.date()).days
             }
             results.append(post_info)
         
         # Format kết quả thành markdown
         markdown_result = "### Các việc làm mới đăng gần đây\n\n"
-        
-        # Thêm thông tin về giới hạn kết quả
-        if total_jobs > limit:
-            markdown_result += f"🔍 **Hiển thị {limit} trong tổng số {total_jobs} việc làm, sắp xếp theo thời gian đăng mới nhất**\n\n"
-        else:
-            markdown_result += f"🔍 **Hiển thị tất cả {len(results)} việc làm, sắp xếp theo thời gian đăng mới nhất**\n\n"
         
         for job in results:
             days_text = f"{job['days_ago']} ngày trước" if job['days_ago'] > 0 else "Hôm nay"
@@ -966,7 +541,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 try:
                     chat_session = GeminiChatSession.objects.get(id=session_id, user=user)
                 except GeminiChatSession.DoesNotExist:
-                    self.logger.warning(f"Phiên chat ID {session_id} không tồn tại, tạo phiên mới")
                     chat_session = self.create_chat_session(user)
             else:
                 chat_session = self.create_chat_session(user)
@@ -978,252 +552,99 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 content=message_content
             )
             
-            # Chuyển đổi message_content sang chữ thường để xử lý tìm kiếm dễ dàng hơn
-            message_lower = message_content.lower()
-            
             # Lấy toàn bộ nội dung trò chuyện trước đó để phân tích ngữ cảnh đầy đủ
-            try:
-                previous_messages = GeminiChatMessage.objects.filter(
-                    chat_session=chat_session
-                ).order_by('timestamp')
-                
-                # Kết hợp các tin nhắn trước đó để hiểu ngữ cảnh
-                context_messages = []
-                for msg in previous_messages:
-                    if msg.id != user_message.id:  # Bỏ qua tin nhắn hiện tại
-                        context_messages.append({
-                            'role': msg.role,
-                            'content': msg.content
-                        })
-            except Exception as context_err:
-                self.logger.error(f"Lỗi khi lấy ngữ cảnh trò chuyện: {str(context_err)}")
-                context_messages = []
+            previous_messages = GeminiChatMessage.objects.filter(
+                chat_session=chat_session
+            ).order_by('timestamp')
             
-            # Thử xử lý các trường hợp đặc biệt liên quan đến tìm kiếm thành phố
-            # Ví dụ: "các công việc tại thành phố hồ chí minh"
-            city_job_special_patterns = [
-                r"(các |những |)(việc|việc làm|công việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
-                r"(các |những |)(công việc|việc làm|việc) (tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
-                r"(các |những |)(công việc|việc làm|việc) (gì |nào |)(tại|ở) (thành phố |tp |tỉnh |)(.*?)( trên website| trên trang web| trên hệ thống)*",
-                r"(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)(việc|việc làm|công việc) (gì|nào)"
-            ]
-            
-            direct_city_search = False
-            for pattern in city_job_special_patterns:
-                match = re.search(pattern, message_lower)
-                if match:
-                    city_name = None
-                    # Xác định index của nhóm chứa tên thành phố dựa vào pattern
-                    if "(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)" in pattern:
-                        city_name = match.group(3) if len(match.groups()) >= 3 else None
-                    else:
-                        city_name = match.group(5) if len(match.groups()) >= 5 else None
-                        # Nếu không tìm thấy ở nhóm 5, thử với nhóm 4
-                        if not city_name and len(match.groups()) >= 4:
-                            city_name = match.group(4)
-                    
-                    if city_name and len(city_name.strip()) > 0:
-                        direct_city_search = True
-                        city_name = city_name.strip().lower()
-                        
-                        # Chuẩn hóa tên thành phố
-                        normalized_city = None
-                        
-                        # Kiểm tra trong danh sách biến thể
-                        for city_variant, city_norm in self.cities_variants.items():
-                            if city_variant in city_name:
-                                normalized_city = city_norm if city_norm else city_name
-                                break
-                                
-                        # Nếu không tìm thấy, kiểm tra trong danh sách thành phố chính
-                        if not normalized_city:
-                            for known_city in self.cities:
-                                if known_city in city_name:
-                                    normalized_city = known_city
-                                    break
-                        
-                        # Nếu tìm thấy thành phố hợp lệ, thực hiện tìm kiếm
-                        if normalized_city:
-                            return self.search_job_posts(
-                                query="",
-                                city=normalized_city,
-                                experience=None,
-                                position_id=None,
-                                limit=8
-                            )
+            # Kết hợp các tin nhắn trước đó để hiểu ngữ cảnh
+            context_messages = []
+            for msg in previous_messages:
+                if msg.id != user_message.id:  # Bỏ qua tin nhắn hiện tại
+                    context_messages.append({
+                        'role': msg.role,
+                        'content': msg.content
+                    })
             
             # Thử truy vấn cơ sở dữ liệu với ngữ cảnh đầy đủ
             database_data = None
-            try:
-                # Chỉ dùng tin nhắn mới để truy vấn database
-                database_data = self._process_database_queries(message_content, user)
-                
-                # Nếu không tìm thấy trong database và có đủ ngữ cảnh, thử phân tích ngữ cảnh
-                if not database_data and len(context_messages) > 0:
-                    # Tạo một ngữ cảnh hoàn chỉnh từ các tin nhắn trước để tìm trong database
-                    context_content = self._analyze_conversation_context(context_messages, message_content)
-                    if context_content:
-                        database_data = self._process_database_queries(context_content, user)
-            except Exception as db_err:
-                self.logger.error(f"Lỗi khi truy vấn cơ sở dữ liệu: {str(db_err)}")
-                database_data = None
+            # Chỉ dùng tin nhắn mới để truy vấn database
+            database_data = self._process_database_queries(message_content, user)
             
-            # Biến để lưu nội dung phản hồi cuối cùng
-            response_content = None
+            # Nếu không tìm thấy trong database và có đủ ngữ cảnh, thử phân tích ngữ cảnh
+            if not database_data and len(context_messages) > 0:
+                # Tạo một ngữ cảnh hoàn chỉnh từ các tin nhắn trước để tìm trong database
+                context_content = self._analyze_conversation_context(context_messages, message_content)
+                if context_content:
+                    database_data = self._process_database_queries(context_content, user)
             
-            # Xử lý phản hồi dựa trên dữ liệu tìm thấy
             if database_data:
+                # Xử lý phản hồi với dữ liệu từ database
+                response_content = self.process_response(None, database_data)
+            else:
+                # Gọi Gemini API nếu không có dữ liệu từ database
+                # Lấy system prompt
+                system_prompt = self.get_system_prompt(user)
+                
+                # Khởi tạo model Gemini
+                model = self._initialize_generative_model()
+                
+                # Lấy lịch sử chat
+                chat_history = []
+                
+                # Lấy tin nhắn của phiên chat hiện tại
+                messages = GeminiChatMessage.objects.filter(
+                    chat_session=chat_session
+                ).order_by('timestamp')[:30]  # Tăng giới hạn từ 20 lên 30 tin nhắn gần nhất
+                
+                for msg in messages:
+                    if msg.role == "user":
+                        chat_history.append({"role": "user", "parts": [msg.content]})
+                    else:
+                        chat_history.append({"role": "model", "parts": [msg.content]})
+                
+                # Tạo chat session với Gemini
+                chat = model.start_chat(history=chat_history)
+                
+                # Gửi tin nhắn với system prompt
                 try:
-                    # Xử lý phản hồi với dữ liệu từ database
-                    response_content = self.process_response(None, database_data)
-                except Exception as db_resp_err:
-                    self.logger.error(f"Lỗi khi xử lý phản hồi từ database: {str(db_resp_err)}")
-                    # Fallback khi không thể xử lý dữ liệu từ database
-                    response_content = "Xin lỗi, đã xảy ra lỗi khi xử lý dữ liệu. Tôi sẽ thử cách khác."
-                    database_data = None  # Reset để sử dụng Gemini API
-            
-            # Xử lý đặc biệt cho tìm kiếm theo thành phố không có kết quả
-            if direct_city_search and not database_data:
-                for pattern in city_job_special_patterns:
-                    match = re.search(pattern, message_lower)
-                    if match:
-                        city_name = None
-                        # Xác định index của nhóm chứa tên thành phố dựa vào pattern
-                        if "(tại|ở) (thành phố |tp |tỉnh |)(.*?) (có những |có các |có |)" in pattern:
-                            city_name = match.group(3) if len(match.groups()) >= 3 else None
-                        else:
-                            city_name = match.group(5) if len(match.groups()) >= 5 else None
-                            # Nếu không tìm thấy ở nhóm 5, thử với nhóm 4
-                            if not city_name and len(match.groups()) >= 4:
-                                city_name = match.group(4)
-                        
-                        if city_name and len(city_name.strip()) > 0:
-                            city_name = city_name.strip().lower()
-                            self.logger.info(f"Xử lý đặc biệt cho truy vấn thành phố: {city_name}")
-                            
-                            # Chuẩn hóa tên thành phố
-                            normalized_city = None
-                            for city_variant, city_norm in self.cities_variants.items():
-                                if city_variant in city_name and city_norm:
-                                    normalized_city = city_norm
-                                    break
-                            
-                            if not normalized_city:
-                                for known_city in self.cities:
-                                    if known_city in city_name:
-                                        normalized_city = known_city
-                                        break
-                            
-                            if normalized_city:
-                                city_display = normalized_city.title()
-                            else:
-                                city_display = city_name.title()
-                                
-                            response_content = f"Tôi rất tiếc, hiện tại cơ sở dữ liệu của JobHub chưa có thông tin về công việc tại {city_display}. Vui lòng thử lại sau hoặc tìm kiếm theo từ khóa khác. Bạn cũng có thể tìm kiếm việc làm theo ngành nghề, mức lương mong muốn hoặc kinh nghiệm. Tôi luôn sẵn sàng hỗ trợ bạn!"
-            
-            # Nếu không có dữ liệu database hoặc xử lý bị lỗi, sử dụng Gemini API
-            if not database_data and not response_content:
-                try:
-                    # Gọi Gemini API nếu không có dữ liệu từ database
-                    # Lấy system prompt
-                    system_prompt = self.get_system_prompt(user)
+                    # Thêm hướng dẫn về việc phân tích ngữ cảnh vào system prompt
+                    context_aware_prompt = system_prompt + """
                     
-                    # Khởi tạo model Gemini
-                    model = self._initialize_generative_model()
-                    
-                    # Lấy lịch sử chat
-                    chat_history = []
-                    
-                    # Lấy tin nhắn của phiên chat hiện tại
-                    messages = GeminiChatMessage.objects.filter(
-                        chat_session=chat_session
-                    ).order_by('timestamp')[:30]  # Tăng giới hạn từ 20 lên 30 tin nhắn gần nhất
-                    
-                    for msg in messages:
-                        if msg.role == "user":
-                            chat_history.append({"role": "user", "parts": [msg.content]})
-                        else:
-                            chat_history.append({"role": "model", "parts": [msg.content]})
-                    
-                    # Tạo chat session với Gemini
-                    chat = model.start_chat(history=chat_history)
-                    
-                    # Gửi tin nhắn với system prompt
-                    try:
-                        # Thêm hướng dẫn về việc phân tích ngữ cảnh vào system prompt
-                        context_aware_prompt = system_prompt + """
-                        
 HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
 - Hãy phân tích toàn bộ cuộc trò chuyện từ đầu đến hiện tại để nắm rõ ngữ cảnh
 - Khi người dùng hỏi câu ngắn hoặc không rõ ràng, hãy dựa vào các tin nhắn trước đó để hiểu ý định
 - Nếu người dùng đề cập đến "cái đó", "việc này", "điều đó", hãy tìm trong lịch sử trò chuyện để hiểu họ đang đề cập đến điều gì
 - Khi trả lời, hãy kết nối với các phần trò chuyện trước đó nếu liên quan
 - Không lặp lại thông tin đã cung cấp trong các tin nhắn trước đó
-                        """
-                        
-                        # Thử gửi với system instruction nếu API hỗ trợ
-                        response = chat.send_message(
-                            message_content,
-                            generation_config=self.generation_config,
-                            safety_settings=self.safety_settings,
-                            system_instruction=context_aware_prompt
-                        )
-                    except (TypeError, Exception) as api_err:
-                        self.logger.error(f"Lỗi khi sử dụng system instruction: {str(api_err)}")
-                        
-                        try:
-                            # Nếu API không hỗ trợ system instruction, thêm vào prompt thủ công
-                            # Tạo một prompt tổng hợp bao gồm cả ngữ cảnh
-                            combined_message = f"{system_prompt}\n\nLịch sử trò chuyện: {self._format_chat_history(chat_history)}\n\nUser: {message_content}"
-                            response = chat.send_message(
-                                combined_message,
-                                generation_config=self.generation_config,
-                                safety_settings=self.safety_settings
-                            )
-                        except Exception as combined_err:
-                            self.logger.error(f"Lỗi khi gửi tin nhắn kết hợp: {str(combined_err)}")
-                            # Phương án dự phòng cuối cùng - Tạo phản hồi thủ công
-                            response_content = "Xin lỗi, tôi hiện không thể kết nối với dịch vụ AI. Vui lòng thử lại sau hoặc sử dụng tính năng tìm kiếm trên trang web để tìm thông tin bạn cần."
-                            # Bỏ qua phần xử lý response.text
-                            
-                    # Chỉ xử lý response.text nếu chưa có response_content (tức là chưa có lỗi)
-                    if not response_content:
-                        # Lấy text từ phản hồi
-                        response_content = self.process_response(response.text)
+                    """
                     
-                except Exception as gemini_err:
-                    self.logger.error(f"Lỗi khi gọi Gemini API: {str(gemini_err)}")
-                    # Phương án dự phòng khi gọi API thất bại
-                    response_content = "Xin lỗi, tôi đang gặp khó khăn trong việc kết nối với dịch vụ AI. Vui lòng thử lại sau một lát. Bạn có thể tìm kiếm việc làm trực tiếp trên trang web trong khi chờ đợi."
-            
-            # Đảm bảo luôn có nội dung phản hồi
-            if not response_content:
-                response_content = "Xin lỗi, đã xảy ra lỗi khi xử lý tin nhắn của bạn. Vui lòng thử lại với câu hỏi khác hoặc làm mới trang."
+                    # Thử gửi với system instruction nếu API hỗ trợ
+                    response = chat.send_message(
+                        message_content,
+                        generation_config=self.generation_config,
+                        safety_settings=self.safety_settings,
+                        system_instruction=context_aware_prompt
+                    )
+                except TypeError:
+                    # Nếu API không hỗ trợ system instruction, thêm vào prompt thủ công
+                    # Tạo một prompt tổng hợp bao gồm cả ngữ cảnh
+                    combined_message = f"{system_prompt}\n\nLịch sử trò chuyện: {self._format_chat_history(chat_history)}\n\nUser: {message_content}"
+                    response = chat.send_message(
+                        combined_message,
+                        generation_config=self.generation_config,
+                        safety_settings=self.safety_settings
+                    )
+                
+                # Lấy text từ phản hồi
+                response_content = self.process_response(response.text)
             
             # Lưu phản hồi của AI
-            try:
-                ai_message = GeminiChatMessage.objects.create(
-                    chat_session=chat_session,
-                    role="assistant",
-                    content=response_content
-                )
-            except Exception as save_err:
-                self.logger.error(f"Lỗi khi lưu phản hồi AI: {str(save_err)}")
-                # Nếu không lưu được, vẫn trả về phản hồi cho người dùng
-                return {
-                    "session_id": chat_session.id,
-                    "title": chat_session.title,
-                    "user_message": {
-                        "id": str(user_message.id),
-                        "content": user_message.content,
-                        "timestamp": user_message.timestamp
-                    },
-                    "assistant_message": {
-                        "id": "temp",
-                        "content": response_content,
-                        "timestamp": datetime.now()
-                    }
-                }
+            ai_message = GeminiChatMessage.objects.create(
+                chat_session=chat_session,
+                role="assistant",
+                content=response_content
+            )
             
             # Cập nhật tiêu đề phiên chat nếu cần
             if chat_session.title == "Phiên chat mới" and len(message_content) > 10:
@@ -1232,8 +653,8 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                     title = self.generate_chat_title(message_content)
                     chat_session.title = title
                     chat_session.save()
-                except Exception as title_err:
-                    self.logger.error(f"Lỗi khi tạo tiêu đề thông minh: {str(title_err)}")
+                except Exception as e:
+                    self.logger.error(f"Lỗi khi tạo tiêu đề thông minh: {str(e)}")
                     # Fallback to simple title creation
                     if len(message_content) <= 50:
                         title = message_content
@@ -1244,12 +665,8 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                         else:
                             title = ' '.join(words[:8]) + '...'
                             
-                    # Nếu cập nhật tiêu đề gặp lỗi, bỏ qua nhưng vẫn ghi log
-                    try:
-                        chat_session.title = title
-                        chat_session.save()
-                    except Exception as save_title_err:
-                        self.logger.error(f"Lỗi khi lưu tiêu đề: {str(save_title_err)}")
+                    chat_session.title = title
+                    chat_session.save()
             
             # Trả về thông tin tin nhắn và phiên chat
             return {
@@ -1269,10 +686,8 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
             
         except Exception as e:
             self.logger.error(f"Lỗi khi gửi tin nhắn: {str(e)}")
-            # Trả về lỗi thân thiện với người dùng thay vì lỗi kỹ thuật
             return {
-                "error": "Xin lỗi, đã xảy ra sự cố khi xử lý tin nhắn của bạn. Vui lòng thử lại sau hoặc làm mới trang để bắt đầu phiên trò chuyện mới.",
-                "detail": str(e) if settings.DEBUG else "Lỗi hệ thống"
+                "error": f"Đã xảy ra lỗi: {str(e)}"
             }
     
     def _analyze_conversation_context(self, context_messages, current_message):
@@ -1284,213 +699,39 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
                 
             # Tạo một chuỗi chứa ngữ cảnh của cuộc trò chuyện
             context_str = ""
-            
-            # Lấy nhiều tin nhắn hơn để có ngữ cảnh tốt hơn
-            for msg in context_messages[-10:]:  # Tăng từ 5 lên 10 tin nhắn gần nhất
+            for msg in context_messages[-5:]:  # Chỉ lấy 5 tin nhắn gần nhất để giới hạn độ dài
                 prefix = "User: " if msg['role'] == 'user' else "Assistant: "
                 context_str += f"{prefix}{msg['content']}\n"
-            
-            # Phân tích tin nhắn hiện tại để xác định nó là câu hỏi ngắn hay cần ngữ cảnh
-            current_message_lower = current_message.lower()
-            
-            # Kiểm tra nếu người dùng đang giới thiệu bản thân
-            intro_patterns = [
-                r"tôi (là|tên là|tên|) (.*?)( |$)",
-                r"tên tôi (là|tên|) (.*?)( |$)",
-                r"mình (là|tên là|tên|) (.*?)( |$)",
-                r"tên mình (là|tên|) (.*?)( |$)",
-                r"chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
-                r"xin chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
-                r"(mình|tôi) (.*?)\d+ tuổi"
-            ]
-            
-            for pattern in intro_patterns:
-                if re.search(pattern, current_message_lower):
-                    # Người dùng đang giới thiệu, trả về ngữ cảnh trực tiếp không phải tìm kiếm
-                    context_str += f"User: {current_message}"
-                    return context_str
-            
-            # Lấy tin nhắn người dùng gần nhất để hiểu ngữ cảnh
-            last_user_message = None
-            last_assistant_message = None
-            
-            # Lấy tin nhắn gần nhất của người dùng và assistant
-            for msg in reversed(context_messages):
-                if msg['role'] == 'user' and not last_user_message:
-                    last_user_message = msg['content'].lower()
-                elif msg['role'] == 'assistant' and not last_assistant_message:
-                    last_assistant_message = msg['content']
                 
-                if last_user_message and last_assistant_message:
-                    break
+            # Thêm tin nhắn hiện tại vào cuối
+            context_str += f"User: {current_message}"
             
-            # Phát hiện câu nối tiếp trong hội thoại
             # Phân tích các từ đại diện (đó, này, kia, v.v.)
             references = [
                 "điều đó", "việc đó", "cái đó", "thứ đó", 
                 "điều này", "việc này", "cái này", "thứ này",
                 "điều kia", "việc kia", "cái kia", "thứ kia",
-                "đó", "này", "kia", "thế", "vậy", "họ", "nó", "còn",
-                "những gì", "những điều", "những thứ", "thì sao"
+                "đó", "này", "kia", "thế", "vậy", "họ", "nó",
+                "những gì", "những điều", "những thứ"
             ]
             
-            # Phát hiện từ khoá về địa điểm (thành phố)
-            cities = [
-                "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
-                "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
-                "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
-                "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
-                "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
-                "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
-                "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
-                "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
-                "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
-                "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
-                "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
-                "hậu giang", "thừa thiên huế"
-            ]
-            
-            # Phát hiện từ khóa về công nghệ/lĩnh vực
-            tech_keywords = [
-                "python", "java", "javascript", "php", "c#", "c++", ".net",
-                "react", "vue", "angular", "node", "django", "laravel", "spring",
-                "frontend", "backend", "fullstack", "devops", "data", "ai",
-                "machine learning", "lập trình", "developer", "programmer"
-            ]
-            
-            # Phát hiện từ khóa về lĩnh vực công việc
-            job_fields = [
-                "marketing", "kế toán", "tài chính", "nhân sự", "bán hàng",
-                "kinh doanh", "quản lý", "giáo dục", "y tế", "du lịch",
-                "khách sạn", "nhà hàng", "bất động sản", "luật", "ngân hàng"
-            ]
-            
-            # Kiểm tra nếu câu hỏi hiện tại chỉ chứa từ đại diện
-            has_reference = any(ref in current_message_lower for ref in references)
-            
-            # Kiểm tra nếu câu hỏi chỉ đề cập đến thành phố mà không nói rõ mục đích
-            city_only = any(city in current_message_lower for city in cities) and len(current_message_lower.split()) <= 5
-            
-            # Kiểm tra nếu câu hỏi chỉ đề cập đến công nghệ/kỹ năng mà không nói rõ mục đích
-            tech_only = any(tech in current_message_lower for tech in tech_keywords) and len(current_message_lower.split()) <= 5
-            
-            # Kiểm tra nếu câu hỏi chỉ đề cập đến lĩnh vực công việc mà không nói rõ mục đích
-            field_only = any(field in current_message_lower for field in job_fields) and len(current_message_lower.split()) <= 5
-            
+            # Nếu tin nhắn hiện tại có chứa các từ đại diện, tìm trong ngữ cảnh
+            for ref in references:
+                if ref in current_message.lower():
+                    # Có từ đại diện, trả về toàn bộ ngữ cảnh để xử lý
+                    return context_str
+                    
             # Kiểm tra nếu tin nhắn quá ngắn (thường là câu trả lời, câu hỏi tiếp theo)
-            is_short_message = len(current_message_lower.split()) <= 7
-            
-            # Kiểm tra nếu tin nhắn hiện tại không chứa từ khóa tìm kiếm rõ ràng nhưng 
-            # tin nhắn trước đó có liên quan đến tìm việc
-            previous_job_related = False
-            job_search_keywords = ["tìm việc", "việc làm", "công việc", "tuyển dụng", "ứng tuyển", "ngành nghề"]
-            
-            if last_user_message:
-                previous_job_related = any(keyword in last_user_message for keyword in job_search_keywords)
-                
-            # Nếu có bất kỳ điều kiện nào sau đây, cần xem xét ngữ cảnh
-            needs_context = has_reference or city_only or tech_only or field_only or is_short_message or previous_job_related
-            
-            if needs_context:
-                # Phân tích sâu hơn để tạo một tin nhắn tổng hợp ngữ cảnh
-                if last_user_message and (city_only or tech_only or field_only):
-                    # Nếu tin nhắn hiện tại chỉ đề cập đến thành phố/công nghệ/lĩnh vực
-                    # và tin nhắn trước đó liên quan đến tìm việc, kết hợp hai tin nhắn
-                    if previous_job_related:
-                        # Tạo một tin nhắn tổng hợp kết hợp tin nhắn trước và tin nhắn hiện tại
-                        keywords_from_previous = self._extract_keywords(last_user_message)
-                        keywords_from_current = self._extract_keywords(current_message_lower)
-                        
-                        # Loại bỏ từ khóa trùng lặp
-                        combined_keywords = list(set(keywords_from_previous + keywords_from_current))
-                        
-                        # Tạo tin nhắn tổng hợp mang tính ngữ cảnh
-                        if "tìm" not in current_message_lower and "việc" not in current_message_lower:
-                            enhanced_message = f"tìm việc làm {' '.join(combined_keywords)}"
-                            return enhanced_message
-                
-                # Thêm tin nhắn hiện tại vào cuối
-                context_str += f"User: {current_message}"
+            if len(current_message.split()) <= 5:
                 return context_str
-            
+                
             # Nếu không có từ đại diện và tin nhắn đủ dài, trả về None để xử lý riêng
             return None
             
         except Exception as e:
             self.logger.error(f"Lỗi khi phân tích ngữ cảnh: {str(e)}")
-            return current_message  # Trả về tin nhắn hiện tại để đảm bảo không bị lỗi
+            return None
             
-    def _extract_keywords(self, message):
-        """Trích xuất các từ khóa quan trọng từ tin nhắn để kết hợp vào ngữ cảnh"""
-        keywords = []
-        message_lower = message.lower()
-        
-        # Danh sách các từ khóa cần bỏ qua (stop words)
-        stop_words = [
-            "tôi", "bạn", "của", "và", "là", "có", "không", "trong", "với", "cho", 
-            "các", "được", "tại", "từ", "đến", "một", "này", "đó", "khi", "làm",
-            "muốn", "cần", "hãy", "xin", "vui lòng", "giúp", "giúp tôi", "ai", "tìm"
-        ]
-        
-        # Trích xuất thành phố
-        cities = [
-            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng",
-            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"
-        ]
-        
-        for city in cities:
-            if city in message_lower:
-                keywords.append(city)
-                
-        # Trích xuất công nghệ
-        tech_keywords = [
-            "python", "java", "javascript", "php", "c#", "c++", ".net",
-            "react", "vue", "angular", "node", "django", "laravel", "spring",
-            "frontend", "backend", "fullstack", "devops", "data", "ai",
-            "machine learning", "lập trình"
-        ]
-        
-        for tech in tech_keywords:
-            if tech in message_lower:
-                keywords.append(tech)
-                
-        # Trích xuất lĩnh vực
-        job_fields = [
-            "marketing", "kế toán", "tài chính", "nhân sự", "bán hàng",
-            "kinh doanh", "quản lý", "giáo dục", "y tế", "du lịch",
-            "khách sạn", "nhà hàng", "bất động sản", "luật", "ngân hàng"
-        ]
-        
-        for field in job_fields:
-            if field in message_lower:
-                keywords.append(field)
-                
-        # Trích xuất các từ khóa liên quan đến kinh nghiệm
-        experience_patterns = [
-            r"(\d+)[-\s](\d+) năm",
-            r"(\d+) năm",
-            r"không yêu cầu kinh nghiệm",
-            r"không cần kinh nghiệm",
-            r"chưa có kinh nghiệm",
-            r"mới ra trường"
-        ]
-        
-        for pattern in experience_patterns:
-            exp_match = re.search(pattern, message_lower)
-            if exp_match:
-                keywords.append(exp_match.group(0))
-                break
-                
-        # Loại bỏ các stop words
-        words = message_lower.split()
-        for word in words:
-            if (len(word) > 3 and word not in stop_words and 
-                word not in keywords and
-                not any(word in keyword for keyword in keywords)):
-                keywords.append(word)
-                
-        return keywords
-
     def _format_chat_history(self, chat_history):
         """Định dạng lại lịch sử trò chuyện để đưa vào prompt"""
         formatted_history = ""
@@ -1499,440 +740,249 @@ HƯỚNG DẪN BỔ SUNG VỀ PHÂN TÍCH NGỮ CẢNH:
             content = msg["parts"][0]
             formatted_history += f"{role}: {content}\n"
         return formatted_history
-
+    
     def _process_database_queries(self, message_content, user):
-        """Xử lý truy vấn cơ sở dữ liệu từ tin nhắn người dùng"""
-        try:
-            message_lower = message_content.lower()
-            
-            # Kiểm tra nếu người dùng đang giới thiệu bản thân, không phải tìm kiếm
-            intro_patterns = [
-                r"tôi (là|tên là|tên|) (.*?)( |$)",
-                r"tên tôi (là|tên|) (.*?)( |$)",
-                r"mình (là|tên là|tên|) (.*?)( |$)", 
-                r"tên mình (là|tên|) (.*?)( |$)",
-                r"chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
-                r"xin chào.*?tôi (là|tên là|tên|) (.*?)( |$)",
-                r"(mình|tôi) (.*?)\d+ tuổi"
-            ]
-            
-            for pattern in intro_patterns:
-                if re.search(pattern, message_lower):
-                    # Người dùng đang giới thiệu, không tìm kiếm trong database
-                    return None
-                    
-            # Kiểm tra các câu hỏi chào hỏi đơn giản
-            greeting_patterns = [
-                r"^(xin |)chào( bạn| các bạn|)$",
-                r"^hi$", r"^hello$", r"^hey$", r"^helo$",
-                r"^(bạn |mình |tôi |)khỏe không$",
-                r"^(bạn |mình |)(là ai|là gì|tên gì)$",
-                r"^bạn (giúp|hỗ trợ) được gì$",
-                r"^giới thiệu (về |)bạn$"
-            ]
-            
-            for pattern in greeting_patterns:
-                if re.search(pattern, message_lower):
-                    # Câu chào hỏi đơn giản, không tìm kiếm trong database
-                    return None
-            
-            # PHẦN 1: TRUY VẤN VIỆC LÀM THEO MỨC LƯƠNG
-            # Truy vấn về việc làm lương cao nhất
-            salary_high_keywords = [
-                "việc làm lương cao", "lương cao nhất", "mức lương cao nhất", 
-                "công việc trả lương cao", "việc trả lương cao", "lương cao",
-                "việc lương cao", "việc làm trả nhiều nhất", "trả lương nhiều nhất"
-            ]
-            if any(keyword in message_lower for keyword in salary_high_keywords):
-                return self.get_highest_paying_jobs(limit=5)
-            
-            # PHẦN 2: TRUY VẤN VIỆC LÀM THEO THỜI GIAN
-            # Truy vấn về việc làm mới nhất
-            recent_job_keywords = [
-                "việc làm mới", "công việc mới", "tin tuyển dụng mới", "bài đăng mới",
-                "việc làm mới nhất", "việc làm gần đây", "công việc gần đây",
-                "việc mới đăng", "tuyển dụng mới đăng", "mới đăng tuyển"
-            ]
-            if any(keyword in message_lower for keyword in recent_job_keywords):
-                return self.get_most_recent_jobs(limit=5)
-            
-            # PHẦN 3: TRUY VẤN VIỆC LÀM THEO VỊ TRÍ CÔNG VIỆC
-            # Sử dụng regex để nhận dạng câu hỏi về mức lương của vị trí công việc
-            position_salary_patterns = [
-                r"lương (của |cho |về |)(.*?) (là |khoảng |dao động |vào |)(bao nhiêu|thế nào|như thế nào|ra sao|nhiêu)",
-                r"(.*?) (có |)(lương|mức lương) (là |vào |)(bao nhiêu|thế nào|khoảng bao nhiêu|khoảng|dao động|nhiêu)",
-                r"mức lương (của |cho |)(.*?) (là |)(bao nhiêu|thế nào|như thế nào|ra sao)",
-                r"(.*?) (lương|thu nhập) (khoảng |dao động |)(bao nhiêu|như thế nào|ra sao)"
-            ]
-            
-            for pattern in position_salary_patterns:
-                match = re.search(pattern, message_lower)
-                if match:
-                    position_name = match.group(2) if len(match.groups()) > 1 and match.group(2) else match.group(1)
-                    # Bỏ qua các từ không liên quan
-                    ignore_words = ["một", "công việc", "nghề", "vị trí", "làm"]
-                    if position_name in ignore_words:
-                        continue
-                        
-                    # Tìm kiếm công việc có vị trí tương tự
-                    return self.search_job_posts(
-                        query=position_name,
-                        city=None,
-                        experience=None,
-                        position_id=None,
-                        limit=5
-                    )
-            
-            # PHẦN 4: TRUY VẤN TÌM KIẾM VIỆC LÀM TỔNG HỢP
-            # Nhận dạng các cụm từ tìm kiếm việc làm
-            search_patterns = [
-                r"tìm (việc|công việc|việc làm) (.*?)(ở|tại|trong|với|có) (.*?)",
-                r"tìm (việc|công việc|việc làm) (.*?)",
-                r"tìm kiếm (việc|công việc|việc làm) (.*?)",
-                r"có (việc|việc làm|công việc) (.*?) (không|nào|ở|tại)",
-                r"có (việc|việc làm|công việc) (.*?) (nào|không)",
-                r"(việc|việc làm|công việc) (.*?) (ở|tại) (.*?)",
-                r"muốn (làm|tìm) (việc|công việc) (.*?)",
-                r"(tôi |)cần (tìm |)(việc|việc làm|công việc) (.*?)",
-                r"(xem|cho xem|hiển thị) (việc|việc làm|công việc) (.*?)",
-                r"(tìm |)(việc|công việc|việc làm|cơ hội) (về|liên quan|liên quan đến|với) (.*?)",
-                r"(tìm |)(việc|công việc|việc làm|cơ hội) (cho người|cho|dành cho) (.*?)",
-                r"hãy tìm (việc|công việc|việc làm) (.*?)"
-            ]
-            
-            for pattern in search_patterns:
-                match = re.search(pattern, message_lower)
-                if match:
-                    query_parts = []
-                    
-                    # Lấy thông tin tìm kiếm từ các nhóm match
-                    for group in match.groups():
-                        if group and group not in ["việc", "công việc", "việc làm", "tìm", "kiếm", "có", "không", "nào", "ở", "tại", "trong", "với", "có", "làm", "muốn", "cần", "tôi", "xem", "cho xem", "hiển thị", "về", "liên quan", "liên quan đến", "cho", "cho người", "dành cho", "cơ hội", "hãy"]:
-                            query_parts.append(group)
-                    
-                    # Xác định thành phố
-                    city = None
-                    for c in self.cities:
-                        if c in message_lower:
-                            city = c.title()
-                            break
-                    
-                    # Xác định kinh nghiệm
-                    experience = None
-                    experience_patterns = [
-                        r"(\d+)[-\s](\d+) năm",
-                        r"(\d+) năm",
-                        r"không yêu cầu kinh nghiệm",
-                        r"không cần kinh nghiệm",
-                        r"chưa có kinh nghiệm",
-                        r"mới ra trường"
-                    ]
-                    
-                    for exp_pattern in experience_patterns:
-                        exp_match = re.search(exp_pattern, message_lower)
-                        if exp_match:
-                            experience = exp_match.group(0)
-                            break
-                    
-                    # Nếu có thông tin tìm kiếm
-                    if query_parts:
-                        query = " ".join(query_parts)
-                        return self.search_job_posts(
-                            query=query,
-                            city=city,
-                            experience=experience,
-                            position_id=None
-                        )
-            
-            # PHẦN 5: TÌM KIẾM THEO VỊ TRÍ ĐỊA LÝ
-            # Tìm kiếm việc làm theo thành phố
-            city_job_patterns = [
-                r"việc làm (ở|tại) (.*?)(có|không| |$)",
-                r"công việc (ở|tại) (.*?)(có|không| |$)",
-            ]
-            
-            for pattern in city_job_patterns:
-                try:
-                    match = re.search(pattern, message_lower)
-                    if match:
-                        # Lấy thành phố từ kết quả regex match
-                        city_match_groups = match.groups()
-                        
-                        # Xác định đúng group chứa tên thành phố dựa trên pattern
-                        city = None
-                        if "hãy tìm việc" in pattern:
-                            city = city_match_groups[2] if len(city_match_groups) > 2 else None
-                        else:
-                            city = city_match_groups[1] if len(city_match_groups) > 1 else city_match_groups[0]
-                        
-                        if not city:
-                            continue
-                            
-                        # Kiểm tra xem đây có phải là tên thành phố không
-                        cities = [
-                            "hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", 
-                            "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương",
-                            "đồng nai", "long an", "khánh hòa", "đà lạt", "lâm đồng",
-                            "hải dương", "hưng yên", "bắc ninh", "vĩnh phúc", "thái nguyên",
-                            "bắc giang", "lạng sơn", "cao bằng", "hà giang", "lào cai",
-                            "yên bái", "sơn la", "hòa bình", "thanh hóa", "nghệ an",
-                            "hà tĩnh", "quảng bình", "quảng trị", "quảng nam", "quảng ngãi",
-                            "bình định", "phú yên", "ninh thuận", "bình thuận", "kon tum",
-                            "gia lai", "đắk lắk", "đắk nông", "bình phước", "tây ninh",
-                            "tiền giang", "bến tre", "trà vinh", "vĩnh long", "đồng tháp",
-                            "an giang", "kiên giang", "sóc trăng", "bạc liêu", "cà mau", 
-                            "hậu giang", "thừa thiên huế"
-                        ]
-                        
-                        # Chuẩn hóa thành phố (xóa khoảng trắng thừa, chữ thường)
-                        city = city.strip().lower()
-                        
-                        # Tìm thành phố trùng khớp
-                        city_match = False
-                        for known_city in cities:
-                            if known_city in city:
-                                city = known_city
-                                city_match = True
-                                break
-                                
-                        if city_match:
-                            # Thực hiện tìm kiếm với thành phố đã chuẩn hóa
-                            return self.search_job_posts(
-                                query="",
-                                city=city,
-                                experience=None,
-                                position_id=None,
-                                limit=8
-                            )
-                except Exception as regex_err:
-                    self.logger.error(f"Lỗi khi phân tích thành phố: {str(regex_err)}")
+        """Phân tích tin nhắn để xác định nếu cần truy vấn database và trả về kết quả phù hợp"""
+        message_lower = message_content.lower()
+        
+        # PHẦN 1: TRUY VẤN VIỆC LÀM THEO MỨC LƯƠNG
+        # Truy vấn về việc làm lương cao nhất
+        salary_high_keywords = [
+            "việc làm lương cao", "lương cao nhất", "mức lương cao nhất", 
+            "công việc trả lương cao", "việc trả lương cao", "lương cao",
+            "việc lương cao", "việc làm trả nhiều nhất", "trả lương nhiều nhất"
+        ]
+        if any(keyword in message_lower for keyword in salary_high_keywords):
+            return self.get_highest_paying_jobs(limit=5)
+        
+        # PHẦN 2: TRUY VẤN VIỆC LÀM THEO THỜI GIAN
+        # Truy vấn về việc làm mới nhất
+        recent_job_keywords = [
+            "việc làm mới", "công việc mới", "tin tuyển dụng mới", "bài đăng mới",
+            "việc làm mới nhất", "việc làm gần đây", "công việc gần đây",
+            "việc mới đăng", "tuyển dụng mới đăng", "mới đăng tuyển"
+        ]
+        if any(keyword in message_lower for keyword in recent_job_keywords):
+            return self.get_most_recent_jobs(limit=5)
+        
+        # PHẦN 3: TRUY VẤN VIỆC LÀM THEO VỊ TRÍ CÔNG VIỆC
+        # Sử dụng regex để nhận dạng câu hỏi về mức lương của vị trí công việc
+        position_salary_patterns = [
+            r"lương (của |cho |về |)(.*?) (là |khoảng |dao động |vào |)(bao nhiêu|thế nào|như thế nào|ra sao|nhiêu)",
+            r"(.*?) (có |)(lương|mức lương) (là |vào |)(bao nhiêu|thế nào|khoảng bao nhiêu|khoảng|dao động|nhiêu)",
+            r"mức lương (của |cho |)(.*?) (là |)(bao nhiêu|thế nào|như thế nào|ra sao)",
+            r"(.*?) (lương|thu nhập) (khoảng |dao động |)(bao nhiêu|như thế nào|ra sao)"
+        ]
+        
+        for pattern in position_salary_patterns:
+            match = re.search(pattern, message_lower)
+            if match:
+                position_name = match.group(2) if len(match.groups()) > 1 and match.group(2) else match.group(1)
+                # Bỏ qua các từ không liên quan
+                ignore_words = ["một", "công việc", "nghề", "vị trí", "làm"]
+                if position_name in ignore_words:
                     continue
-            
-            # PHẦN 6: TRUY VẤN THỐNG KÊ HỆ THỐNG
-            # Truy vấn thống kê hệ thống
-            stats_keywords = [
-                "thống kê", "số liệu", "báo cáo hệ thống", "tổng quan", 
-                "dữ liệu thống kê", "bao nhiêu việc làm", "bao nhiêu công việc",
-                "có bao nhiêu", "tổng số", "thông tin tổng quan"
-            ]
-            if any(keyword in message_lower for keyword in stats_keywords):
-                return self.get_stats_data()
-            
-            # PHẦN 7: GỢI Ý VIỆC LÀM
-            # Truy vấn gợi ý việc làm
-            recommendation_keywords = [
-                "gợi ý việc làm", "công việc phù hợp", "việc làm phù hợp", 
-                "công việc dành cho tôi", "việc làm cho tôi", "công việc thích hợp",
-                "gợi ý cho tôi", "đề xuất việc làm", "công việc phù hợp với tôi",
-                "gợi ý", "phù hợp với tôi", "công việc nào phù hợp", "việc nào phù hợp"
-            ]
-            if any(keyword in message_lower for keyword in recommendation_keywords):
-                return self.get_job_recommendation(user)
-            
-            # PHẦN 8: TÌM KIẾM THEO NGÀNH NGHỀ/LĨNH VỰC
-            industry_job_patterns = [
-                r"việc làm (ngành|lĩnh vực) (.*?)(có|không| |$)",
-                r"công việc (ngành|lĩnh vực) (.*?)(có|không| |$)",
-                r"tuyển dụng (ngành|lĩnh vực) (.*?)(có|không| |$)",
-                r"(ngành|lĩnh vực) (.*?) (đang |)tuyển (dụng|gì|không|những gì)",
-                r"(ngành|lĩnh vực) (.*?) (có |)(việc|công việc|cơ hội) (gì|nào|làm)"
-            ]
-            
-            for pattern in industry_job_patterns:
-                match = re.search(pattern, message_lower)
-                if match:
-                    industry = match.group(2)
-                    return self.search_job_posts(
-                        query=industry,
-                        city=None,
-                        experience=None,
-                        position_id=None
-                    )
                     
-            # PHẦN 9: TÌM KIẾM VIỆC LÀM THEO KỸ NĂNG LẬP TRÌNH/CÔNG NGHỆ
-            # Phát hiện kỹ năng lập trình và công nghệ trong tin nhắn
-            programming_keywords = [
-                "lập trình", "developer", "coder", "programmer", "development", "coding", 
-                "software", "phần mềm", "code", "web", "app", "mobile", "framework",
-                "fullstack", "backend", "frontend", "devops", "data", "AI", "machine learning"
-            ]
-            
-            programming_languages = [
-                "python", "java", "javascript", "typescript", "php", "c#", "c++", "ruby", 
-                "swift", "kotlin", "go", "golang", "rust", "scala", "perl", "r", "dart"
-            ]
-            
-            frameworks = [
-                "django", "flask", "fastapi", "spring", "springboot", "laravel", "symfony",
-                "react", "vue", "angular", "node", "express", "nestjs", "rails", "asp.net",
-                ".net", "dotnet", "flutter", "android", "ios", "xamarin", "react native"
-            ]
-            
-            databases = [
-                "sql", "mysql", "postgresql", "mongodb", "nosql", "firebase", "oracle",
-                "sqlite", "mariadb", "cassandra", "redis", "elasticsearch", "cơ sở dữ liệu"
-            ]
-            
-            # Kết hợp tất cả các từ khóa công nghệ
-            tech_keywords = programming_languages + frameworks + databases
-            
-            # Tìm kiếm các từ khóa công nghệ trong tin nhắn
-            found_tech_keywords = []
-            
-            # Kiểm tra các từ khóa lập trình chung
-            if any(keyword in message_lower for keyword in programming_keywords):
-                # Nếu có từ khóa lập trình chung, tìm các từ khóa công nghệ cụ thể
-                for keyword in tech_keywords:
-                    if keyword in message_lower:
-                        found_tech_keywords.append(keyword)
-            else:
-                # Kiểm tra trực tiếp các từ khóa công nghệ cụ thể
-                for keyword in tech_keywords:
-                    if keyword in message_lower:
-                        found_tech_keywords.append(keyword)
-            
-            # Nếu tìm thấy từ khóa công nghệ
-            if found_tech_keywords:
-                # Tạo một truy vấn tìm kiếm với các từ khóa công nghệ
-                tech_query = " ".join(found_tech_keywords)
-                
-                # Kiểm tra xem có từ kèm theo "việc làm", "công việc", "tìm", "tuyển dụng"
-                job_related = any(term in message_lower for term in ["việc làm", "công việc", "tìm", "tuyển dụng", "tuyển", "ứng tuyển", "nghề", "job"])
-                
-                # Nếu không có từ liên quan đến việc làm, thêm từ "việc làm" vào truy vấn
-                if not job_related:
-                    tech_query = tech_query + " việc làm"
-                    
+                # Tìm kiếm công việc có vị trí tương tự
                 return self.search_job_posts(
-                    query=tech_query,
+                    query=position_name,
                     city=None,
                     experience=None,
                     position_id=None,
-                    limit=8  # Tăng giới hạn kết quả cho tìm kiếm công nghệ
+                    limit=5
                 )
+        
+        # PHẦN 4: TRUY VẤN TÌM KIẾM VIỆC LÀM TỔNG HỢP
+        # Nhận dạng các cụm từ tìm kiếm việc làm
+        search_patterns = [
+            r"tìm (việc|công việc|việc làm) (.*?)(ở|tại|trong|với|có) (.*?)",
+            r"tìm (việc|công việc|việc làm) (.*?)",
+            r"tìm kiếm (việc|công việc|việc làm) (.*?)",
+            r"có (việc|việc làm|công việc) (.*?) (không|nào|ở|tại)",
+            r"có (việc|việc làm|công việc) (.*?) (nào|không)",
+            r"(việc|việc làm|công việc) (.*?) (ở|tại) (.*?)",
+            r"muốn (làm|tìm) (việc|công việc) (.*?)",
+            r"(tôi |)cần (tìm |)(việc|việc làm|công việc) (.*?)",
+            r"(xem|cho xem|hiển thị) (việc|việc làm|công việc) (.*?)",
+            r"(tìm |)(việc|công việc|việc làm|cơ hội) (về|liên quan|liên quan đến|với) (.*?)",
+            r"(tìm |)(việc|công việc|việc làm|cơ hội) (cho người|cho|dành cho) (.*?)"
+        ]
+        
+        for pattern in search_patterns:
+            match = re.search(pattern, message_lower)
+            if match:
+                query_parts = []
                 
-            # PHẦN 10: TÌM KIẾM DỰA TRÊN ĐỊA ĐIỂM 
-            # Kiểm tra nếu tin nhắn chỉ chứa tên thành phố hoặc địa điểm
-            
-            # Kiểm tra thành phố trong trường hợp tin nhắn chỉ chứa tên thành phố
-            found_city = None
-            for city_name, normalized_name in self.cities_variants.items():
-                if city_name in message_lower and len(message_lower.split()) <= 5:
-                    # Nếu tin nhắn chỉ chứa tên thành phố, tìm việc làm ở thành phố đó
-                    if normalized_name:
-                        found_city = normalized_name
+                # Lấy thông tin tìm kiếm từ các nhóm match
+                for group in match.groups():
+                    if group and group not in ["việc", "công việc", "việc làm", "tìm", "kiếm", "có", "không", "nào", "ở", "tại", "trong", "với", "có", "làm", "muốn", "cần", "tôi", "xem", "cho xem", "hiển thị", "về", "liên quan", "liên quan đến", "cho", "cho người", "dành cho", "cơ hội"]:
+                        query_parts.append(group)
+                
+                # Xác định thành phố
+                city = None
+                cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
+                for c in cities:
+                    if c in message_lower:
+                        city = c.title()
                         break
-                    
-            if found_city:
+                
+                # Xác định kinh nghiệm
+                experience = None
+                experience_patterns = [
+                    r"(\d+)[-\s](\d+) năm",
+                    r"(\d+) năm",
+                    r"không yêu cầu kinh nghiệm",
+                    r"không cần kinh nghiệm",
+                    r"chưa có kinh nghiệm",
+                    r"mới ra trường"
+                ]
+                
+                for exp_pattern in experience_patterns:
+                    exp_match = re.search(exp_pattern, message_lower)
+                    if exp_match:
+                        experience = exp_match.group(0)
+                        break
+                
+                # Nếu có thông tin tìm kiếm
+                if query_parts:
+                    query = " ".join(query_parts)
+                    return self.search_job_posts(
+                        query=query,
+                        city=city,
+                        experience=experience,
+                        position_id=None
+                    )
+        
+        # PHẦN 5: TÌM KIẾM THEO VỊ TRÍ ĐỊA LÝ
+        # Tìm kiếm việc làm theo thành phố
+        city_job_patterns = [
+            r"việc làm (ở|tại) (.*?)(có|không| |$)",
+            r"công việc (ở|tại) (.*?)(có|không| |$)",
+            r"tuyển dụng (ở|tại) (.*?)(có|không| |$)",
+            r"(.*?) đang tuyển (những |các |)gì",
+            r"tìm việc (ở|tại) (.*?)"
+        ]
+        
+        for pattern in city_job_patterns:
+            match = re.search(pattern, message_lower)
+            if match:
+                city = match.group(2) if len(match.groups()) > 1 else match.group(1)
+                
+                # Kiểm tra xem đây có phải là tên thành phố không
+                cities = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng", "nha trang", "huế", "vũng tàu", "quảng ninh", "bình dương"]
+                if any(c in city.lower() for c in cities):
+                    return self.search_job_posts(
+                        query="",
+                        city=city,
+                        experience=None,
+                        position_id=None
+                    )
+        
+        # PHẦN 6: TRUY VẤN THỐNG KÊ HỆ THỐNG
+        # Truy vấn thống kê hệ thống
+        stats_keywords = [
+            "thống kê", "số liệu", "báo cáo hệ thống", "tổng quan", 
+            "dữ liệu thống kê", "bao nhiêu việc làm", "bao nhiêu công việc",
+            "có bao nhiêu", "tổng số", "thông tin tổng quan"
+        ]
+        if any(keyword in message_lower for keyword in stats_keywords):
+            return self.get_stats_data()
+        
+        # PHẦN 7: GỢI Ý VIỆC LÀM
+        # Truy vấn gợi ý việc làm
+        recommendation_keywords = [
+            "gợi ý việc làm", "công việc phù hợp", "việc làm phù hợp", 
+            "công việc dành cho tôi", "việc làm cho tôi", "công việc thích hợp",
+            "gợi ý cho tôi", "đề xuất việc làm", "công việc phù hợp với tôi",
+            "gợi ý", "phù hợp với tôi", "công việc nào phù hợp", "việc nào phù hợp"
+        ]
+        if any(keyword in message_lower for keyword in recommendation_keywords):
+            return self.get_job_recommendation(user)
+        
+        # PHẦN 8: TÌM KIẾM THEO NGÀNH NGHỀ/LĨNH VỰC
+        industry_job_patterns = [
+            r"việc làm (ngành|lĩnh vực) (.*?)(có|không| |$)",
+            r"công việc (ngành|lĩnh vực) (.*?)(có|không| |$)",
+            r"tuyển dụng (ngành|lĩnh vực) (.*?)(có|không| |$)",
+            r"(ngành|lĩnh vực) (.*?) (đang |)tuyển (dụng|gì|không|những gì)",
+            r"(ngành|lĩnh vực) (.*?) (có |)(việc|công việc|cơ hội) (gì|nào|làm)"
+        ]
+        
+        for pattern in industry_job_patterns:
+            match = re.search(pattern, message_lower)
+            if match:
+                industry = match.group(2)
                 return self.search_job_posts(
-                    query="",
-                    city=found_city,
+                    query=industry,
+                    city=None,
                     experience=None,
-                    position_id=None,
-                    limit=8
-                )
-            
-            # PHẦN 11: XỬ LÝ CHO CÂU HỎI "TÌM VIỆC LÀM Ở HÀ NỘI" HOẶC CÂU TƯƠNG TỰ
-            if "tìm việc" in message_lower and "hà nội" in message_lower:
-                return self.search_job_posts(
-                    query="",
-                    city="hà nội",
-                    experience=None,
-                    position_id=None,
-                    limit=8
+                    position_id=None
                 )
                 
-            if "việc làm" in message_lower and "hà nội" in message_lower:
-                return self.search_job_posts(
-                    query="",
-                    city="hà nội",
-                    experience=None,
-                    position_id=None,
-                    limit=8
-                )
+        # PHẦN 9: TÌM KIẾM VIỆC LÀM THEO KỸ NĂNG LẬP TRÌNH/CÔNG NGHỆ
+        # Phát hiện kỹ năng lập trình và công nghệ trong tin nhắn
+        programming_keywords = [
+            "lập trình", "developer", "coder", "programmer", "development", "coding", 
+            "software", "phần mềm", "code", "web", "app", "mobile", "framework",
+            "fullstack", "backend", "frontend", "devops", "data", "AI", "machine learning"
+        ]
+        
+        programming_languages = [
+            "python", "java", "javascript", "typescript", "php", "c#", "c++", "ruby", 
+            "swift", "kotlin", "go", "golang", "rust", "scala", "perl", "r", "dart"
+        ]
+        
+        frameworks = [
+            "django", "flask", "fastapi", "spring", "springboot", "laravel", "symfony",
+            "react", "vue", "angular", "node", "express", "nestjs", "rails", "asp.net",
+            ".net", "dotnet", "flutter", "android", "ios", "xamarin", "react native"
+        ]
+        
+        databases = [
+            "sql", "mysql", "postgresql", "mongodb", "nosql", "firebase", "oracle",
+            "sqlite", "mariadb", "cassandra", "redis", "elasticsearch", "cơ sở dữ liệu"
+        ]
+        
+        # Kết hợp tất cả các từ khóa công nghệ
+        tech_keywords = programming_languages + frameworks + databases
+        
+        # Tìm kiếm các từ khóa công nghệ trong tin nhắn
+        found_tech_keywords = []
+        
+        # Kiểm tra các từ khóa lập trình chung
+        if any(keyword in message_lower for keyword in programming_keywords):
+            # Nếu có từ khóa lập trình chung, tìm các từ khóa công nghệ cụ thể
+            for keyword in tech_keywords:
+                if keyword in message_lower:
+                    found_tech_keywords.append(keyword)
+        else:
+            # Kiểm tra trực tiếp các từ khóa công nghệ cụ thể
+            for keyword in tech_keywords:
+                if keyword in message_lower:
+                    found_tech_keywords.append(keyword)
+        
+        # Nếu tìm thấy từ khóa công nghệ
+        if found_tech_keywords:
+            # Tạo một truy vấn tìm kiếm với các từ khóa công nghệ
+            tech_query = " ".join(found_tech_keywords)
             
-            # PHẦN 12: TÌM KIẾM KẾT HỢP VỊ TRÍ VIỆC LÀM VÀ TỈNH THÀNH
-            # Nhận dạng mẫu câu kết hợp vị trí việc làm và tỉnh thành
-            position_city_patterns = [
-                r"(việc làm|công việc|tuyển dụng) (.*?) (ở|tại) (.*?)( không| có|$)",
-                r"tìm (việc|việc làm|công việc) (.*?) (ở|tại) (.*?)($| )",
-                r"(.*?) (ở|tại) (.*?)($| )",
-                r"(.*?) (tuyển |cần |tìm |)(.*?) (ở|tại) (.*?)($| )",
-            ]
+            # Kiểm tra xem có từ kèm theo "việc làm", "công việc", "tìm", "tuyển dụng"
+            job_related = any(term in message_lower for term in ["việc làm", "công việc", "tìm", "tuyển dụng", "tuyển", "ứng tuyển", "nghề", "job"])
             
-            for pattern in position_city_patterns:
-                try:
-                    match = re.search(pattern, message_lower)
-                    if match:
-                        # Phân tích các nhóm từ regex match
-                        groups = match.groups()
-                        position = None
-                        city = None
-                        
-                        # Xác định vị trí và thành phố dựa trên mẫu câu
-                        if len(groups) >= 4 and "tìm" in pattern:
-                            position = groups[1].strip()
-                            city = groups[3].strip()
-                        elif "(.*?) (ở|tại) (.*?)($| )" == pattern:
-                            position = groups[0].strip()
-                            city = groups[2].strip()
-                        elif len(groups) >= 5 and ("tuyển" in pattern or "cần" in pattern or "tìm" in pattern):
-                            position = groups[2].strip()
-                            city = groups[4].strip()
-                        elif len(groups) >= 4:
-                            position = groups[1].strip()
-                            city = groups[3].strip()
-                        
-                        # Kiểm tra tính hợp lệ của thành phố
-                        if city:
-                            city_valid = False
-                            # Kiểm tra trong danh sách biến thể tên thành phố
-                            for city_name, normalized_name in self.cities_variants.items():
-                                if city_name in city:
-                                    city = normalized_name if normalized_name else city
-                                    city_valid = True
-                                    break
-                            
-                            # Kiểm tra trong danh sách các thành phố đã biết
-                            if not city_valid:
-                                for known_city in self.cities:
-                                    if known_city in city:
-                                        city = known_city
-                                        city_valid = True
-                                        break
-                            
-                            # Nếu không tìm thấy thành phố hợp lệ, bỏ qua
-                            if not city_valid:
-                                continue
-                        
-                        # Nếu vị trí quá ngắn hoặc là từ khóa phổ biến, bỏ qua
-                        if position and len(position) <= 2:
-                            continue
-                            
-                        # Lọc các từ không liên quan đến vị trí
-                        ignore_words = ["công việc", "việc làm", "việc", "tuyển dụng", "tìm", "kiếm", "muốn", "cần"]
-                        if position and position in ignore_words:
-                            position = None
-                        
-                        # Thực hiện tìm kiếm với thông tin đã phân tích
-                        return self.search_job_posts(
-                            query=position,
-                            city=city,
-                            experience=None,
-                            position_id=None,
-                            limit=8
-                        )
-                except Exception as pattern_err:
-                    self.logger.error(f"Lỗi khi phân tích mẫu câu vị trí + thành phố: {str(pattern_err)}")
-                    continue
-            
-            # Không tìm thấy truy vấn database phù hợp
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"Lỗi trong _process_database_queries: {str(e)}")
-            # Trả về None để sử dụng API thay vì báo lỗi
-            return None
+            # Nếu không có từ liên quan đến việc làm, thêm từ "việc làm" vào truy vấn
+            if not job_related:
+                tech_query = tech_query + " việc làm"
+                
+            return self.search_job_posts(
+                query=tech_query,
+                city=None,
+                experience=None,
+                position_id=None,
+                limit=8  # Tăng giới hạn kết quả cho tìm kiếm công nghệ
+            )
+        
+        # Không tìm thấy truy vấn database phù hợp
+        return None 
 
     def process_response(self, response_text, database_data=None):
         """Xử lý phản hồi từ Gemini và kết hợp với dữ liệu từ database nếu có"""
