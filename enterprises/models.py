@@ -56,8 +56,8 @@ class FieldEntity(models.Model):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=255, unique=True)
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive')
+        ('active', 'Hoạt động'),
+        ('inactive', 'Không hoạt động')
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -76,8 +76,8 @@ class PositionEntity(models.Model):
     code = models.CharField(max_length=255, unique=True)
     field = models.ForeignKey(FieldEntity, on_delete=models.CASCADE, related_name='positions')
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('inactive', 'Inactive')
+        ('active', 'Hoạt động'),
+        ('inactive', 'Không hoạt động')
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)

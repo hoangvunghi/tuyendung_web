@@ -119,7 +119,7 @@ def get_messages(request):
     
     paginator = CustomPagination()
     paginated_messages = paginator.paginate_queryset(messages, request)
-    serializer = MessageSerializer(paginated_messages, many=True)
+    serializer = MessageSerializer(paginated_messages, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
@@ -183,11 +183,13 @@ def send_message(request):
     
     serializer = MessageSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(sender=request.user)
+        message = serializer.save(sender=request.user)
+        # Re-serialize với context để có thông tin đầy đủ
+        result_serializer = MessageSerializer(message, context={'request': request})
         return Response({
             'message': 'Message sent successfully',
             'status': status.HTTP_201_CREATED,
-            'data': serializer.data
+            'data': result_serializer.data
         }, status=status.HTTP_201_CREATED)
     return Response({
         'message': 'Message sending failed',
@@ -255,7 +257,7 @@ def get_unread_messages(request):
     messages = Message.objects.filter(recipient=request.user, is_read=False)
     paginator = CustomPagination()
     paginated_messages = paginator.paginate_queryset(messages, request)
-    serializer = MessageSerializer(paginated_messages, many=True)
+    serializer = MessageSerializer(paginated_messages, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data)
 
 @swagger_auto_schema(
@@ -377,7 +379,7 @@ def get_conversations(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_latest_messages(request):
-    """Lấy tin nhắn mới nhất cho mỗi cuộc trò chuyện, data trả thêm thông tin tên của người nhận"""
+    """Lấy tin nhắn mới nhất cho mỗi cuộc trò chuyện, data trả thêm thông tin tên của người đối thoại"""
     user_id = request.user.id
     
     # Tìm tin nhắn mới nhất cho mỗi cuộc trò chuyện
@@ -405,7 +407,8 @@ def get_latest_messages(request):
         if latest_message and latest_message not in latest_messages:
             latest_messages.append(latest_message)
     
-    serializer = MessageSerializer(latest_messages, many=True)
+    # Truyền request vào context để serializer có thể xác định người dùng hiện tại
+    serializer = MessageSerializer(latest_messages, many=True, context={'request': request})
     
     return Response({
         'message': 'Latest messages retrieved successfully',

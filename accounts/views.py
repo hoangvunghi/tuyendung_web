@@ -105,7 +105,7 @@ def get_user_info(request, user_id):
             'username': user.username,
             'email': user.email,
             'fullname': user.get_full_name() or user.username,
-            'avatar': profile.avatar_url if profile and hasattr(profile, 'avatar_url') else None,
+            'avatar': user.get_enterprise().logo_url if user.get_enterprise() else None,
             'role': role
         }
         
@@ -502,7 +502,9 @@ def login(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token_refresh(request):
+    print(request)
     refresh = request.data.get('refresh')
+    print(refresh)
     if refresh:
         refresh_token = RefreshToken(refresh)
         user_id=refresh_token.payload.get('user_id')

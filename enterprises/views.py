@@ -922,6 +922,8 @@ def create_post(request):
         }, status=status.HTTP_403_FORBIDDEN)
     data = request.data.copy()
     data['enterprise'] = enterprise.id
+    # Đảm bảo is_remove_by_admin là False
+    data['is_remove_by_admin'] = False
     
     serializer = PostSerializer(data=data)
     if serializer.is_valid():
@@ -2394,9 +2396,9 @@ def get_post_detail(request, pk):
     }
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_positions(request):
-    positions = PositionEntity.objects.all()
+    positions = PositionEntity.objects.filter(status='active')
     
     # Phân trang
     paginator = CustomPagination()
@@ -2673,16 +2675,21 @@ def delete_criteria(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_positions_by_field(request, field_id):
+    """Lấy danh sách vị trí theo lĩnh vực (không phân trang)"""
     try:
         field = FieldEntity.objects.get(id=field_id)
         positions = PositionEntity.objects.filter(field=field, status='active')
         
-        # Phân trang
-        paginator = CustomPagination()
-        paginated_positions = paginator.paginate_queryset(positions, request)
+        # Serialize tất cả vị trí, không phân trang
+        serializer = PositionSerializer(positions, many=True)
         
-        serializer = PositionSerializer(paginated_positions, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        # Đảm bảo trả về list kết quả không phân trang
+        return Response({
+            'message': 'Data retrieved successfully',
+            'status': status.HTTP_200_OK,
+            'total': len(serializer.data),
+            'data': serializer.data
+        })
     except FieldEntity.DoesNotExist:
         return Response({
             'message': 'Lĩnh vực không tồn tại',
@@ -2713,7 +2720,7 @@ def toogle_post_status(request, pk):
     try:
         post = PostEntity.objects.get(pk=pk)
         post.is_active = not post.is_active
-        post.is_remove_by_admin = not post.is_remove_by_admin
+        # Không thay đổi is_remove_by_admin nữa
         post.save()
         return Response({
             'message': 'Cập nhật trạng thái bài đăng thành công',
