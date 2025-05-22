@@ -94,7 +94,11 @@ HƯỚNG DẪN TRUY VẤN DỮ LIỆU:
    - Không thực hiện hành động trái với đạo đức hoặc quy định pháp luật
    - Tôn trọng tính riêng tư và bảo mật thông tin người dùng
    - Luôn thông báo khi nội dung trả lời từ database hoặc từ internet
-
+4. TÔI YÊU CẦU BẠN PHẢI ĐỌC DATABASE TRƯỚC KHI TRẢ LỜI NGƯỜI DÙNG
+   - Dựa vào câu hỏi của người dùng, bạn phải đọc database để tìm kiếm thông tin phù hợp.
+   - Nếu có thông tin trong database, hãy sử dụng thông tin đó để trả lời người dùng.
+   - Nếu không có thông tin trong database, hãy thông báo cho người dùng rằng dữ liệu không có sẵn.
+   
 THÔNG TIN VỀ WEBSITE JobHub:
 - Website tuyển dụng việc làm uy tín với nhiều ngành nghề
 - Kết nối doanh nghiệp và ứng viên tìm việc
@@ -787,63 +791,67 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
     def _process_query(self, message_content, user):
         """
-        Phân tích yêu cầu và quyết định xử lý bằng dữ liệu từ database hay AI
+        Phân tích yêu cầu và để Gemini xử lý toàn bộ dựa trên dữ liệu hệ thống.
         Trả về một dict có:
         - content: Nội dung câu trả lời
-        - source_type: Loại nguồn dữ liệu ("database", "web", "ai")
+        - source_type: Loại nguồn dữ liệu ("gemini_database" hoặc "ai")
         """
-        # Phân tích từ khóa và ý định trong tin nhắn
-        database_query_keywords = [
-            "tìm việc", "việc làm", "công việc", "tuyển dụng", "vị trí", "thông tin công ty",
-            "mức lương", "thống kê", "ứng viên", "nhà tuyển dụng", "ngành nghề", "kinh nghiệm",
-            "trong hệ thống", "trên trang web", "hiện có", "đang tuyển", "trên website", "trên web"
-        ]
-        
-        cv_interview_keywords = [
-            "cv", "resume", "curriculum vitae", "sơ yếu lý lịch",
-            "phỏng vấn", "interview", "cách viết", "mẫu cv",
-            "kỹ năng", "skill", "kinh nghiệm làm việc",
-            "portfolio", "hồ sơ", "ứng tuyển", "viết đơn"
-        ]
-        
-        # Kiểm tra xem tin nhắn có yêu cầu truy vấn database không
-        is_database_query = any(keyword in message_content.lower() for keyword in database_query_keywords)
-        
-        # Kiểm tra xem tin nhắn có liên quan đến CV/phỏng vấn không
-        is_cv_query = any(keyword in message_content.lower() for keyword in cv_interview_keywords)
-        
-        # Kiểm tra xem tin nhắn có yêu cầu lọc thông tin thông qua Gemini không
-        is_gemini_filter_request = any(term in message_content.lower() for term in [
-            "lọc thông tin", "nhờ lọc", "gemini lọc", "ai lọc", "tổng hợp giúp", "phân loại giúp"
-        ])
-        
-        # Truy vấn database nếu có yêu cầu
-        database_data = None
-        if is_database_query:
-            database_data = self._process_database_queries(message_content, user)
-        
-        # Quyết định nguồn dữ liệu và tạo phản hồi
-        if database_data and is_gemini_filter_request:
-            # Sử dụng Gemini để lọc và phân tích dữ liệu từ database
-            content = self._process_gemini_filter(message_content, database_data)
-            source_type = "gemini_filter"
-        elif database_data:
-            # Nếu có dữ liệu từ database, sử dụng dữ liệu đó
-            content = self.process_response(None, database_data)
-            source_type = "database"
-        elif is_cv_query:
-            # Nếu liên quan đến CV/phỏng vấn, sử dụng tìm kiếm web/internet
-            content = self._process_web_query(message_content)
-            source_type = "web"
-        else:
-            # Sử dụng AI để trả lời câu hỏi tổng quát
-            content = self._process_ai_query(message_content)
-            source_type = "ai"
-        
-        return {
-            "content": content,
-            "source_type": source_type
-        }
+        try:
+            # Lấy dữ liệu hệ thống
+            system_data = self.get_system_data()
+            system_data_text = self._format_system_data_for_prompt(system_data)
+
+            # Khởi tạo model Gemini
+            model = self._initialize_generative_model()
+
+            # Tạo prompt cho Gemini
+            prompt = f"""Bạn là trợ lý AI hỗ trợ người dùng trên website tuyển dụng 'JobHub'. 
+    Hiện tại là {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}.
+
+    **DỮ LIỆU HỆ THỐNG:**
+    {system_data_text}
+
+    **YÊU CẦU NGƯỜI DÙNG:**
+    {message_content}
+
+    **HƯỚNG DẪN:**
+    1. Phân tích yêu cầu của người dùng và sử dụng dữ liệu hệ thống ở trên để trả lời.
+    2. Nếu yêu cầu liên quan đến việc làm, vị trí, công ty, hoặc thống kê, hãy sử dụng dữ liệu từ hệ thống.
+    3. Nếu không có dữ liệu phù hợp trong hệ thống, hãy trả lời dựa trên kiến thức chung của bạn.
+    4. Trả lời bằng tiếng Việt, rõ ràng, ngắn gọn, và định dạng bằng markdown.
+    5. Nếu dữ liệu không đủ để trả lời, hãy thông báo: "Không tìm thấy thông tin phù hợp trong hệ thống."
+    6. Nếu người dùng yêu cầu lọc hoặc tổng hợp dữ liệu, hãy phân tích và trình bày kết quả theo cách dễ hiểu.
+
+    **VAI TRÒ NGƯỜI DÙNG:**
+    {'Nhà tuyển dụng' if user.is_employer() else 'Ứng viên'}
+
+    **TRẢ LỜI:**
+    """
+
+            # Gọi API Gemini
+            response = model.generate_content(
+                prompt,
+                generation_config=self.generation_config,
+                safety_settings=self.safety_settings
+            )
+
+            # Xử lý phản hồi
+            content = response.text
+            source_type = "gemini_database" if any(keyword in message_content.lower() for keyword in [
+                "tìm việc", "việc làm", "công việc", "tuyển dụng", "trên trang web", "trong hệ thống"
+            ]) else "ai"
+
+            return {
+                "content": content,
+                "source_type": source_type
+            }
+
+        except Exception as e:
+            self.logger.error(f"Lỗi khi xử lý truy vấn với Gemini: {str(e)}")
+            return {
+                "content": "Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này. Vui lòng thử lại sau.",
+                "source_type": "error"
+            }
     
     def _process_gemini_filter(self, message_content, database_data):
         """Sử dụng Gemini để lọc và phân tích dữ liệu từ database"""
@@ -1104,38 +1112,39 @@ Yêu cầu:
         return self.system_data_cache
         
     def _format_system_data_for_prompt(self, system_data):
-        """Format dữ liệu hệ thống thành văn bản cho system prompt"""
+        """Format dữ liệu hệ thống thành văn bản ngắn gọn cho system prompt"""
         if not system_data or "error" in system_data:
             return "Không có dữ liệu hệ thống."
-            
+
         formatted_text = f"Dữ liệu được cập nhật lúc: {system_data.get('updated_at', 'không xác định')}\n\n"
-        
-        # Format dữ liệu cơ bản về việc làm
+
+        # Format việc làm
         basic_job_data = system_data.get('basic_job_data', {})
-        if basic_job_data and 'recent_posts' in basic_job_data:
-            formatted_text += "CÁC VIỆC LÀM MỚI ĐĂNG GẦN ĐÂY:\n"
-            for post in basic_job_data['recent_posts'][:5]:  # Chỉ lấy 5 việc làm để giảm kích thước prompt
-                formatted_text += f"- {post['title']} | Công ty: {post['company']} | {post['city']} | {post['salary']} | Vị trí: {post['position']}\n"
-            
-            formatted_text += "\nCÁC VỊ TRÍ CÔNG VIỆC HIỆN CÓ:\n"
-            position_names = [position['name'] for position in basic_job_data.get('positions', [])]
-            formatted_text += ", ".join(position_names[:15]) + "\n"  # Giới hạn số lượng để giảm kích thước prompt
-            
-            formatted_text += "\nCÁC LĨNH VỰC HIỆN CÓ:\n"
-            field_names = [field['name'] for field in basic_job_data.get('fields', [])]
-            formatted_text += ", ".join(field_names[:15]) + "\n"  # Giới hạn số lượng để giảm kích thước prompt
-            
-        # Format dữ liệu thống kê
+        if basic_job_data.get('recent_posts'):
+            formatted_text += "**VIỆC LÀM GẦN ĐÂY**:\n"
+            for post in basic_job_data['recent_posts'][:5]:
+                formatted_text += f"- ID: {post['id']} | {post['title']} | {post['company']} | {post['city']} | {post['salary']}\n"
+
+        # Format vị trí
+        if basic_job_data.get('positions'):
+            formatted_text += "\n**VỊ TRÍ CÔNG VIỆC**:\n"
+            formatted_text += ", ".join([pos['name'] for pos in basic_job_data['positions'][:10]]) + "\n"
+
+        # Format lĩnh vực
+        if basic_job_data.get('fields'):
+            formatted_text += "\n**LĨNH VỰC**:\n"
+            formatted_text += ", ".join([field['name'] for field in basic_job_data['fields'][:10]]) + "\n"
+
+        # Format thống kê
         stats_data = system_data.get('stats_data', {})
         if stats_data:
-            formatted_text += "\nTHỐNG KÊ HỆ THỐNG:\n"
-            formatted_text += f"- Tổng số việc làm đang tuyển: {stats_data.get('active_jobs_count', 'N/A')}\n"
-            formatted_text += f"- Tổng số tin tuyển dụng: {stats_data.get('total_jobs_count', 'N/A')}\n"
-            formatted_text += f"- Số lượng doanh nghiệp: {stats_data.get('enterprise_count', 'N/A')}\n"
-            formatted_text += f"- Số lượng người dùng: {stats_data.get('user_count', 'N/A')}\n"
-            formatted_text += f"- Số lượng ứng viên: {stats_data.get('candidates_count', 'N/A')}\n"
+            formatted_text += "\n**THỐNG KÊ**:\n"
+            formatted_text += f"- Việc làm đang tuyển: {stats_data.get('active_jobs_count', 'N/A')}\n"
+            formatted_text += f"- Tổng tin tuyển dụng: {stats_data.get('total_jobs_count', 'N/A')}\n"
+            formatted_text += f"- Doanh nghiệp: {stats_data.get('enterprise_count', 'N/A')}\n"
+            formatted_text += f"- Ứng viên: {stats_data.get('candidates_count', 'N/A')}\n"
             formatted_text += f"- Mức lương trung bình: {stats_data.get('avg_min', 'N/A')} - {stats_data.get('avg_max', 'N/A')} triệu VND\n"
-            
+
         return formatted_text
         
     def get_stats_data_raw(self):
