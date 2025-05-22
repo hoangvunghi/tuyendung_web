@@ -1734,8 +1734,6 @@ def search_posts(request):
         'results': []
     }
     
-    # Sử dụng raw SQL để lấy chính xác các trường cần thiết cho các bài đăng trên trang hiện tại
-    # Lấy thông tin saved posts nếu người dùng đã đăng nhập
     saved_post_ids = set()
     if user.is_authenticated:
         saved_post_ids = set(SavedPostEntity.objects.filter(
@@ -1743,8 +1741,6 @@ def search_posts(request):
             post_id__in=current_page_ids
         ).values_list('post_id', flat=True))
     
-    # Lấy dữ liệu chi tiết cho các post trên trang hiện tại
-    # Sử dụng prefetch_related và select_related để tối ưu số lượng truy vấn
     from django.db.models import Prefetch, F, Value as V
     from django.db.models.functions import Concat
     
@@ -1846,20 +1842,113 @@ def get_recommended_posts(request):
     try:
         criteria = CriteriaEntity.objects.get(user=request.user)
         
+        # Lấy tất cả các bài đăng active, không bị loại bỏ và chưa hết hạn
         posts = PostEntity.objects.filter(
-            Q(city__iexact=criteria.city) |
-            Q(experience__iexact=criteria.experience) |
-            Q(type_working__iexact=criteria.type_working) |
-            Q(enterprise__scale__iexact=criteria.scales) |
-            Q(position=criteria.position) |
-            Q(enterprise__field_of_activity__icontains=criteria.field.name)
-        ).distinct()
+            is_remove_by_admin=False, 
+            is_active=True,
+            deadline__gt=timezone.now()
+        )
         
-        # Sắp xếp theo độ phù hợp (có thể thêm logic tính điểm phù hợp ở đây)
-        posts = posts.order_by('-created_at')
+        # ĐIỀU KIỆN LƯƠNG - LOẠI BỎ NGAY CÁC BÀI ĐĂNG CÓ LƯƠNG THẤP HƠN YÊU CẦU
+        filtered_posts = []
+        if criteria.salary_min is not None and criteria.salary_min > 0:
+            # Lọc bài đăng ngay từ đầu theo điều kiện lương
+            for post in posts:
+                # Chỉ giữ lại bài đăng:
+                # 1. Có lương thỏa thuận HOẶC
+                # 2. Có mức lương tối thiểu >= mức lương yêu cầu
+                if post.is_salary_negotiable or (post.salary_min is not None and post.salary_min >= criteria.salary_min):
+                    filtered_posts.append(post)
+        else:
+            # Nếu không có yêu cầu lương, giữ nguyên danh sách
+            filtered_posts = list(posts)
+        
+        # Tạo danh sách kết quả với điểm số
+        result = []
+        for post in filtered_posts:
+            score = 0
+            matches_key_criteria = False
+            
+            # ĐIỀU KIỆN BẮT BUỘC: Post phải phù hợp với ít nhất một trong các tiêu chí quan trọng
+            # Lĩnh vực - quan trọng nhất
+            field_match = False
+            if criteria.field and post.enterprise and criteria.field.name in post.enterprise.field_of_activity:
+                score += 6  # Tăng điểm cho lĩnh vực
+                field_match = True
+                matches_key_criteria = True
+                
+            # Vị trí - quan trọng thứ hai
+            position_match = False
+            if criteria.position and post.position and criteria.position.id == post.position.id:
+                score += 5  # Tăng điểm cho vị trí
+                position_match = True
+                matches_key_criteria = True
+            
+            # Mức lương - đã lọc ở trước đó
+            salary_match = False
+            if criteria.salary_min is not None and criteria.salary_min > 0:
+                if post.is_salary_negotiable:
+                    # Lương thỏa thuận
+                    score += 1
+                    salary_match = True
+                else:
+                    # Lương đạt yêu cầu (đã lọc ở trên)
+                    score += 5
+                    salary_match = True
+                    matches_key_criteria = True
+            
+            # Thành phố - quan trọng thứ ba
+            city_match = False
+            if criteria.city and post.city and criteria.city.lower() == post.city.lower():
+                score += 4  # Tăng điểm cho thành phố
+                city_match = True
+                
+            # Nếu không phù hợp với bất kỳ tiêu chí quan trọng nào, bỏ qua bài đăng này
+            if not matches_key_criteria:
+                continue
+                
+            # Đối với các tiêu chí bổ sung, chỉ tính điểm nếu đã trùng ít nhất một tiêu chí chính
+            
+            # Loại hình công việc
+            if criteria.type_working and post.type_working and criteria.type_working.lower() == post.type_working.lower():
+                score += 3
+                
+            # Kinh nghiệm
+            if criteria.experience and post.experience and criteria.experience.lower() == post.experience.lower():
+                score += 2
+                
+            # Quy mô công ty
+            if criteria.scales and post.enterprise and criteria.scales.lower() == post.enterprise.scale.lower():
+                score += 1
+            
+            # Cộng thêm điểm nếu đáp ứng nhiều tiêu chí quan trọng cùng lúc
+            if field_match and position_match:
+                score += 3  # Bonus cho việc trùng cả lĩnh vực và vị trí
+                
+            if field_match and city_match:
+                score += 2  # Bonus cho việc trùng lĩnh vực và thành phố
+                
+            if position_match and city_match:
+                score += 2  # Bonus cho việc trùng vị trí và thành phố
+                
+            if salary_match and position_match:
+                score += 3  # Bonus cho việc trùng lương và vị trí
+                
+            if salary_match and field_match:
+                score += 3  # Bonus cho việc trùng lương và lĩnh vực
+                
+            # Chỉ lấy những bài đăng có điểm phù hợp cao (tối thiểu 7 điểm)
+            if score >= 7:
+                result.append((post, score))
+        
+        # Sắp xếp kết quả theo điểm số giảm dần, sau đó theo thời gian tạo mới nhất
+        result.sort(key=lambda x: (-x[1], -x[0].created_at.timestamp()))
+        
+        # Lấy danh sách các bài đăng đã sắp xếp (giới hạn 10 bài đăng)
+        sorted_posts = [item[0] for item in result[:10]]
         
         paginator = CustomPagination()
-        paginated_posts = paginator.paginate_queryset(posts, request)
+        paginated_posts = paginator.paginate_queryset(sorted_posts, request)
         serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
         
