@@ -44,7 +44,7 @@ class PositionSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     position = serializers.PrimaryKeyRelatedField(queryset=PositionEntity.objects.all())
-    field = FieldSerializer(read_only=True)
+    field = serializers.PrimaryKeyRelatedField(queryset=FieldEntity.objects.all(), required=False)
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
     is_saved = serializers.SerializerMethodField()
