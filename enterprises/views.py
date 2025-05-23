@@ -1847,7 +1847,7 @@ def get_recommended_posts(request):
             is_remove_by_admin=False, 
             is_active=True,
             deadline__gt=timezone.now()
-        )
+        ).select_related('enterprise', 'position', 'position__field', 'field')
         
         # ĐIỀU KIỆN LƯƠNG - LOẠI BỎ NGAY CÁC BÀI ĐĂNG CÓ LƯƠNG THẤP HƠN YÊU CẦU
         filtered_posts = []
@@ -1865,24 +1865,32 @@ def get_recommended_posts(request):
         
         # Tạo danh sách kết quả với điểm số
         result = []
+        
         for post in filtered_posts:
             score = 0
-            matches_key_criteria = False
             
-            # ĐIỀU KIỆN BẮT BUỘC: Post phải phù hợp với ít nhất một trong các tiêu chí quan trọng
-            # Lĩnh vực - quan trọng nhất
+            # ĐIỀU KIỆN BẮT BUỘC: Post phải cùng lĩnh vực
             field_match = False
-            if criteria.field and post.enterprise and criteria.field.name in post.enterprise.field_of_activity:
-                score += 6  # Tăng điểm cho lĩnh vực
-                field_match = True
-                matches_key_criteria = True
+            if criteria.field:
+                # Kiểm tra field trực tiếp của post
+                if post.field and post.field.id == criteria.field.id:
+                    field_match = True
+                # Kiểm tra field qua position
+                elif post.position and post.position.field and post.position.field.id == criteria.field.id:
+                    field_match = True
+            
+            if field_match:
+                score += 4  # Giảm từ 6 xuống 4
+            
+            # Nếu không cùng lĩnh vực thì bỏ qua bài đăng này
+            if not field_match:
+                continue
                 
             # Vị trí - quan trọng thứ hai
             position_match = False
             if criteria.position and post.position and criteria.position.id == post.position.id:
-                score += 5  # Tăng điểm cho vị trí
+                score += 3  # Giảm từ 5 xuống 3
                 position_match = True
-                matches_key_criteria = True
             
             # Mức lương - đã lọc ở trước đó
             salary_match = False
@@ -1893,52 +1901,42 @@ def get_recommended_posts(request):
                     salary_match = True
                 else:
                     # Lương đạt yêu cầu (đã lọc ở trên)
-                    score += 5
+                    score += 2  # Giảm từ 4 xuống 2
                     salary_match = True
-                    matches_key_criteria = True
             
-            # Thành phố - quan trọng thứ ba
+            # Thành phố
             city_match = False
             if criteria.city and post.city and criteria.city.lower() == post.city.lower():
-                score += 4  # Tăng điểm cho thành phố
+                score += 2  # Giảm từ 3 xuống 2
                 city_match = True
                 
-            # Nếu không phù hợp với bất kỳ tiêu chí quan trọng nào, bỏ qua bài đăng này
-            if not matches_key_criteria:
-                continue
-                
-            # Đối với các tiêu chí bổ sung, chỉ tính điểm nếu đã trùng ít nhất một tiêu chí chính
-            
             # Loại hình công việc
             if criteria.type_working and post.type_working and criteria.type_working.lower() == post.type_working.lower():
-                score += 3
+                score += 1  # Giảm từ 2 xuống 1
                 
             # Kinh nghiệm
             if criteria.experience and post.experience and criteria.experience.lower() == post.experience.lower():
-                score += 2
+                score += 1  # Giảm từ 2 xuống 1
                 
             # Quy mô công ty
             if criteria.scales and post.enterprise and criteria.scales.lower() == post.enterprise.scale.lower():
-                score += 1
+                score += 1  # Giữ nguyên
             
-            # Cộng thêm điểm nếu đáp ứng nhiều tiêu chí quan trọng cùng lúc
-            if field_match and position_match:
-                score += 3  # Bonus cho việc trùng cả lĩnh vực và vị trí
+            # Cộng thêm điểm nếu đáp ứng nhiều tiêu chí cùng lúc
+            if position_match:
+                score += 1  # Giảm từ 2 xuống 1
                 
-            if field_match and city_match:
-                score += 2  # Bonus cho việc trùng lĩnh vực và thành phố
-                
-            if position_match and city_match:
-                score += 2  # Bonus cho việc trùng vị trí và thành phố
+            if city_match:
+                score += 1  # Giữ nguyên
                 
             if salary_match and position_match:
-                score += 3  # Bonus cho việc trùng lương và vị trí
+                score += 1  # Giảm từ 2 xuống 1
                 
-            if salary_match and field_match:
-                score += 3  # Bonus cho việc trùng lương và lĩnh vực
+            if position_match and city_match:
+                score += 1  # Giảm từ 2 xuống 1
                 
-            # Chỉ lấy những bài đăng có điểm phù hợp cao (tối thiểu 7 điểm)
-            if score >= 7:
+            # Nới lỏng ngưỡng điểm từ 6 xuống 4 (chỉ cần field match)
+            if score >= 4:
                 result.append((post, score))
         
         # Sắp xếp kết quả theo điểm số giảm dần, sau đó theo thời gian tạo mới nhất

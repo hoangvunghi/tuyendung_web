@@ -799,21 +799,14 @@ def get_post_cvs(request, pk):
         'page_size': request.query_params.get('page_size', '10'),
         'sort_by': request.query_params.get('sort_by', '-created_at'),
     }
-    cache_key = f'post_{pk}_cvs_{urlencode(params)}'
     
- 
-    cached_response = cache.get(cache_key)
-    if cached_response is not None:
-        return Response(cached_response)
     
-
     cvs = Cv.objects.filter(post=pk).order_by('-created_at')
     paginator = CustomPagination()
     paginated_cvs = paginator.paginate_queryset(cvs, request)
     serializer = CvPostSerializer(paginated_cvs, many=True)
 
     response_data = paginator.get_paginated_response(serializer.data).data
-    cache.set(cache_key, response_data, timeout=300)
     
     return Response(response_data)
 
