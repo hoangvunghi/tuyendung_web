@@ -1461,7 +1461,7 @@ def search_posts(request):
 
     if params.get("city"):
         if len(params.get('city')) > 0:
-            query = query.filter(city__iexact=params.get('city'))
+            query = query.filter(city__icontains=params.get('city'))
     if params.get("experience"):
         if len(params.get('experience')) > 0:
             query = query.filter(experience__iexact=params.get('experience'))
