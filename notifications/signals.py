@@ -128,14 +128,14 @@ def handle_new_message(sender, instance, created, **kwargs):
             print(f"Lỗi khi lấy tên người gửi: {e}")
 
         # Tạo notification
-        notification = NotificationService.create_notification(
-            recipient=instance.recipient,
-            notification_type='message_received',
-            title='Tin nhắn mới',
-            link=f'/messages?user={instance.sender.id}',
-            message=f'Bạn có tin nhắn mới từ {sender_name}',
-            related_object=instance
-        )
+        # notification = NotificationService.create_notification(
+        #     recipient=instance.recipient,
+        #     notification_type='message_received',
+        #     title='Tin nhắn mới',
+        #     link=f'/messages?user={instance.sender.id}',
+        #     message=f'Bạn có tin nhắn mới từ {sender_name}',
+        #     related_object=instance
+        # )
         
         # Gửi tin nhắn trực tiếp qua WebSocket để đảm bảo realtime
         try:
