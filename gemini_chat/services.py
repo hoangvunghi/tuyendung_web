@@ -239,7 +239,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         markdown_result = f"### Kết quả tìm kiếm việc làm{' cho ' + query if query else ''}\n\n"
         
         for job in results:
-            markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
+            markdown_result += f"#### {job['title']} (ID: {job['id']})\n"
             markdown_result += f"🏢 **Công ty:** {job['company']}\n"
             markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
             markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
@@ -250,7 +250,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             markdown_result += f"📅 **Ngày đăng:** {job['created_at']}\n"
             if job['deadline']:
                 markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
-            markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
+            markdown_result += f"🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job['id']}\n\n"
             markdown_result += "---\n\n"
         
         return markdown_result.strip()
@@ -378,7 +378,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             markdown_result += "Tôi tìm thấy các việc làm phù hợp sau:\n\n"
             
             for job in results:
-                markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
+                markdown_result += f"#### {job['title']} (ID: {job['id']})\n"
                 markdown_result += f"🏢 **Công ty:** {job['company']}\n"
                 markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
                 markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
@@ -389,7 +389,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 markdown_result += f"📅 **Ngày đăng:** {job['created_at']}\n"
                 if job['deadline']:
                     markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
-                markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
+                markdown_result += f"🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job['id']}\n\n"
                 markdown_result += "---\n\n"
             
             return markdown_result.strip()
@@ -427,7 +427,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         markdown_result = "### Các công việc có mức lương cao nhất\n\n"
         
         for job in results:
-            markdown_result += f"#### [{job['title']}](job/{job['id']})\n"
+            markdown_result += f"#### {job['title']} (ID: {job['id']})\n"
             markdown_result += f"🏢 **Công ty:** {job['company']}\n"
             markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
             markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
@@ -438,7 +438,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             markdown_result += f"📅 **Ngày đăng:** {job['created_at']}\n"
             if job['deadline']:
                 markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
-            markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
+            markdown_result += f"🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job['id']}\n\n"
             markdown_result += "---\n\n"
         
         return markdown_result.strip()
@@ -475,7 +475,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         for job in results:
             days_text = f"{job['days_ago']} ngày trước" if job['days_ago'] > 0 else "Hôm nay"
-            markdown_result += f"#### [{job['title']}](job/{job['id']}) - *{days_text}*\n"
+            markdown_result += f"#### {job['title']} (ID: {job['id']}) - *{days_text}*\n"
             markdown_result += f"🏢 **Công ty:** {job['company']}\n"
             markdown_result += f"📍 **Địa điểm:** {job['city']}\n"
             markdown_result += f"💰 **Mức lương:** {job['salary']}\n"
@@ -485,7 +485,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             markdown_result += f"🏭 **Lĩnh vực:** {job['field']}\n"
             if job['deadline']:
                 markdown_result += f"⏰ **Hạn nộp hồ sơ:** {job['deadline']}\n"
-            markdown_result += f"🔗 **Xem chi tiết:** [ID: {job['id']}](job/{job['id']})\n\n"
+            markdown_result += f"🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job['id']}\n\n"
             markdown_result += "---\n\n"
         
         return markdown_result.strip()
@@ -654,142 +654,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 "error": f"Đã xảy ra lỗi: {str(e)}"
             }
     
-    def _process_database_queries(self, message_content, user):
-        """Xử lý truy vấn cơ sở dữ liệu dựa trên nội dung tin nhắn"""
-        # Kiểm tra các từ khóa trong tin nhắn để xác định loại truy vấn
-        message_lower = message_content.lower()
-        
-        # Phát hiện các truy vấn về "trên trang web này", "ở trên trang web này"
-        is_website_specific_query = any(term in message_lower for term in [
-            "trên trang web này", "ở trên trang web này", "trên web này", 
-            "trên website này", "trên JobHub", "trên job hub", "trên hệ thống này",
-            "ở đây", "trên đây", "trên trang này"
-        ])
-        
-        # Kiểm tra nếu tin nhắn trước đó đã đề cập đến việc làm và tin nhắn hiện tại hỏi về trang web
-        is_followup_website_query = (
-            len(message_lower.split()) <= 10 and  # Tin nhắn ngắn
-            is_website_specific_query and
-            not any(term in message_lower for term in ["tìm việc", "việc làm", "công việc", "tuyển dụng"])
-        )
-        
-        # Kiểm tra nếu người dùng yêu cầu dữ liệu cơ bản cho Gemini xử lý
-        if any(term in message_lower for term in ["thông tin cơ bản", "dữ liệu cơ bản", "đưa hết thông tin", 
-                                                 "cung cấp dữ liệu", "tất cả thông tin", "tổng quan"]):
-            # Lấy dữ liệu cơ bản và định dạng thành văn bản
-            basic_data = self.get_basic_job_data()
-            
-            # Format dữ liệu thành văn bản markdown
-            markdown_result = "### Dữ liệu cơ bản về việc làm trên hệ thống JobHub\n\n"
-            
-            # Thêm thông tin việc làm gần đây
-            markdown_result += "#### Việc làm mới đăng gần đây:\n\n"
-            for post in basic_data['recent_posts']:
-                markdown_result += f"- **{post['title']}** (ID: {post['id']})\n"
-                markdown_result += f"  - Công ty: {post['company']}\n"
-                markdown_result += f"  - Địa điểm: {post['city']}\n"
-                markdown_result += f"  - Mức lương: {post['salary']}\n"
-                markdown_result += f"  - Vị trí: {post['position']}\n"
-                markdown_result += f"  - Lĩnh vực: {post['field']}\n\n"
-            
-            # Thêm thông tin vị trí công việc
-            markdown_result += "#### Các vị trí công việc hiện có trong hệ thống:\n\n"
-            position_list = ", ".join([position['name'] for position in basic_data['positions']])
-            markdown_result += f"{position_list}\n\n"
-            
-            # Thêm thông tin lĩnh vực
-            markdown_result += "#### Các lĩnh vực hiện có trong hệ thống:\n\n"
-            field_list = ", ".join([field['name'] for field in basic_data['fields']])
-            markdown_result += f"{field_list}\n\n"
-            
-            return markdown_result
-        
-        # Xử lý truy vấn về tìm việc làm theo địa điểm
-        elif "tìm" in message_lower and any(city in message_lower for city in ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]):
-            # Xác định thành phố từ tin nhắn
-            city_keyword = None
-            for city in ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]:
-                if city in message_lower:
-                    city_keyword = city
-                    break
-            
-            # Tìm kiếm việc làm theo thành phố
-            return self.search_job_posts(query=None, city=city_keyword)
-        
-        # Xử lý theo dõi truy vấn khi người dùng hỏi "ở trên trang web này" sau một câu hỏi về tìm việc
-        elif is_followup_website_query:
-            # Tìm kiếm việc làm dựa trên nội dung tin nhắn trước và tin nhắn hiện tại
-            # Mặc định tìm kiếm các việc làm mới nhất
-            return self.get_most_recent_jobs()
-        
-        # Kiểm tra nếu người dùng đang tìm kiếm việc làm
-        elif any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng"]) or "có công việc" in message_lower:
-            # Xác định các tham số tìm kiếm từ nội dung tin nhắn
-            position_keyword = None
-            city_keyword = None
-            experience_keyword = None
-            
-            # Tìm vị trí công việc trong tin nhắn
-            position_patterns = {
-                "ba": "Business Analyst", 
-                "business analyst": "Business Analyst",
-                "developer": "Developer",
-                "dev": "Developer",
-                "kỹ sư": "Engineer",
-                "marketing": "Marketing",
-                "sale": "Sales",
-                "kinh doanh": "Sales",
-                "python": "Python Developer",
-                "backend": "Backend Developer",
-                "python backend": "Python Backend Developer",
-                "lập trình viên python": "Python Developer",
-                "lập trình viên backend": "Backend Developer",
-                "lập trình viên": "Developer"
-            }
-            
-            for key, value in position_patterns.items():
-                if key in message_lower:
-                    position_keyword = value
-                    break
-            
-            # Tìm thành phố trong tin nhắn
-            city_patterns = ["hà nội", "hồ chí minh", "đà nẵng", "cần thơ", "hải phòng"]
-            for city in city_patterns:
-                if city in message_lower:
-                    city_keyword = city
-                    break
-            
-            # Tìm kinh nghiệm trong tin nhắn
-            experience_patterns = ["fresher", "junior", "senior", "1 năm", "2 năm", "3 năm", "5 năm", "nhiều năm"]
-            for exp in experience_patterns:
-                if exp in message_lower:
-                    experience_keyword = exp
-                    break
-            
-            # Kiểm tra xem người dùng muốn tìm việc trên website hay không
-            if is_website_specific_query or "trên website" in message_lower or "trên web" in message_lower or "trên trang web" in message_lower:
-                # Tìm kiếm việc làm dựa trên các tham số
-                return self.search_job_posts(query=position_keyword, city=city_keyword, experience=experience_keyword)
-        
-        # Kiểm tra nếu tin nhắn liên quan đến việc làm có lương cao
-        elif "lương cao" in message_lower or "mức lương cao" in message_lower:
-            return self.get_highest_paying_jobs()
-        
-        # Kiểm tra nếu tin nhắn liên quan đến việc làm mới đăng
-        elif "mới đăng" in message_lower or "gần đây" in message_lower or "mới nhất" in message_lower:
-            return self.get_most_recent_jobs()
-        
-        # Kiểm tra nếu tin nhắn yêu cầu gợi ý việc làm
-        elif "gợi ý" in message_lower or "đề xuất" in message_lower:
-            return self.get_job_recommendation(user)
-        
-        # Kiểm tra nếu tin nhắn yêu cầu thống kê
-        elif "thống kê" in message_lower or "số liệu" in message_lower:
-            return self.get_stats_data()
-        
-        # Không tìm thấy truy vấn phù hợp
-        return None
-        
     def _process_query(self, message_content, user):
         """
         Phân tích yêu cầu và để Gemini xử lý toàn bộ dựa trên dữ liệu hệ thống.
@@ -798,6 +662,11 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         - source_type: Loại nguồn dữ liệu ("gemini_database" hoặc "ai")
         """
         try:
+            # Xử lý các truy vấn đơn giản trước khi gọi Gemini
+            simple_response = self._handle_simple_queries(message_content, user)
+            if simple_response:
+                return simple_response
+            
             # Lấy dữ liệu hệ thống
             system_data = self.get_system_data()
             system_data_text = self._format_system_data_for_prompt(system_data)
@@ -805,9 +674,14 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Khởi tạo model Gemini
             model = self._initialize_generative_model()
 
-            # Tạo prompt cho Gemini
+            # Tạo prompt cho Gemini với rule rõ ràng hơn
             prompt = f"""Bạn là trợ lý AI hỗ trợ người dùng trên website tuyển dụng 'JobHub'. 
     Hiện tại là {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}.
+
+    **QUY TẮC QUAN TRỌNG:**
+    1. KHI NGƯỜI DÙNG HỎI VỀ LINK CỦA ID: Luôn trả link dạng "https://tuyendungtlu.site/job/[ID]"
+    2. KHI HIỂN THỊ VIỆC LÀM: Luôn kèm theo link dạng "https://tuyendungtlu.site/job/[ID]"
+    3. KHÔNG BAO GIỜ NÓI "không hỗ trợ xem qua ID" - luôn cung cấp link cụ thể
 
     **DỮ LIỆU HỆ THỐNG:**
     {system_data_text}
@@ -839,7 +713,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             # Xử lý phản hồi
             content = response.text
             source_type = "gemini_database" if any(keyword in message_content.lower() for keyword in [
-                "tìm việc", "việc làm", "công việc", "tuyển dụng", "trên trang web", "trong hệ thống"
+                "tìm việc", "việc làm", "công việc", "tuyển dụng", "trên trang web", "trong hệ thống", "link", "id"
             ]) else "ai"
 
             return {
@@ -853,6 +727,34 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 "content": "Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này. Vui lòng thử lại sau.",
                 "source_type": "error"
             }
+    
+    def _handle_simple_queries(self, message_content, user):
+        """Xử lý các truy vấn đơn giản không cần gọi Gemini API"""
+        message_lower = message_content.lower().strip()
+        
+        # Xử lý câu hỏi về link của ID
+        import re
+        link_pattern = r'link.*?(\d+)|(\d+).*?link'
+        match = re.search(link_pattern, message_lower)
+        if match:
+            job_id = match.group(1) or match.group(2)
+            if job_id:
+                return {
+                    "content": f"Link chi tiết của việc làm ID {job_id}:\n\n🔗 **https://tuyendungtlu.site/job/{job_id}**\n\nBạn có thể click vào link trên để xem thông tin chi tiết về công việc này.",
+                    "source_type": "gemini_database"
+                }
+        
+        # Xử lý câu hỏi đơn giản về ID
+        id_only_pattern = r'^(?:id\s*)?(\d+)$'
+        match = re.search(id_only_pattern, message_lower)
+        if match:
+            job_id = match.group(1)
+            return {
+                "content": f"Thông tin việc làm ID {job_id}:\n\n🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job_id}\n\nVui lòng click vào link trên để xem đầy đủ thông tin về công việc này.",
+                "source_type": "gemini_database"
+            }
+        
+        return None
     
     def _process_gemini_filter(self, message_content, database_data):
         """Sử dụng Gemini để lọc và phân tích dữ liệu từ database"""
