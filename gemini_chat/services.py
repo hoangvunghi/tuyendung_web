@@ -191,27 +191,14 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                     Q(interest__icontains=term) |
                     Q(position__name__icontains=term) |
                     Q(field__name__icontains=term) |
-                    Q(enterprise__company_name__icontains=term) |
-                    Q(city__icontains=term)  # Thêm tìm kiếm theo thành phố trong query chung
+                    Q(enterprise__company_name__icontains=term)
                 )
             
             posts = posts.filter(q_object)
         
-        # Lọc theo thành phố với tìm kiếm linh hoạt
+        # Lọc theo thành phố
         if city:
-            # Tìm kiếm linh hoạt theo thành phố
-            city_terms = city.strip().split()
-            city_q = Q()
-            
-            # Tìm kiếm chính xác trước
-            city_q |= Q(city__icontains=city)
-            
-            # Tìm kiếm từng từ trong tên thành phố (để hỗ trợ "Vĩnh Phúc", "Hồ Chí Minh", v.v.)
-            for term in city_terms:
-                if len(term.strip()) >= 2:  # Chỉ tìm kiếm các từ có ít nhất 2 ký tự
-                    city_q |= Q(city__icontains=term.strip())
-            
-            posts = posts.filter(city_q)
+            posts = posts.filter(city__icontains=city)
         
         # Lọc theo kinh nghiệm
         if experience:
@@ -229,16 +216,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
         
         # Format kết quả
         if not posts:
-            search_criteria = []
-            if query:
-                search_criteria.append(f"từ khóa '{query}'")
-            if city:
-                search_criteria.append(f"địa điểm '{city}'")
-            if experience:
-                search_criteria.append(f"kinh nghiệm '{experience}'")
-            
-            criteria_text = ", ".join(search_criteria) if search_criteria else "tiêu chí đã cho"
-            return f"Không tìm thấy việc làm phù hợp với {criteria_text}. Hãy thử mở rộng tiêu chí tìm kiếm hoặc kiểm tra lại thông tin địa điểm."
+            return f"Không tìm thấy việc làm phù hợp với tiêu chí của bạn. Tiêu chí tìm kiếm: {query or ''}"
         
         results = []
         for post in posts:
@@ -258,15 +236,7 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
             results.append(post_info)
         
         # Format kết quả thành markdown
-        search_info = []
-        if query:
-            search_info.append(f"từ khóa '{query}'")
-        if city:
-            search_info.append(f"tại {city}")
-        
-        search_title = " ".join(search_info) if search_info else ""
-        markdown_result = f"### Kết quả tìm kiếm việc làm {search_title}\n\n"
-        markdown_result += f"Tìm thấy **{len(results)}** việc làm phù hợp:\n\n"
+        markdown_result = f"### Kết quả tìm kiếm việc làm{' cho ' + query if query else ''}\n\n"
         
         for job in results:
             markdown_result += f"#### {job['title']} (ID: {job['id']})\n"
@@ -712,11 +682,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
     1. KHI NGƯỜI DÙNG HỎI VỀ LINK CỦA ID: Luôn trả link dạng "https://tuyendungtlu.site/job/[ID]"
     2. KHI HIỂN THỊ VIỆC LÀM: Luôn kèm theo link dạng "https://tuyendungtlu.site/job/[ID]"
     3. KHÔNG BAO GIỜ NÓI "không hỗ trợ xem qua ID" - luôn cung cấp link cụ thể
-    4. TÌM KIẾM THEO ĐỊA ĐIỂM: Khi người dùng đề cập đến BẤT KỲ tỉnh/thành phố/địa điểm nào tại Việt Nam, hãy tìm kiếm trong dữ liệu hệ thống
-       - Ví dụ: Vĩnh Phúc, Bắc Ninh, Quảng Ninh, Nghệ An, Thanh Hóa, Huế, Đà Lạt, Cần Thơ, An Giang, v.v.
-       - Sử dụng tìm kiếm linh hoạt (tìm kiếm từng phần của tên địa điểm)
-       - Nếu không tìm thấy chính xác, hãy tìm kiếm gần đúng hoặc thông báo không có việc làm tại địa điểm đó
-    5. PHÂN TÍCH THÔNG MINH: Tự động phát hiện từ khóa địa điểm trong câu hỏi của người dùng
 
     **DỮ LIỆU HỆ THỐNG:**
     {system_data_text}
@@ -724,13 +689,13 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
     **YÊU CẦU NGƯỜI DÙNG:**
     {message_content}
 
-    **HƯỚNG DẪN XỬ LÝ:**
-    1. Đầu tiên, phân tích xem người dùng có đề cập đến địa điểm cụ thể nào không
-    2. Nếu có địa điểm, tìm kiếm trong dữ liệu hệ thống theo địa điểm đó
-    3. Sử dụng tìm kiếm linh hoạt - không cần khớp chính xác 100%
-    4. Trả lời bằng tiếng Việt, rõ ràng, ngắn gọn, và định dạng bằng markdown
-    5. Luôn kèm theo link chi tiết cho mỗi việc làm tìm được
-    6. Nếu không tìm thấy việc làm tại địa điểm đó, thông báo rõ ràng và gợi ý các địa điểm khác có việc làm
+    **HƯỚNG DẪN:**
+    1. Phân tích yêu cầu của người dùng và sử dụng dữ liệu hệ thống ở trên để trả lời.
+    2. Nếu yêu cầu liên quan đến việc làm, vị trí, công ty, hoặc thống kê, hãy sử dụng dữ liệu từ hệ thống.
+    3. Nếu không có dữ liệu phù hợp trong hệ thống, hãy trả lời dựa trên kiến thức chung của bạn.
+    4. Trả lời bằng tiếng Việt, rõ ràng, ngắn gọn, và định dạng bằng markdown.
+    5. Nếu dữ liệu không đủ để trả lời, hãy thông báo: "Không tìm thấy thông tin phù hợp trong hệ thống."
+    6. Nếu người dùng yêu cầu lọc hoặc tổng hợp dữ liệu, hãy phân tích và trình bày kết quả theo cách dễ hiểu.
 
     **VAI TRÒ NGƯỜI DÙNG:**
     {'Nhà tuyển dụng' if user.is_employer() else 'Ứng viên'}
@@ -788,63 +753,6 @@ THÔNG TIN DÀNH CHO NGƯỜI TÌM VIỆC:
                 "content": f"Thông tin việc làm ID {job_id}:\n\n🔗 **Link chi tiết:** https://tuyendungtlu.site/job/{job_id}\n\nVui lòng click vào link trên để xem đầy đủ thông tin về công việc này.",
                 "source_type": "gemini_database"
             }
-        
-        # Xử lý tìm kiếm việc làm theo địa điểm
-        location_detected = self._detect_location_in_message(message_content)
-        if location_detected:
-            # Kiểm tra xem có phải là câu hỏi về tìm việc không
-            if any(keyword in message_lower for keyword in ["tìm việc", "việc làm", "công việc", "tuyển dụng", "tìm", "có việc"]):
-                # Gọi search function với địa điểm được phát hiện
-                search_result = self.search_job_posts(city=location_detected, limit=10)
-                return {
-                    "content": search_result,
-                    "source_type": "gemini_database"
-                }
-        
-        return None
-    
-    def _detect_location_in_message(self, message):
-        """Phát hiện địa điểm trong tin nhắn của người dùng"""
-        message_lower = message.lower()
-        
-        # Danh sách các tỉnh thành của Việt Nam (bao gồm cả tên viết tắt và đầy đủ)
-        vietnam_locations = [
-            # Thành phố trực thuộc TW
-            "hà nội", "hồ chí minh", "đà nẵng", "hải phòng", "cần thơ",
-            
-            # Các tỉnh miền Bắc
-            "hà giang", "cao bằng", "bắc kạn", "tuyên quang", "lào cai", "điện biên", "lai châu", "sơn la", "yên bái", "hoà bình",
-            "thái nguyên", "lạng sơn", "quảng ninh", "bắc giang", "phú thọ", "vĩnh phúc", "bắc ninh", "hà nam", "hải dương",
-            "hưng yên", "thái bình", "nam định", "ninh bình",
-            
-            # Các tỉnh miền Trung
-            "thanh hóa", "nghệ an", "hà tĩnh", "quảng bình", "quảng trị", "thừa thiên huế", "quảng nam", "quảng ngãi",
-            "bình định", "phú yên", "khánh hòa", "ninh thuận", "bình thuận", "kon tum", "gia lai", "đắk lắk", "đắk nông", "lâm đồng",
-            
-            # Các tỉnh miền Nam
-            "bình phước", "tây ninh", "bình dương", "đồng nai", "bà rịa - vũng tàu", "long an", "tiền giang", "bến tre", "trà vinh",
-            "vĩnh long", "đồng tháp", "an giang", "kiên giang", "cà mau", "bạc liêu", "sóc trăng", "hậu giang",
-            
-            # Tên viết tắt và phổ biến
-            "tp hcm", "tphcm", "sài gòn", "huế", "nha trang", "đà lạt", "vũng tàu", "phan thiết", "quy nhon", "pleiku",
-            "buôn ma thuột", "cà mau", "rạch giá", "châu đốc", "my tho", "bến tre", "cao lãnh", "sa đéc", "long xuyên",
-            
-            # Các thành phố lớn khác
-            "thái nguyên", "nam định", "thanh hóa", "vinh", "huế", "nha trang", "buôn ma thuột", "cần thơ", "cà mau"
-        ]
-        
-        # Tìm kiếm địa điểm trong tin nhắn
-        for location in vietnam_locations:
-            # Tìm kiếm chính xác
-            if location in message_lower:
-                return location.title()
-            
-            # Tìm kiếm từng từ của địa điểm (cho các tên có nhiều từ)
-            location_words = location.split()
-            if len(location_words) > 1:
-                # Kiểm tra xem tất cả các từ của địa điểm có xuất hiện trong tin nhắn không
-                if all(word in message_lower for word in location_words):
-                    return location.title()
         
         return None
     
@@ -1140,33 +1048,8 @@ Yêu cầu:
             formatted_text += f"- Ứng viên: {stats_data.get('candidates_count', 'N/A')}\n"
             formatted_text += f"- Mức lương trung bình: {stats_data.get('avg_min', 'N/A')} - {stats_data.get('avg_max', 'N/A')} triệu VND\n"
 
-        # Thêm thông tin về các địa điểm có việc làm
-        all_locations = self._get_all_job_locations()
-        if all_locations:
-            formatted_text += "\n**CÁC ĐỊA ĐIỂM CÓ VIỆC LÀM**:\n"
-            formatted_text += ", ".join(all_locations[:20]) + "\n"  # Hiển thị tối đa 20 địa điểm
-            if len(all_locations) > 20:
-                formatted_text += f"... và {len(all_locations) - 20} địa điểm khác\n"
-
         return formatted_text
         
-    def _get_all_job_locations(self):
-        """Lấy danh sách tất cả các địa điểm có việc làm trong hệ thống"""
-        try:
-            from enterprises.models import PostEntity
-            
-            # Lấy tất cả các thành phố có việc làm đang hoạt động, sắp xếp theo số lượng việc làm
-            locations = PostEntity.objects.filter(is_active=True).values('city').annotate(
-                job_count=Count('id')
-            ).order_by('-job_count')
-            
-            # Trả về danh sách tên thành phố
-            return [location['city'] for location in locations if location['city'] and location['city'].strip()]
-            
-        except Exception as e:
-            self.logger.error(f"Lỗi khi lấy danh sách địa điểm: {str(e)}")
-            return []
-
     def get_stats_data_raw(self):
         """Lấy dữ liệu thống kê hệ thống dạng raw"""
         from enterprises.models import PostEntity, EnterpriseEntity
