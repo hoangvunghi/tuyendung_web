@@ -693,42 +693,27 @@ def get_posts(request):
     # Tạo cache key dựa trên tham số sắp xếp và trang hiện tại
     page = request.query_params.get('page', '1')
     page_size = request.query_params.get('page_size', '10')
-    cache_key = f'posts_basic_data_{sort}_{page}_{page_size}'
     
-    # Thử lấy post IDs từ cache
-    cached_post_ids = cache.get(cache_key)
-    
-    if cached_post_ids is None:
-        # Nếu không có trong cache, thực hiện truy vấn để lấy post IDs
-        posts = PostEntity.objects.filter(
-            is_active=True, 
-            is_remove_by_admin=False,
-            deadline__gt=datetime.now()
-        ).select_related(
-            'position', 
-            'enterprise', 
-            'field'
-        )
-        
+    posts = PostEntity.objects.filter(
+        is_active=True, 
+        is_remove_by_admin=False,
+        deadline__gt=datetime.now()
+    ).select_related(
+        'position', 
+        'enterprise', 
+        'field'
+    )
         # Sắp xếp cơ bản theo tham số
-    if (sort == '-salary_max'):
+    if (sort == '-salary-max'):
         posts = posts.order_by('-salary_max')
-    elif (sort == '-salary_min'):
+    elif (sort == '-salary-min'):
         posts = posts.order_by('-salary_min')
     elif (sort == '-created_at'):
         posts = posts.order_by('-created_at')
-  
-    # Phân trang
     paginator = CustomPagination()
     paginated_posts = paginator.paginate_queryset(posts, request)
-    
-    # Serialize với context để tính toán các trường động như is_saved
     serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
     response_data = paginator.get_paginated_response(serializer.data).data
-    
-    time_end = datetime.now()
-    print(f"Time taken: {time_end - time_start} seconds")
-
     return Response(response_data)
 
 @swagger_auto_schema(
