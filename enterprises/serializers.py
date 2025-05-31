@@ -62,6 +62,13 @@ class PostSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'is_active', 'is_saved', 'is_enterprise_premium', 'matches_criteria']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['description'] = strip_html_tags(data.get('description'))
+        data['required'] = strip_html_tags(data.get('required'))
+        data['interest'] = strip_html_tags(data.get('interest'))
+        return data
+
     def get_is_saved(self, obj):
         """Kiểm tra xem bài đăng có được lưu bởi người dùng hiện tại không"""
         request = self.context.get('request')
@@ -126,6 +133,7 @@ class PostSerializer(serializers.ModelSerializer):
                 pass
         
         return False
+
 class PostDetailSerializer(serializers.ModelSerializer):
     position = serializers.PrimaryKeyRelatedField(queryset=PositionEntity.objects.all())
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
@@ -144,6 +152,13 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'is_saved', 'is_enterprise_premium', 'matches_criteria', 'experience', 'level', 'time_working'
         ]
         read_only_fields = ['created_at', 'is_active', 'is_saved', 'is_enterprise_premium', 'matches_criteria']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['description'] = strip_html_tags(data.get('description'))
+        data['required'] = strip_html_tags(data.get('required'))
+        data['interest'] = strip_html_tags(data.get('interest'))
+        return data
 
     def get_is_saved(self, obj):
         """Kiểm tra xem bài đăng có được lưu bởi người dùng hiện tại không"""
@@ -308,7 +323,7 @@ class EnterprisePostDetailSerializer(serializers.ModelSerializer):
     enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
     field = serializers.CharField(source='field.name', read_only=True)
     enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
-    
+
     class Meta:
         model = PostEntity
         fields = [
@@ -319,3 +334,10 @@ class EnterprisePostDetailSerializer(serializers.ModelSerializer):
             'experience', 'level', 'time_working'
         ]
         read_only_fields = ['created_at', 'is_active']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['description'] = strip_html_tags(data.get('description'))
+        data['required'] = strip_html_tags(data.get('required'))
+        data['interest'] = strip_html_tags(data.get('interest'))
+        return data
