@@ -2403,12 +2403,13 @@ def get_post_detail(request, pk):
             data['latest_application_date'] = None
             
         # Lấy danh sách bài đăng liên quan với một truy vấn hiệu quả
-        # Thêm annotation để sắp xếp theo độ liên quan và sử dụng ID để lọc
+        # Chỉ lấy các bài đăng có cùng field
         related_posts_query = PostEntity.objects.filter(
-            is_active=True, 
-            deadline__gt=timezone.now()
+            is_active=True,
+            deadline__gt=timezone.now(),
+            field_id=post.field_id  # Chỉ lấy bài đăng cùng field
         ).exclude(id=post.id).select_related(
-            'enterprise', 
+            'enterprise',
             'field',
             'position'
         )
@@ -2416,14 +2417,13 @@ def get_post_detail(request, pk):
         # Tính điểm liên quan cho mỗi bài đăng sử dụng Case/When để tránh nhiều truy vấn
         related_posts_query = related_posts_query.annotate(
             relevance_score=Case(
-                When(field_id=post.field_id, then=Value(4)),  # Ưu tiên cùng lĩnh vực
-                When(position_id=post.position_id, then=Value(3)),  # Sau đó đến cùng vị trí
+                When(position_id=post.position_id, then=Value(3)),  # Ưu tiên cùng vị trí
                 When(city=post.city, then=Value(2)),  # Tiếp đến là cùng thành phố
                 When(enterprise_id=post.enterprise_id, then=Value(1)),  # Cuối cùng là cùng doanh nghiệp
                 default=Value(0),
                 output_field=IntegerField()
             )
-        ).filter(relevance_score__gt=0).order_by('-relevance_score', '-created_at')[:10]
+        ).order_by('-relevance_score', '-created_at')[:7]  # Giới hạn 7 bài đăng liên quan
         
         # Thực hiện truy vấn và lấy kết quả
         related_posts = list(related_posts_query)
