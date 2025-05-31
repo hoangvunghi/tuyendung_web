@@ -5,21 +5,8 @@ import re
 
 def strip_html_tags(text):
     if text:
-        # Xóa các thẻ HTML
         clean = re.compile('<.*?>')
-        text = re.sub(clean, '', text)
-        
-        # Thêm xuống dòng sau dấu + hoặc - nếu chưa có \n và không phải ký tự cuối
-        text = re.sub(r'([+\-])(?!\n)(?!$)', r'\1\n', text)
-        
-        # Xử lý trường hợp nhiều dòng trống
-        text = re.sub(r'\n\s*\n', '\n', text)
-        
-        # Xóa khoảng trắng thừa
-        text = re.sub(r'\s+', ' ', text)
-        text = text.strip()
-        
-        return text
+        return re.sub(clean, '', text)
     return text
 
 class EnterpriseSerializer(serializers.ModelSerializer):
