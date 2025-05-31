@@ -301,3 +301,21 @@ class ReportPostSerializer(serializers.ModelSerializer):
         # Tạo báo cáo mới
         report = ReportPostEntity.objects.create(**validated_data)
         return report
+
+class EnterprisePostDetailSerializer(serializers.ModelSerializer):
+    """Serializer để hiển thị chi tiết bài đăng cho enterprise"""
+    position = PositionSerializer(read_only=True)
+    enterprise_name = serializers.CharField(source='enterprise.company_name', read_only=True)
+    field = serializers.CharField(source='field.name', read_only=True)
+    enterprise_logo = serializers.CharField(source='enterprise.logo_url', read_only=True)
+    
+    class Meta:
+        model = PostEntity
+        fields = [
+            'id', 'title', 'description', 'required', 'interest',
+            'type_working', 'salary_min', 'salary_max', 'is_salary_negotiable',
+            'quantity', 'city', 'district', 'position', 'field', 'created_at',
+            'deadline', 'is_active', 'enterprise', 'enterprise_name', 'enterprise_logo', 'detail_address',
+            'experience', 'level', 'time_working'
+        ]
+        read_only_fields = ['created_at', 'is_active']

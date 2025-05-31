@@ -22,7 +22,7 @@ from .models import (
     SavedPostEntity
 )
 from .serializers import (
-    EnterpriseDetailSerializer, EnterpriseSerializer, PostDetailSerializer, PostEnterpriseSerializer, PostSerializer,
+    EnterpriseDetailSerializer, EnterprisePostDetailSerializer, EnterpriseSerializer, PostDetailSerializer, PostEnterpriseSerializer, PostSerializer,
     FieldSerializer, PositionSerializer, CriteriaSerializer,
     PostUpdateSerializer, PostEnterpriseForEmployerSerializer, SavedPostSerializer, PostListSerializer
 )
@@ -3326,3 +3326,32 @@ def check_post_saved(request, post_id):
             'is_saved': False,
             'saved_post_id': None
         }, status=status.HTTP_200_OK)
+    
+
+@api_view(['GET'])
+@permission_classes([IsEnterpriseOwner])
+def get_enterprise_post_detail(request, pk):
+    """
+    API để lấy chi tiết bài đăng cho enterprise
+    """
+    try:
+        post = PostEntity.objects.get(pk=pk)
+        
+        # Kiểm tra xem người dùng có phải là chủ doanh nghiệp của bài đăng không
+        if post.enterprise.user != request.user:
+            return Response({
+                'message': 'Bạn không có quyền xem chi tiết bài đăng này',
+                'status': 403
+            }, status=status.HTTP_403_FORBIDDEN)
+            
+        serializer = EnterprisePostDetailSerializer(post)
+        return Response({
+            'message': 'Lấy chi tiết bài đăng thành công',
+            'status': 200,
+            'data': serializer.data
+        })
+    except PostEntity.DoesNotExist:
+        return Response({
+            'detail': 'Không tìm thấy bài đăng',
+            'status': 404
+        }, status=status.HTTP_404_NOT_FOUND)

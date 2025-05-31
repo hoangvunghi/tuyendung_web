@@ -27,6 +27,7 @@ urlpatterns = [
     path('posts/enterprise/<int:pk>/', views.get_posts_for_enterprise_detail, name='get-post-of-enterprise-detail'),
     path('posts/user/', views.get_post_of_user, name='get-post-of-user'),
     path('post/<int:pk>/toggle-status/', views.toogle_post_status, name='toggle-post-status'),
+    path('post/enterprise/<int:pk>/', views.get_enterprise_post_detail, name='get_enterprise_post_detail'),
     # Field Management
     path('fields/', views.get_fields, name='get-fields'),
     path('fields/create/', views.create_field, name='create-field'),
