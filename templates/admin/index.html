@@ -323,12 +323,6 @@
             </div>
           </div>
           <div class="chart-container">
-            <h3>Top doanh nghiệp theo số lượng ứng viên</h3>
-            <div class="chart-wrapper">
-              <canvas id="top-enterprises-chart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container">
             <h3>Trạng thái xác thực doanh nghiệp</h3>
             <div class="chart-wrapper">
               <canvas id="enterprise-verification-chart"></canvas>
@@ -338,40 +332,6 @@
             <h3>Phân bố doanh nghiệp theo ngành</h3>
             <div class="chart-wrapper">
               <canvas id="enterprise-industry-chart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Thống kê bài đăng -->
-      <div class="dashboard-section">
-        <h2 class="dashboard-section-title">
-          <span class="material-icons">work</span>
-          {% translate 'Thống Kê Bài Đăng' %}
-        </h2>
-        <div class="dashboard-charts" id="job-stats-container">
-          <div class="chart-container">
-            <h3>Lượt xem và ứng tuyển theo lĩnh vực</h3>
-            <div class="chart-wrapper">
-              <canvas id="job-field-stats-chart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container">
-            <h3>Thời gian tuyển dụng theo lĩnh vực</h3>
-            <div class="chart-wrapper">
-              <canvas id="job-fill-time-chart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container">
-            <h3>Phân bố địa điểm và mức lương</h3>
-            <div class="chart-wrapper">
-              <canvas id="job-location-salary-chart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container">
-            <h3>Loại hình công việc</h3>
-            <div class="chart-wrapper">
-              <canvas id="job-type-chart"></canvas>
             </div>
           </div>
         </div>
@@ -396,18 +356,7 @@
               <canvas id="cv-processing-time-chart"></canvas>
             </div>
           </div>
-          <div class="chart-container">
-            <h3>Tỷ lệ thành công của ứng tuyển</h3>
-            <div class="chart-wrapper">
-              <canvas id="application-success-chart"></canvas>
-            </div>
-          </div>
-          <div class="chart-container">
-            <h3>Kỹ năng phổ biến theo lĩnh vực</h3>
-            <div class="chart-wrapper">
-              <canvas id="top-skills-chart"></canvas>
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -424,12 +373,7 @@
               <canvas id="revenue-by-package-chart"></canvas>
             </div>
           </div>
-          <div class="chart-container">
-            <h3>Doanh thu trung bình trên mỗi người dùng</h3>
-            <div class="chart-wrapper">
-              <canvas id="arppu-chart"></canvas>
-            </div>
-          </div>
+
           <div class="chart-container">
             <h3>Tỷ lệ giao dịch thành công</h3>
             <div class="chart-wrapper">
@@ -489,12 +433,6 @@
             "value": 21,
             "color": "indigo",
             "icon": "description"
-          },
-          {
-            "label": "Phỏng vấn",
-            "value": 0,
-            "color": "orange",
-            "icon": "event"
           },
           {
             "label": "Doanh thu",
@@ -722,7 +660,7 @@
             "labels": ["Thành công", "Thất bại"],
             "datasets": [
               {
-                "data": [95, 5],
+                "data": [80, 20],
                 "backgroundColor": [
                   "rgba(34, 197, 94, 0.8)",
                   "rgba(239, 68, 68, 0.8)"
@@ -869,14 +807,7 @@
             showDebug(`Lỗi khi khởi tạo biểu đồ doanh nghiệp: ${error.message}`);
           }
           try {
-          // Thống kê bài đăng
-          initializeJobCharts(data.job_stats);
-          } catch (error) {
-            showDebug(`Lỗi khi khởi tạo biểu đồ bài đăng: ${error.message}`);
-          }
-          try {
-          // Thống kê CV và ứng tuyển
-          initializeCVCharts(data.cv_stats);
+            initializeCVCharts(data.cv_stats);
           } catch (error) {
             showDebug(`Lỗi khi khởi tạo biểu đồ CV và ứng tuyển: ${error.message}`);
           }
@@ -1110,117 +1041,7 @@
           });
         }
       }
-      
-      // Khởi tạo biểu đồ thống kê bài đăng
-      function initializeJobCharts(jobStats) {
-        // Lượt xem và ứng tuyển theo lĩnh vực
-        const fieldStatsCtx = document.getElementById('job-field-stats-chart')?.getContext('2d');
-        if (fieldStatsCtx) {
-          new Chart(fieldStatsCtx, {
-            type: 'bar',
-            data: {
-              labels: jobStats.field_stats.labels,
-              datasets: jobStats.field_stats.datasets.map(dataset => ({
-                label: dataset.label,
-                data: dataset.data,
-                borderColor: colorMap[dataset.color].borderColor,
-                backgroundColor: colorMap[dataset.color].backgroundColor,
-                borderWidth: 2
-              }))
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { position: 'bottom' }
-              },
-              scales: {
-                y: { beginAtZero: true }
-              }
-            }
-          });
-        }
-        
-        // Thời gian tuyển dụng
-        const fillTimeCtx = document.getElementById('job-fill-time-chart')?.getContext('2d');
-        if (fillTimeCtx) {
-          new Chart(fillTimeCtx, {
-            type: 'line',
-            data: {
-              labels: jobStats.fill_time.labels,
-              datasets: [{
-                label: jobStats.fill_time.datasets[0].label,
-                data: jobStats.fill_time.datasets[0].data,
-                borderColor: colorMap[jobStats.fill_time.datasets[0].color].borderColor,
-                backgroundColor: colorMap[jobStats.fill_time.datasets[0].color].backgroundColor,
-                borderWidth: 2,
-                fill: false
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { position: 'bottom' }
-              },
-              scales: {
-                y: { beginAtZero: true }
-              }
-            }
-          });
-        }
-        
-        // Phân bố địa điểm và mức lương
-        const locationSalaryCtx = document.getElementById('job-location-salary-chart')?.getContext('2d');
-        if (locationSalaryCtx) {
-          new Chart(locationSalaryCtx, {
-            type: 'bar',
-            data: {
-              labels: jobStats.location_salary.labels,
-              datasets: [{
-                label: jobStats.location_salary.datasets[0].label,
-                data: jobStats.location_salary.datasets[0].data,
-                borderColor: colorMap[jobStats.location_salary.datasets[0].color].borderColor,
-                backgroundColor: colorMap[jobStats.location_salary.datasets[0].color].backgroundColor,
-                borderWidth: 2
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { position: 'bottom' }
-              },
-              scales: {
-                y: { beginAtZero: true }
-              }
-            }
-          });
-        }
-        
-        // Loại hình công việc
-        const jobTypeCtx = document.getElementById('job-type-chart')?.getContext('2d');
-        if (jobTypeCtx) {
-          new Chart(jobTypeCtx, {
-            type: 'pie',
-            data: {
-              labels: jobStats.job_type.labels,
-              datasets: [{
-                data: jobStats.job_type.datasets[0].data,
-                backgroundColor: jobStats.job_type.datasets[0].backgroundColor
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { position: 'bottom' }
-              }
-            }
-          });
-        }
-      }
-      
+
       // Khởi tạo biểu đồ thống kê CV và ứng tuyển
       function initializeCVCharts(cvStats) {
         // Xu hướng nộp CV

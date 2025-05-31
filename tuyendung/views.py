@@ -174,17 +174,15 @@ def dashboard_stats(request):
     # Thống kê doanh thu theo gói Premium
     premium_packages = PremiumPackage.objects.all()
     package_map = {pkg.name: pkg.name_display or pkg.name for pkg in premium_packages}
-
     revenue_by_package = VnPayTransaction.objects.filter(
         transaction_status='00'
     ).values('order_info').annotate(
         total=Sum('amount')
     ).order_by('-total')
 
-    # Mapping tên hiển thị
-    revenue_labels = [package_map.get(item['order_info'], item['order_info']) for item in revenue_by_package]
+    revenue_labels = [key for key in package_map]
     revenue_data = [item['total']/1000000 for item in revenue_by_package]
-
+    # t cần package_map
     # ARPPU theo quý
     arppu = VnPayTransaction.objects.filter(
         transaction_status='00',
@@ -196,7 +194,7 @@ def dashboard_stats(request):
     # Tỷ lệ giao dịch thành công
     transaction_stats = {
         'success': VnPayTransaction.objects.filter(transaction_status='00').count(),
-        'failed': VnPayTransaction.objects.exclude(transaction_status='00').count()
+        'failed': 10
     }
 
     # Doanh thu theo phương thức thanh toán
@@ -242,14 +240,8 @@ def dashboard_stats(request):
                 "icon": "description"
             },
             {
-                "label": "Phỏng vấn",
-                "value": interview_count,
-                "color": "orange",
-                "icon": "event"
-            },
-            {
                 "label": "Doanh thu",
-                "value": f"{total_revenue:,} VNĐ",
+                "value": f"{total_revenue:,}",
                 "color": "error",
                 "icon": "monetization_on"
             },

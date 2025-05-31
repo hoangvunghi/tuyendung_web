@@ -14,7 +14,7 @@ def get_admin_url(viewname, *args, **kwargs):
 def get_dashboard_config(request, context):
     """Hàm trả về cấu hình dashboard."""
     from django.apps import apps
-    from django.db.models import Count, Sum
+    from django.db.models import Count, Sum, Avg, F
     from django.utils import timezone
     from datetime import timedelta, datetime
     
@@ -25,7 +25,6 @@ def get_dashboard_config(request, context):
         EnterpriseEntity = apps.get_model("enterprises", "EnterpriseEntity")
         PostEntity = apps.get_model("enterprises", "PostEntity")
         Cv = apps.get_model("profiles", "Cv")
-        Interview = apps.get_model("interviews", "Interview")
         VnPayTransaction = apps.get_model("transactions", "VnPayTransaction")
         PremiumPackage = apps.get_model("transactions", "PremiumPackage")
         
@@ -35,7 +34,6 @@ def get_dashboard_config(request, context):
         enterprise_count = EnterpriseEntity.objects.count()
         post_count = PostEntity.objects.count()
         cv_count = Cv.objects.count()
-        interview_count = Interview.objects.count()
         
         # Tính các thống kê tài chính
         total_revenue = VnPayTransaction.objects.filter(transaction_status='00').aggregate(Sum('amount'))['amount__sum'] or 0
@@ -52,23 +50,19 @@ def get_dashboard_config(request, context):
         post_data = []
         
         for i in range(days):
-            # Tính toán ngày
             day = today - timedelta(days=(days-1-i))
             date_data.append(day.strftime('%d/%m'))
             
-            # Đếm người dùng đăng ký trong ngày
             day_users = UserAccount.objects.filter(
                 date_joined__date=day
             ).count()
             user_data.append(day_users)
             
-            # Đếm CV trong ngày
             day_cvs = Cv.objects.filter(
                 created_at__date=day
             ).count()
             cv_data.append(day_cvs)
             
-            # Đếm bài đăng trong ngày
             day_posts = PostEntity.objects.filter(
                 created_at__date=day
             ).count()
@@ -92,9 +86,16 @@ def get_dashboard_config(request, context):
         job_field_labels = [field['field__name'] or 'Không xác định' for field in job_fields]
         job_field_data = [field['count'] for field in job_fields]
         
+        # Tính thời gian xử lý CV trung bình
+        avg_processing_time = Cv.objects.exclude(status='pending').annotate(
+            process_time=F('updated_at') - F('created_at')
+        ).aggregate(avg_time=Avg('process_time'))['avg_time']
+        
+        avg_processing_days = round(avg_processing_time.days + avg_processing_time.seconds / 86400, 1) if avg_processing_time else 0
+        
     except Exception as e:
         # Nếu có lỗi, thiết lập giá trị mặc định
-        user_count = user_info_count = enterprise_count = post_count = cv_count = interview_count = 0
+        user_count = user_info_count = enterprise_count = post_count = cv_count = 0
         total_revenue = premium_users = 0
         date_data = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
         user_data = [10, 15, 8, 12, 9, 5, 3]
@@ -105,6 +106,7 @@ def get_dashboard_config(request, context):
         candidate_count = employer_count = 0
         job_field_labels = ["IT", "Marketing", "Kế toán", "Bán hàng", "Khác"]
         job_field_data = [10, 8, 5, 7, 3]
+        avg_processing_days = 0
 
     context.update({
         "stats": [
@@ -142,13 +144,13 @@ def get_dashboard_config(request, context):
                 "url": get_admin_url("admin:profiles_cv_changelist"),
                 "color": "indigo",
                 "icon": "description",
-            }, 
+            },
             {
-                "label": "Phỏng vấn",
-                "value": interview_count,
-                "url": get_admin_url("admin:interviews_interview_changelist"),
-                "color": "orange",
-                "icon": "event",
+                "label": "Thời gian xử lý CV TB",
+                "value": f"{avg_processing_days} ngày",
+                "url": get_admin_url("admin:profiles_cv_changelist"),
+                "color": "purple",
+                "icon": "timer",
             },
             {
                 "label": "Doanh thu",
@@ -685,11 +687,6 @@ UNFOLD = {
                             "value": apps.get_model("chat", "Message").objects.count(),
                             "attrs": {"class": "bg-cyan-500 text-white"},
                         } if "chat" in apps.app_configs else None,
-                    },
-                    {
-                        "title": _("Phỏng vấn"),
-                        "icon": "event_note",
-                        "link": get_admin_url("admin:interviews_interview_changelist"),
                     },
                     {
                         "title": _("Thông báo"),
