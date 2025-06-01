@@ -2344,18 +2344,6 @@ def get_post_detail(request, pk):
         # Đo thời gian thực hiện
         start_time = time.time()
         
-        # Tạo cache key cụ thể cho từng người dùng vì mỗi người dùng sẽ thấy dữ liệu khác nhau
-        user_id = request.user.id if request.user.is_authenticated else 'anonymous'
-        cache_key = f'post_detail_{pk}_user_{user_id}'
-        
-        # Thử lấy từ cache trước
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            print(f"Cache hit for post {pk}, user {user_id}")
-            print(f"Execution time: {time.time() - start_time:.4f}s (from cache)")
-            return Response(cached_data)
-        
-        # Nếu không có trong cache, thực hiện truy vấn với tối ưu select_related
         post = PostEntity.objects.select_related(
             'enterprise', 
             'enterprise__user',
@@ -2442,8 +2430,6 @@ def get_post_detail(request, pk):
             'data': data
         }
         
-        # Cache kết quả trong 5 phút
-        cache.set(cache_key, response_data, 60 * 5)  
         
         # In thời gian thực hiện để theo dõi hiệu suất
         print(f"Execution time: {time.time() - start_time:.4f}s (from database)")
