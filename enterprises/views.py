@@ -1164,15 +1164,7 @@ def create_field(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_enterprises(request):
-    # Tạo cache key dựa trên tất cả các tham số tìm kiếm:
-    # - q (từ khóa tìm kiếm)
-    # - city (thành phố)
-    # - field (lĩnh vực)
-    # - scale (quy mô)
-    # - sort_by (trường sắp xếp)
-    # - sort_order (thứ tự sắp xếp)
-    # - page (số trang)
-    # - page_size (số lượng doanh nghiệp mỗi trang)
+
     params = {
         'q': request.query_params.get('q', ''),
         'city': request.query_params.get('city', ''),
@@ -1185,9 +1177,6 @@ def search_enterprises(request):
     }
     cache_key = f'enterprises_search_{urlencode(params)}'
     
-    # Kiểm tra xem kết quả đã được cache chưa:
-    # - Nếu có trong cache thì trả về kết quả ngay lập tức
-    # - Nếu không có trong cache thì thực hiện tìm kiếm bình thường
     cached_response = cache.get(cache_key)
     if cached_response is not None:
         return Response(cached_response)
@@ -1223,8 +1212,7 @@ def search_enterprises(request):
     serializer = EnterpriseSerializer(paginated_enterprises, many=True)
     response_data = paginator.get_paginated_response(serializer.data).data
     
-    # Sau khi tìm kiếm xong, lưu kết quả vào cache với thời gian sống là 5 phút (theo cấu hình trong settings.py)
-    cache.set(cache_key, response_data)
+    cache.set(cache_key, response_data, 60)
     
     return Response(response_data)
 
