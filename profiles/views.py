@@ -775,17 +775,10 @@ def update_cv_note(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_cvs(request):
-    #Sử dụng cache để lấy danh sách các CV của người dùng
-    cache_key = f'user_cvs_{request.user.id}'
-    cached_response = cache.get(cache_key)
-    if cached_response is not None:
-        return Response(cached_response)
-    
     cvs = Cv.objects.filter(user=request.user)
     paginator = CustomPagination()
     paginated_cvs = paginator.paginate_queryset(cvs, request)
     serializer = CvUserSerializer(paginated_cvs, many=True)
-    cache.set(cache_key, serializer.data, timeout=300)
     return paginator.get_paginated_response(serializer.data)
 
 
