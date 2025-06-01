@@ -108,9 +108,9 @@ def dashboard_stats(request):
     ).order_by('-application_count')[:5]
 
     # Trạng thái xác thực doanh nghiệp
-    verified_enterprises = EnterpriseEntity.objects.filter(business_certificate_url__isnull=False).count()
-    pending_enterprises = EnterpriseEntity.objects.filter(business_certificate_url__isnull=True, is_active=True).count()
-    unverified_enterprises = EnterpriseEntity.objects.filter(business_certificate_url__isnull=True, is_active=False).count()
+    verified_enterprises = EnterpriseEntity.objects.filter(is_active=True).count()
+    # pending_enterprises = EnterpriseEntity.objects.filter(is_active=False).count()
+    unverified_enterprises = EnterpriseEntity.objects.filter(is_active=False).count()
 
     # Phân bố ngành
     industry_stats = EnterpriseEntity.objects.values('field_of_activity').annotate(count=Count('id')).order_by('-count')[:5]
@@ -192,9 +192,10 @@ def dashboard_stats(request):
     ).order_by('created_at__quarter')
 
     # Tỷ lệ giao dịch thành công
+    total_transaction = VnPayTransaction.objects.count()
     transaction_stats = {
         'success': VnPayTransaction.objects.filter(transaction_status='00').count(),
-        'failed': 10
+        'failed': total_transaction - VnPayTransaction.objects.filter(transaction_status='00').count()
     }
 
     # Doanh thu theo phương thức thanh toán
@@ -279,11 +280,11 @@ def dashboard_stats(request):
                 ]
             },
             "registration_source": {
-                "labels": ["Email", "Google", "Facebook"],
+                "labels": ["Email", "Google"],
                 "datasets": [
                     {
                         "label": "Nguồn đăng ký",
-                        "data": [email_reg, google_reg, facebook_reg],
+                        "data": [email_reg, google_reg],
                         "color": "warning"
                     }
                 ]
@@ -325,13 +326,12 @@ def dashboard_stats(request):
                 ]
             },
             "verification": {
-                "labels": ["Đã xác thực", "Đang chờ", "Chưa xác thực"],
+                "labels": ["Đã xác thực", "Đang chờ"],
                 "datasets": [
                     {
-                        "data": [verified_enterprises, pending_enterprises, unverified_enterprises],
+                        "data": [verified_enterprises, unverified_enterprises],
                         "backgroundColor": [
                             "rgba(34, 197, 94, 0.8)",
-                            "rgba(251, 191, 36, 0.8)",
                             "rgba(239, 68, 68, 0.8)"
                         ]
                     }
