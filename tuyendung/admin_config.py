@@ -679,15 +679,15 @@ UNFOLD = {
                 "collapsible": True,
                 "icon": "interests",
                 "items": [
-                    {
-                        "title": _("Tin nhắn"),
-                        "icon": "chat",
-                        "link": get_admin_url("admin:chat_message_changelist"),
-                        "badge": lambda request: {
-                            "value": apps.get_model("chat", "Message").objects.count(),
-                            "attrs": {"class": "bg-cyan-500 text-white"},
-                        } if "chat" in apps.app_configs else None,
-                    },
+                    # {
+                    #     "title": _("Tin nhắn"),
+                    #     "icon": "chat",
+                    #     "link": get_admin_url("admin:chat_message_changelist"),
+                    #     "badge": lambda request: {
+                    #         "value": apps.get_model("chat", "Message").objects.count(),
+                    #         "attrs": {"class": "bg-cyan-500 text-white"},
+                    #     } if "chat" in apps.app_configs else None,
+                    # },
                     {
                         "title": _("Thông báo"),
                         "icon": "notifications",
@@ -752,14 +752,14 @@ UNFOLD = {
                 "items": [
                     {
                         "title": _("Google OAuth2"),
-                        "icon": "google",
+                        "icon": "g_mobiledata",
                         "link": get_admin_url("admin:social_django_usersocialauth_changelist"),
                     },
-                    {
-                        "title": _("Các liên kết xã hội khác"),
-                        "icon": "link",
-                        "link": get_admin_url("admin:social_django_association_changelist"),
-                    },
+                    # {
+                    #     "title": _("Các liên kết xã hội khác"),
+                    #     "icon": "link",
+                    #     "link": get_admin_url("admin:social_django_association_changelist"),
+                    # },
                 ],
             },
         ],
